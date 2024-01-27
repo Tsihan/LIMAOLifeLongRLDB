@@ -11,6 +11,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
+# VIEW
+# CORE PART!!!
 """Plan search: dynamic programming, beam search, etc."""
 import collections
 import copy
@@ -85,6 +88,7 @@ def _IsFilterScan(n):
 
 
 # @profile
+# TODO figure this out QIHAN ZHANG
 def _IsSmallScan(n):
     # Special case: check this leaf is "small".  Here we use a hack and treat
     # the small dim tables *_type as small.  A general solution is to delve

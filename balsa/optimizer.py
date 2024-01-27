@@ -100,8 +100,8 @@ class PlannerConfig(
                 ops.append(op)
         assert len(ops) > 0, (self, join_ops)
         return ops
-
-
+# NOTE
+# REVIEW core part!!!
 class Optimizer(object):
     """Creates query execution plans using learned model."""
 

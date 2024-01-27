@@ -2142,7 +2142,7 @@ def Main(argv):
     # Override params here for quick debugging.
     # p.sim_checkpoint = None
     # p.epochs = 1
-    # p.val_iters = 0
+    p.val_iters = 1
     # p.query_glob = ['7*.sql']
     # p.test_query_glob = ['7c.sql']
     # p.search_until_n_complete_plans = 1
@@ -2152,4 +2152,6 @@ def Main(argv):
 
 
 if __name__ == '__main__':
+    pid = os.getpid()
+    print("PID:", pid)
     app.run(Main)

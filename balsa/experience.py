@@ -39,7 +39,8 @@ def TreeConvFeaturize(plan_featurizer, subplans):
     print('took {:.1f}s'.format(time.time() - t1))
     return trees, indexes
 
-
+#NOTE
+# pay attention to this one
 class Experience(object):
 
     def __init__(
