@@ -8,6 +8,7 @@ venv
 *egg-info
 save
 runs
+profile_results
 
 results/*.pkl
 wandb
@@ -19,3 +20,5 @@ data/initial_policy_data.pkl
 *.log
 
 logs/**/*.pdf
+tensorboard_logs
+tensorboard_logs_balsa
