@@ -827,7 +827,7 @@ class BalsaAgent(object):
                          p.tree_conv,
                          workload_info=wi,
                          query_featurizer_cls=query_featurizer_cls,
-                         plan_featurizer_cls=plan_feat_cls)
+                         plan_featurizer_cls=plan_feat_cls,seed=77)
         if p.prev_replay_buffers_glob is not None:
             exp.Load(p.prev_replay_buffers_glob,
                      p.prev_replay_keep_last_fraction)
@@ -840,7 +840,7 @@ class BalsaAgent(object):
                                  p.tree_conv,
                                  workload_info=wi,
                                  query_featurizer_cls=query_featurizer_cls,
-                                 plan_featurizer_cls=plan_feat_cls)
+                                 plan_featurizer_cls=plan_feat_cls,seed=77)
             exp_val.Load(p.prev_replay_buffers_glob_val)
             pa = plan_analysis.PlanAnalysis.Build(
                 exp_val.nodes[exp_val.initial_size:])
