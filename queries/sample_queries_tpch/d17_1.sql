@@ -1,0 +1,33 @@
+-- using default substitutions
+
+
+-- select
+-- 	sum(l_extendedprice) / 7.0 as avg_yearly
+-- from
+-- 	lineitem,
+-- 	part
+-- where
+-- 	p_partkey = l_partkey
+-- 	and p_brand = 'Brand#23'
+-- 	and p_container = 'MED BOX'
+-- 	and l_quantity < (
+-- 		select
+-- 			0.2 * avg(l_quantity)
+-- 		from
+-- 			lineitem
+-- 		where
+-- 			l_partkey = p_partkey
+-- 	);
+-- LIMIT -1
+select
+	sum(l_extendedprice) / 7.0 as avg_yearly
+from
+	lineitem,
+	part,
+        (select l_partkey as agg_partkey, 0.2 * avg(l_quantity) as avg_quantity from lineitem group by l_partkey) part_agg
+where
+	p_partkey = l_partkey
+        and agg_partkey = l_partkey
+	and p_brand = 'Brand#13'
+	and p_container = 'LG BAG'
+	and l_quantity < avg_quantity;

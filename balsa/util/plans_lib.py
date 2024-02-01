@@ -575,7 +575,7 @@ def GetAllSubtrees(nodes):
         if (node.node_type == 'Nested Loop' or node.node_type == 'Hash Join'):
                 trees.append(node)
         else:
-            if (np.random.rand()) > 0.9:
+            if (np.random.rand()) > 0.7:
                 trees.append(node)
                 
         for c in node.children:
@@ -598,7 +598,7 @@ def GetAllSubtreesNoLeaves(nodes):
             if (node.node_type == 'Nested Loop' or node.node_type == 'Hash Join'):
                 trees.append(node)
             else:
-                if (np.random.rand()) > 0.9:
+                if (np.random.rand()) > 0.7:
                     trees.append(node)
             for c in node.children:
                 _fn(c, trees)
