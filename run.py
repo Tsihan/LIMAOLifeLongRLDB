@@ -102,7 +102,7 @@ def MakeModel(p, exp, dataset):
     batch = exp.featurizer(exp.nodes[0])
     assert batch.ndim == 1
     plan_feat_size = batch.shape[0]
-
+    # default go this branch
     if p.tree_conv:
         labels = num_label_bins if p.cross_entropy else 1
         return TreeConvolution(feature_size=query_feat_size,
@@ -374,6 +374,7 @@ def TrainSim(p, loggers=None):
     sim_p.validate_fraction = p.validate_fraction
 
     # Instantiate.
+    # TODO QIHANZHANG this takes time!!!!!!
     sim = sim_lib.Sim(sim_p)
     if p.sim_checkpoint is None:
         sim.CollectSimulationData()
@@ -702,9 +703,11 @@ class BalsaAgent(object):
         self.prev_optimizer_state_dict = None
         # Ray.
         if p.use_local_execution:
+            #print('Using local execution!!!!!')
             ray.init(resources={'pg': 1})
         else:
             # Cluster access: make sure the cluster has been launched.
+            #print('Using REMOTE execution!!!!!')
             import uuid
             ray.init(address='auto',
                      namespace=f'{uuid.uuid4().hex[:4]}',
@@ -751,6 +754,7 @@ class BalsaAgent(object):
         self._InitLogging()
         self.timer = train_utils.Timer()
         # Experience (replay) buffer.
+        # TODO QIHANZHANG this takes time!!!!!!
         self.exp, self.exp_val = self._MakeExperienceBuffer()
         self._latest_replay_buffer_path = None
 
@@ -767,6 +771,7 @@ class BalsaAgent(object):
 
     def _MakeWorkload(self):
         p = self.params
+        # TODO QIHANZHANG entrance this branch
         if os.path.isfile(p.init_experience):
             # Load the expert optimizer experience.
             with open(p.init_experience, 'rb') as f:
@@ -806,6 +811,7 @@ class BalsaAgent(object):
     def _MakeExperienceBuffer(self):
         p = self.params
         if not p.run_baseline and p.sim:
+            # TODO this is used to train or get the simulator
             wi = self.GetOrTrainSim().training_workload_info
         else:
             # E.g., if sim is disabled, we just use the overall workload info
@@ -1399,6 +1405,7 @@ class BalsaAgent(object):
                 p.epsilon_greedy_within_beam_search
 
         self.timer.Start('plan_test_set' if is_test else 'plan')
+        #TODO QIHANZHANG THIS ONE TAKES TIME!!!!!!
         for i, node in enumerate(nodes):
             print('---------------------------------------')
             tup = planner.plan(
@@ -1504,6 +1511,7 @@ class BalsaAgent(object):
         print('{}Waiting on Ray tasks...value_iter={}'.format(
             '[Test set] ' if is_test else '', self.curr_value_iter))
         try:
+            #TODO QIHANZHANG THIS ONE TAKES HUGE TIME!!!!!!
             refs = ray.get(tasks)
         except Exception as e:
             print('ray.get(tasks) received exception:', e)
@@ -1836,6 +1844,7 @@ class BalsaAgent(object):
         planner = self._MakePlanner(model, dataset)
         # Use the model to plan the workload.  Execute the plans and get
         # latencies.
+        # TODO QIHANZHANG This takes time too!!!!!!HUge!!!!!! Waiting on Ray tasks...value_iter=xxx
         to_execute, execution_results = self.PlanAndExecute(model,
                                                             planner,
                                                             is_test=False)
@@ -1867,8 +1876,9 @@ class BalsaAgent(object):
         if (self.curr_value_iter + 1) % 5 == 0:
             self.SaveAgent(model, iter_total_latency)
         # Run and log test queries.
+        # TODO QIHANZHANG This takes time too!!!!!! value_iter=0
         self.EvaluateTestSet(model, planner)
-
+        # QIHANZHANG TODO we don't go below
         if p.track_model_moving_averages:
             # Update model averages.
             # 1. EMA.  Aka Polyak averaging.
@@ -2133,6 +2143,7 @@ class BalsaAgent(object):
 
 
 def Main(argv):
+  
     del argv  # Unused.
     name = FLAGS.run
     print('Looking up params by name:', name)
@@ -2141,17 +2152,16 @@ def Main(argv):
     p.use_local_execution = FLAGS.local
     # Override params here for quick debugging.
     # p.sim_checkpoint = None
-    # p.epochs = 1
-    p.val_iters = 10
+    p.epochs = 1
+    p.val_iters = 1
     # p.query_glob = ['7*.sql']
     # p.test_query_glob = ['7c.sql']
-    # p.search_until_n_complete_plans = 1
+    p.search_until_n_complete_plans = 1
 
     agent = BalsaAgent(p)
     agent.Run()
 
 
 if __name__ == '__main__':
-    pid = os.getpid()
-    print("PID:", pid)
+
     app.run(Main)

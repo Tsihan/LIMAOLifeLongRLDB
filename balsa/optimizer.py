@@ -128,7 +128,7 @@ class Optimizer(object):
         self.use_label_cache = use_label_cache
         self.use_plan_restrictions = use_plan_restrictions
 
-        # Plan search params
+        # Plan search params default don't go
         if not plan_physical:
             jts = workload_info.join_types
             assert np.array_equal(jts, ['Join']), jts
@@ -195,6 +195,7 @@ class Optimizer(object):
             all_query_vecs = [query_enc] * len(plans)
             all_plans = []
             all_indexes = []
+            # default this if branch
             if self.tree_conv:
                 all_plans, all_indexes = treeconv.make_and_featurize_trees(
                     plans, self.plan_featurizer)
@@ -236,7 +237,7 @@ class Optimizer(object):
 
             cost = self.inverse_label_transform_fn(cost)
             plan_labels = cost.reshape(-1,).tolist()
-
+            # default go this if branch
             if self.use_label_cache:
                 # Update the cache with the labels.
                 for i in range(len(plan_labels)):
@@ -486,6 +487,7 @@ class Optimizer(object):
         is_eps_greedy_triggered = False
 
         terminal_states = []
+        # the number of states and costs are shrinking during this while loop
         while len(terminal_states) < self.search_until_n_complete_plans and \
               fringe:
             state_cost, state = fringe.pop(0)
