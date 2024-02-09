@@ -149,13 +149,13 @@ class PlansDataset(torch.utils.data.Dataset):
         return transforms[transform_name]
 
     def _inverse_transform_fn(self, transform_name, use_torch=False):
-
+        # call this second
         def log1p_inverse(xs):
             return np.exp(xs) - 1.0
 
         def log1p_inverse_torch(xs):
             return torch.exp(xs) - 1.0
-
+        # call this first
         def standardize_inverse(xs):
             return xs * (self.std + self._EPS) + self.mean
 
@@ -173,7 +173,7 @@ class PlansDataset(torch.utils.data.Dataset):
         if use_torch:
             transforms['log1p'] = log1p_inverse_torch
         return transforms[transform_name]
-
+    # infer will call this function to transform the cost to the model output
     def InvertCost(self, cost):
         """Convert model outputs back to latency space."""
         if self.cross_entropy:
@@ -189,6 +189,7 @@ class PlansDataset(torch.utils.data.Dataset):
                 assert self.TRANSFORM_EPS == 1e-3
                 x = 1e3 * (e - np.sqrt(1e3 * e + 251001) + 501)
                 return x / self.MS_SCALE_FACTOR
+        # default go this way
         else:
             for t in reversed(self.transform_cost):
                 fn = self._inverse_transform_fn(t)

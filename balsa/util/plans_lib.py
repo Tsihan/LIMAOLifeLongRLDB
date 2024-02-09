@@ -571,13 +571,7 @@ def GetAllSubtrees(nodes):
     trees = []
 
     def _fn(node, trees):
-        #trees.append(node)
-        if (node.node_type == 'Nested Loop' or node.node_type == 'Hash Join'):
-                trees.append(node)
-        else:
-            if (np.random.rand()) > 0.7:
-                trees.append(node)
-                
+        trees.append(node)
         for c in node.children:
             _fn(c, trees)
 
@@ -588,18 +582,14 @@ def GetAllSubtrees(nodes):
         _fn(node, trees)
     return trees
 
-# only 100% need Hash Join and Nested Loop. Index Scan and Sequence Scan set a threshold to 0.7
+
 def GetAllSubtreesNoLeaves(nodes):
     """For node in nodes: yield_all_subtrees(node)."""
     trees = []
 
     def _fn(node, trees):
-        if  len(node.children):
-            if (node.node_type == 'Nested Loop' or node.node_type == 'Hash Join'):
-                trees.append(node)
-            else:
-                if (np.random.rand()) > 0.7:
-                    trees.append(node)
+        if len(node.children):
+            trees.append(node)
             for c in node.children:
                 _fn(c, trees)
 

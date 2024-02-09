@@ -122,7 +122,7 @@ class SimModel(pl.LightningModule):
             self.logger.log_metrics({'total_grad_norm': total_norm},
                                     step=self.global_step)
 
-
+# TODO this one is used to be a query_featurizer
 class SimQueryFeaturizer(plans_lib.Featurizer):
     """Implements the query featurizer.
 
@@ -138,6 +138,7 @@ class SimQueryFeaturizer(plans_lib.Featurizer):
 
         # Joined tables: [table: 1].
         joined = node.leaf_ids()
+        # mark the tables
         for rel_id in joined:
             idx = np.where(self.workload_info.rel_ids == rel_id)[0][0]
             vec[idx] = 1.0

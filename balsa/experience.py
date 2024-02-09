@@ -51,11 +51,11 @@ class Experience(object):
         plan_featurizer_cls=plans_lib.PreOrderSequenceFeaturizer,
         query_featurizer_cls=plans_lib.QueryFeaturizer,
         workload_info=None,
-        seed=None
+        #seed=None
     ):
         
-        self.seed = seed
-        np.random.seed(self.seed)
+        #self.seed = seed
+        #np.random.seed(self.seed)
         self.tree_conv = tree_conv
         if keep_scans_joins_only:
             print('plans_lib.FilterScansOrJoins()')

@@ -99,6 +99,8 @@ def MakeModel(p, exp, dataset):
     num_label_bins = int(
         dataset.costs.max().item()) + 2  # +1 for 0, +1 for ceil(max cost).
     query_feat_size = len(exp.query_featurizer(exp.nodes[0]))
+    # TODO here we use PhysicalTreeNodeFeaturizer
+    # TODO try to divide blocking operotors!!!
     batch = exp.featurizer(exp.nodes[0])
     assert batch.ndim == 1
     plan_feat_size = batch.shape[0]
@@ -833,7 +835,7 @@ class BalsaAgent(object):
                          p.tree_conv,
                          workload_info=wi,
                          query_featurizer_cls=query_featurizer_cls,
-                         plan_featurizer_cls=plan_feat_cls,seed=77)
+                         plan_featurizer_cls=plan_feat_cls)
         if p.prev_replay_buffers_glob is not None:
             exp.Load(p.prev_replay_buffers_glob,
                      p.prev_replay_keep_last_fraction)
@@ -846,7 +848,7 @@ class BalsaAgent(object):
                                  p.tree_conv,
                                  workload_info=wi,
                                  query_featurizer_cls=query_featurizer_cls,
-                                 plan_featurizer_cls=plan_feat_cls,seed=77)
+                                 plan_featurizer_cls=plan_feat_cls)
             exp_val.Load(p.prev_replay_buffers_glob_val)
             pa = plan_analysis.PlanAnalysis.Build(
                 exp_val.nodes[exp_val.initial_size:])

@@ -26,7 +26,7 @@ class TreeConvolution(nn.Module):
 
     Value is either cost or latency.
     """
-
+    
     def __init__(self, feature_size, plan_size, label_size, version=None):
         super(TreeConvolution, self).__init__()
         # None: default
@@ -92,12 +92,15 @@ class TreeConvolution(nn.Module):
         query_embs = self.query_mlp(query_feats.unsqueeze(1))
 
         query_embs = query_embs.transpose(1, 2)
+       
         max_subtrees = trees.shape[-1]
         query_embs = query_embs.expand(query_embs.shape[0], query_embs.shape[1],
                                        max_subtrees)
+     
         concat = torch.cat((query_embs, trees), axis=1)
-
+      
         out = self.conv((concat, indexes))
+       
         out = self.out_mlp(out)
         return out
 
@@ -176,7 +179,7 @@ def _batch(data):
 
 
 # @profile
-def _make_preorder_ids_tree(curr, root_index=1):
+def _make_preorder_ids_tree(curr,other_operators_set,hash_join_set,nested_loop_join_set, root_index=1):
     """Returns a tuple containing a tree of preorder positional IDs.
 
     Returns (tree structure, largest id under me).  The tree structure itself
@@ -189,13 +192,30 @@ def _make_preorder_ids_tree(curr, root_index=1):
         (my id, tree structure for LHS, tree structure for RHS).
 
     This function traverses each node exactly once (i.e., O(n) time complexity).
+    
     """
+    #assert other_operators_set  and hash_join_set  and nested_loop_join_set 
+
+        
+    if curr.node_type == 'Hash Join':
+        hash_join_set.add(root_index)
+    elif curr.node_type == 'Nested Loop':
+        nested_loop_join_set.add(root_index)
+    else:
+        other_operators_set.add(root_index)
+        
     if not curr.children:
         return (root_index, 0, 0), root_index
-    lhs, lhs_max_id = _make_preorder_ids_tree(curr.children[0],
+    lhs, lhs_max_id = _make_preorder_ids_tree(curr.children[0],  
+                                              other_operators_set=other_operators_set,
+                                              hash_join_set=hash_join_set,
+                                              nested_loop_join_set=nested_loop_join_set,
                                               root_index=root_index + 1)
-    rhs, rhs_max_id = _make_preorder_ids_tree(curr.children[1],
-                                              root_index=lhs_max_id + 1)
+    rhs, rhs_max_id = _make_preorder_ids_tree(curr.children[1],        
+                                              other_operators_set=other_operators_set,
+                                              hash_join_set=hash_join_set,
+                                              nested_loop_join_set=nested_loop_join_set,
+                                               root_index=lhs_max_id + 1)
     return (root_index, lhs, rhs), rhs_max_id
 
 
@@ -214,7 +234,10 @@ def _walk(curr, vecs):
 def _make_indexes(root):
     # Join(A, B) --> preorder_ids = (1, (2, 0, 0), (3, 0, 0))
     # Join(Join(A, B), C) --> preorder_ids = (1, (2, 3, 4), (5, 0, 0))
-    preorder_ids, _ = _make_preorder_ids_tree(root)
+    other_operators_set = set()
+    hash_join_set = set()
+    nested_loop_join_set = set()
+    preorder_ids, _ = _make_preorder_ids_tree(root,other_operators_set,hash_join_set,nested_loop_join_set)
     vecs = []
     _walk(preorder_ids, vecs)
     # Continuing with the Join(A,B) example:
@@ -232,6 +255,15 @@ def _make_indexes(root):
     #    ...,
     #          [0]])
     vecs = np.asarray(vecs).reshape(-1, 1)
+    #now we have to divide the vecs into three vectors, which have the same shape as vecs
+    # : vec_other_operators, vec_hash_join, vec_nested_loop_join
+    #for exaple, if nested_loop_join_set is empty, hash_join_set contains "2", and other_operators_set contains "1" and "3"
+    #and "4" and "5"
+    node_ids = vecs[:, 0]  # extract all nodes ids
+    vecs_other_operators = np.where(np.isin(node_ids, list(other_operators_set)), node_ids, 0).reshape(-1, 1)
+    vecs_hash_join = np.where(np.isin(node_ids, list(hash_join_set)), node_ids, 0).reshape(-1, 1)
+    vecs_nested_loop_join = np.where(np.isin(node_ids, list(nested_loop_join_set)), node_ids, 0).reshape(-1, 1)
+    
     return vecs
 
 
@@ -239,26 +271,83 @@ def _make_indexes(root):
 def _featurize_tree(curr_node, node_featurizer):
 
     def _bottom_up(curr):
+    
+    
         """Calls node_featurizer on each node exactly once, bottom-up."""
         if hasattr(curr, '__node_feature_vec'):
             return curr.__node_feature_vec
         if not curr.children:
+            # this one will tackle with scan operator
             vec = node_featurizer.FeaturizeLeaf(curr)
             curr.__node_feature_vec = vec
             return vec
         left_vec = _bottom_up(curr.children[0])
         right_vec = _bottom_up(curr.children[1])
+        # this one will tackle with join operator
         vec = node_featurizer.Merge(curr, left_vec, right_vec)
         curr.__node_feature_vec = vec
         return vec
 
     _bottom_up(curr_node)
+    
+    def append_vecs(node):
+        # debug
+        zero_vec = np.zeros(node.__node_feature_vec.size, dtype=np.float32)
+        vec = getattr(node, '__node_feature_vec', zero_vec)
+        vecs.append(vec)
+
+        if node.node_type == "Hash Join":
+            vecs_hash_join.append(vec)
+            vecs_other_operators.append(zero_vec)
+            vecs_nested_loop_join.append(zero_vec)
+        elif node.node_type == "Nested Loop":
+            vecs_nested_loop_join.append(vec)
+            vecs_other_operators.append(zero_vec)
+            vecs_hash_join.append(zero_vec)
+        else:
+            vecs_other_operators.append(vec)
+            vecs_hash_join.append(zero_vec)
+            vecs_nested_loop_join.append(zero_vec)
+    
     vecs = []
-    plans_lib.MapNode(curr_node,
-                      lambda node: vecs.append(node.__node_feature_vec))
-    # Add a zero-vector at index 0.
-    ret = np.zeros((len(vecs) + 1, vecs[0].shape[0]), dtype=np.float32)
+    vecs_other_operators = []
+    vecs_hash_join = []
+    vecs_nested_loop_join = []
+    # vecs = []
+    # vecs_other_operators = []
+    # vecs_hash_join = []
+    # vecs_nested_loop_join = []
+    # plans_lib.MapNode(curr_node,
+    #                   lambda node: vecs.append(node.__node_feature_vec))
+    # # Add a zero-vector at index 0.
+    # ret = np.zeros((len(vecs) + 1, vecs[0].shape[0]), dtype=np.float32)
+    # ret[1:] = vecs
+        # 创建基础数组并填充第一个索引位置为全零向量
+    plans_lib.MapNode(curr_node, append_vecs)
+    num_nodes = len(vecs)
+    vec_size = vecs[0].shape[0]
+    ret = np.zeros((num_nodes + 1, vec_size), dtype=np.float32)
+    ret_other_operators = np.zeros((num_nodes + 1, vec_size), dtype=np.float32)
+    ret_hash_join = np.zeros((num_nodes + 1, vec_size), dtype=np.float32)
+    ret_nested_loop_join = np.zeros((num_nodes + 1, vec_size), dtype=np.float32)
+
+    # 填充基础数组
+    #import pprint
     ret[1:] = vecs
+    #np.set_printoptions(threshold=np.inf)
+    #print("ret:", pprint.pformat(ret))
+    ret_other_operators[1:] = vecs_other_operators
+    #print("ret_other_operators:", pprint.pformat(ret_other_operators))
+    ret_hash_join[1:] = vecs_hash_join
+    #print("ret_hash_join:", pprint.pformat(ret_hash_join))
+    ret_nested_loop_join[1:] = vecs_nested_loop_join
+    #print("ret_nested_loop_join:", pprint.pformat(ret_nested_loop_join))
+    # if we want to check if the ret is the sum of the other three arrays
+    # combined_array = ret_other_operators + ret_hash_join + ret_nested_loop_join
+    # is_equal = np.allclose(ret[1:], combined_array[1:], atol=1e-7)
+    # print("Is ret the sum of the other three arrays:", is_equal) #true
+    
+    # now we get the ret, ret_other_operators, ret_hash_join, ret_nested_loop_join
     return ret
 
 

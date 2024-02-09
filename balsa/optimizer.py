@@ -191,12 +191,15 @@ class Optimizer(object):
             # Expensive.  Caller should try to call only once.
             self.value_network.eval()
         with torch.no_grad():
+            # TODO pay attention to here, how it features the query(CONTEXT)!
+            # mark all the tables with 1, and transform the value 1.
             query_enc = self.query_featurizer(query_node)
             all_query_vecs = [query_enc] * len(plans)
             all_plans = []
             all_indexes = []
             # default this if branch
             if self.tree_conv:
+                # TODO pay attention to here, how it features the plans!
                 all_plans, all_indexes = treeconv.make_and_featurize_trees(
                     plans, self.plan_featurizer)
             else:
@@ -207,7 +210,7 @@ class Optimizer(object):
                     for plan_node in plans:
                         all_indexes.append(
                             self.parent_pos_featurizer(plan_node))
-
+            # default go this if branch
             if self.tree_conv or hasattr(self.plan_featurizer, 'pad'):
                 query_feat = torch.from_numpy(np.asarray(all_query_vecs)).to(
                     DEVICE, non_blocking=True)
