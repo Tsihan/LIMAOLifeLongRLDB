@@ -20,7 +20,28 @@ from balsa.util import plans_lib
 
 DEVICE = 'cuda' if torch.cuda.is_available() else 'cpu'
 
+class AttentionMerger(nn.Module):
+    def __init__(self, input_dim):
+        super(AttentionMerger, self).__init__()
+        self.attention_weights = nn.Parameter(torch.randn(3, 1))
+        self.softmax = nn.Softmax(dim=0)
 
+    def forward(self, conv_outputs):
+    # conv_outputs: list of tensors from the 3 conv layers, each [batch size, feature_dim]
+        stacked_outputs = torch.stack(conv_outputs, dim=0)  # Shape: [3, batch size, feature_dim]
+        weights = self.softmax(self.attention_weights)  # Shape: [3, 1]
+    
+    # 不需要为weights增加两个维度，而是直接应用weights并保持输出维度不变
+    # 使用broadcasting机制对stacked_outputs的每个feature_dim进行加权
+    # 首先调整weights的形状以匹配stacked_outputs的broadcasting要求
+        weights = weights.view(-1, 1, 1)  # Adjusted shape for broadcasting: [3, 1, 1]
+        weighted_outputs = weights * stacked_outputs  # Broadcasting weights to each feature_dim
+    
+    # 加权求和，不增加额外的维度，保持[batch size, feature_dim]形状
+        weighted_sum = torch.sum(weighted_outputs, dim=0)  # Shape: [batch size, feature_dim]
+        return weighted_sum
+    
+    
 class TreeConvolution(nn.Module):
     """Balsa's tree convolution neural net: (query, plan) -> value.
 
@@ -31,20 +52,33 @@ class TreeConvolution(nn.Module):
         super(TreeConvolution, self).__init__()
         # None: default
         assert version is None, version
+        self.attention_merger = AttentionMerger(input_dim=128)
         self.query_mlp = nn.Sequential(
-            nn.Linear(feature_size, 128),
-            nn.LayerNorm(128),
-            nn.LeakyReLU(),
-            nn.Linear(128, 64),
+            nn.Linear(feature_size, 64),
             nn.LayerNorm(64),
             nn.LeakyReLU(),
             nn.Linear(64, 32),
         )
-        self.conv = nn.Sequential(
-            TreeConv1d(32 + plan_size, 512),
+        self.conv_other_operators = nn.Sequential(
+            TreeConv1d(32 + plan_size, 256),
             TreeStandardize(),
             TreeAct(nn.LeakyReLU()),
-            TreeConv1d(512, 256),
+            TreeConv1d(256, 128),
+            TreeStandardize(),
+            TreeAct(nn.LeakyReLU()),
+            TreeMaxPool(),
+        )
+        self.conv_hash_join = nn.Sequential(
+            TreeConv1d(32 + plan_size, 256),
+            TreeStandardize(),
+            TreeAct(nn.LeakyReLU()),
+            TreeConv1d(256, 128),
+            TreeStandardize(),
+            TreeAct(nn.LeakyReLU()),
+            TreeMaxPool(),
+        )
+        self.conv_nested_loop_join = nn.Sequential(
+            TreeConv1d(32 + plan_size, 256),
             TreeStandardize(),
             TreeAct(nn.LeakyReLU()),
             TreeConv1d(256, 128),
@@ -76,15 +110,13 @@ class TreeConvolution(nn.Module):
                 # assert 'norm' in name and 'weight' in name, name
                 nn.init.ones_(p)
 
-    def forward(self, query_feats, trees, indexes):
+    
+    def forward(self, query_feats,other_operators_feats,hash_join_feats,nested_loop_join_feats,
+                                          other_operators_pos_feats,hash_join_pos_feats,nested_loop_join_pos_feats):
         """Forward pass.
 
         Args:
-          query_feats: Query encoding vectors.  Shaped as
-            [batch size, query dims].
-          trees: The input plan features.  Shaped as
-            [batch size, plan dims, max tree nodes].
-          indexes: For Tree convolution.
+
 
         Returns:
           Predicted costs: Tensor of float, sized [batch size, 1].
@@ -93,15 +125,31 @@ class TreeConvolution(nn.Module):
 
         query_embs = query_embs.transpose(1, 2)
        
-        max_subtrees = trees.shape[-1]
-        query_embs = query_embs.expand(query_embs.shape[0], query_embs.shape[1],
-                                       max_subtrees)
+        max_subtrees_other_operators = other_operators_feats.shape[-1]
+        max_subtrees_hash_join = hash_join_feats.shape[-1]
+        max_subtrees_nested_loop_join = nested_loop_join_feats.shape[-1]
+        
+        query_embs_other_operators = query_embs.expand(query_embs.shape[0], query_embs.shape[1],
+                                       max_subtrees_other_operators)
+        query_embs_hash_join = query_embs.expand(query_embs.shape[0], query_embs.shape[1],
+                                        max_subtrees_hash_join)
+        query_embs_nested_loop_join = query_embs.expand(query_embs.shape[0], query_embs.shape[1],
+                                        max_subtrees_nested_loop_join)
+        
+        concat_other_operators = torch.cat((query_embs_other_operators, other_operators_feats), axis=1)
+        concat_hash_join = torch.cat((query_embs_hash_join, hash_join_feats), axis=1)
+        concat_nested_loop_join = torch.cat((query_embs_nested_loop_join, nested_loop_join_feats), axis=1)
      
-        concat = torch.cat((query_embs, trees), axis=1)
-      
-        out = self.conv((concat, indexes))
+        out_other_operators = self.conv_other_operators((concat_other_operators, other_operators_pos_feats))
+        out_hash_join = self.conv_hash_join((concat_hash_join, hash_join_pos_feats))
+        out_nested_loop_join = self.conv_nested_loop_join((concat_nested_loop_join, nested_loop_join_pos_feats))
        
-        out = self.out_mlp(out)
+        conv_outputs = [out_other_operators, out_hash_join, out_nested_loop_join]
+        out_combined = self.attention_merger(conv_outputs)
+
+        # out_put mlp
+        out = self.out_mlp(out_combined)
+       
         return out
 
 
@@ -264,7 +312,7 @@ def _make_indexes(root):
     vecs_hash_join = np.where(np.isin(node_ids, list(hash_join_set)), node_ids, 0).reshape(-1, 1)
     vecs_nested_loop_join = np.where(np.isin(node_ids, list(nested_loop_join_set)), node_ids, 0).reshape(-1, 1)
     
-    return vecs
+    return vecs, vecs_other_operators, vecs_hash_join, vecs_nested_loop_join
 
 
 # @profile
@@ -313,16 +361,7 @@ def _featurize_tree(curr_node, node_featurizer):
     vecs_other_operators = []
     vecs_hash_join = []
     vecs_nested_loop_join = []
-    # vecs = []
-    # vecs_other_operators = []
-    # vecs_hash_join = []
-    # vecs_nested_loop_join = []
-    # plans_lib.MapNode(curr_node,
-    #                   lambda node: vecs.append(node.__node_feature_vec))
-    # # Add a zero-vector at index 0.
-    # ret = np.zeros((len(vecs) + 1, vecs[0].shape[0]), dtype=np.float32)
-    # ret[1:] = vecs
-        # 创建基础数组并填充第一个索引位置为全零向量
+
     plans_lib.MapNode(curr_node, append_vecs)
     num_nodes = len(vecs)
     vec_size = vecs[0].shape[0]
@@ -331,7 +370,6 @@ def _featurize_tree(curr_node, node_featurizer):
     ret_hash_join = np.zeros((num_nodes + 1, vec_size), dtype=np.float32)
     ret_nested_loop_join = np.zeros((num_nodes + 1, vec_size), dtype=np.float32)
 
-    # 填充基础数组
     #import pprint
     ret[1:] = vecs
     #np.set_printoptions(threshold=np.inf)
@@ -348,13 +386,66 @@ def _featurize_tree(curr_node, node_featurizer):
     # print("Is ret the sum of the other three arrays:", is_equal) #true
     
     # now we get the ret, ret_other_operators, ret_hash_join, ret_nested_loop_join
-    return ret
+    return ret, ret_other_operators, ret_hash_join, ret_nested_loop_join
 
 
 # @profile
+# def make_and_featurize_trees(trees, node_featurizer):
+#     # now we need to output decomposed trees, and the indexes of the nodes
+#     indexes = torch.from_numpy(_batch([_make_indexes(x) for x in trees])).long()
+#     trees = torch.from_numpy(
+#         _batch([_featurize_tree(x, node_featurizer) for x in trees
+#                ])).transpose(1, 2)
+#     return trees, indexes
+
 def make_and_featurize_trees(trees, node_featurizer):
-    indexes = torch.from_numpy(_batch([_make_indexes(x) for x in trees])).long()
-    trees = torch.from_numpy(
-        _batch([_featurize_tree(x, node_featurizer) for x in trees
-               ])).transpose(1, 2)
-    return trees, indexes
+    # 初始化列表以存储来自_make_indexes和_featurize_tree的不同向量
+    indexes_list = []
+    other_operators_indexes_list = []
+    hash_join_indexes_list = []
+    nested_loop_join_indexes_list = []
+
+    trees_list = []
+    other_operators_trees_list = []
+    hash_join_trees_list = []
+    nested_loop_join_trees_list = []
+
+    # 循环处理每棵树
+    for tree in trees:
+        # 调用_make_indexes函数并收集输出
+        index_components = _make_indexes(tree)
+        indexes_list.append(index_components[0])
+        other_operators_indexes_list.append(index_components[1])
+        hash_join_indexes_list.append(index_components[2])
+        nested_loop_join_indexes_list.append(index_components[3])
+
+        # 调用_featurize_tree函数并收集输出
+        tree_components = _featurize_tree(tree, node_featurizer)
+        trees_list.append(tree_components[0])
+        other_operators_trees_list.append(tree_components[1])
+        hash_join_trees_list.append(tree_components[2])
+        nested_loop_join_trees_list.append(tree_components[3])
+
+    # 批量化索引数据并转换为长整数张量
+    indexes_batch = torch.from_numpy(_batch(indexes_list)).long()
+    other_operators_indexes_batch = torch.from_numpy(_batch(other_operators_indexes_list)).long()
+    hash_join_indexes_batch = torch.from_numpy(_batch(hash_join_indexes_list)).long()
+    nested_loop_join_indexes_batch = torch.from_numpy(_batch(nested_loop_join_indexes_list)).long()
+
+    # 批量化特征数据并转换为浮点数张量
+    trees_batch = torch.from_numpy(_batch(trees_list)).transpose(1, 2).float()
+    other_operators_trees_batch = torch.from_numpy(_batch(other_operators_trees_list)).transpose(1, 2).float()
+    hash_join_trees_batch = torch.from_numpy(_batch(hash_join_trees_list)).transpose(1, 2).float()
+    nested_loop_join_trees_batch = torch.from_numpy(_batch(nested_loop_join_trees_list)).transpose(1, 2).float()
+
+    # 返回所有的批量树和索引
+    return (
+        trees_batch,
+        other_operators_trees_batch,
+        hash_join_trees_batch,
+        nested_loop_join_trees_batch,
+        indexes_batch,
+        other_operators_indexes_batch,
+        hash_join_indexes_batch,
+        nested_loop_join_indexes_batch
+    )

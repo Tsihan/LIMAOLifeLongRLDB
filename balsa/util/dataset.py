@@ -45,8 +45,12 @@ class PlansDataset(torch.utils.data.Dataset):
 
     def __init__(self,
                  query_feats,
-                 plans,
-                 indexes,
+                 plans_other_operators,
+                 plans_hash_join,
+                 plans_nested_loop_join,
+                 indexes_other_operators,
+                 indexes_hash_join,
+                 indexes_nested_loop_join,
                  costs,
                  tree_conv=False,
                  transform_cost=True,
@@ -62,19 +66,31 @@ class PlansDataset(torch.utils.data.Dataset):
           indexes: a list of np.ndarray (int64).
           costs: a list of floats.
           transform_cost (optional): if True, log and standardize.
+          
         """
-        assert len(plans) == len(costs) and len(query_feats) == len(plans)
+        assert len(plans_other_operators) == len(plans_hash_join) and len(plans_other_operators) == len(plans_nested_loop_join)
+        assert len(plans_other_operators) == len(indexes_other_operators) and len(plans_other_operators) == len(indexes_hash_join) and len(plans_other_operators) == len(indexes_nested_loop_join)
+        assert len(plans_other_operators) == len(costs) and len(plans_other_operators) == len(query_feats)
 
         query_feats = [torch.from_numpy(xs) for xs in query_feats]
         if not tree_conv:
-            plans = [torch.from_numpy(xs) for xs in plans]
-            if return_indexes:
-                assert len(plans) == len(indexes)
-                indexes = [torch.from_numpy(xs) for xs in indexes]
+            raise NotImplementedError('Not implemented Qihan Zhang')
+            # plans = [torch.from_numpy(xs) for xs in plans]
+            # if return_indexes:
+            #     assert len(plans) == len(indexes)
+            #     indexes = [torch.from_numpy(xs) for xs in indexes]
 
         self.query_feats = query_feats
-        self.plans = plans
-        self.indexes = indexes
+        # self.plans = plans
+        # self.indexes = indexes
+        
+        self.plans_other_operators = plans_other_operators
+        self.plans_hash_join = plans_hash_join
+        self.plans_nested_loop_join = plans_nested_loop_join
+        self.indexes_other_operators = indexes_other_operators
+        self.indexes_hash_join = indexes_hash_join
+        self.indexes_nested_loop_join = indexes_nested_loop_join
+        
 
         if not isinstance(transform_cost, list):
             transform_cost = [transform_cost]
@@ -205,16 +221,21 @@ class PlansDataset(torch.utils.data.Dataset):
         return cost
 
     def __len__(self):
-        return len(self.plans)
+        return len(self.plans_other_operators)
 
     def __getitem__(self, idx):
         if self.return_indexes:
-            return self.query_feats[idx], self.plans[idx], self.indexes[
-                idx], self.costs[idx]
-        return self.query_feats[idx], self.plans[idx], self.costs[idx]
+            return self.query_feats[idx],\
+            self.plans_other_operators[idx],self.plans_hash_join[idx], self.plans_nested_loop_join[idx],\
+            self.indexes_other_operators[idx],self.indexes_hash_join[idx],self.indexes_nested_loop_join[idx], self.costs[idx]
+        
+        return self.query_feats[idx], \
+        self.plans_other_operators[idx],self.plans_hash_join[idx], self.plans_nested_loop_join[idx],\
+        self.costs[idx]
 
     def FreeData(self):
-        self.query_feats = self.plans = self.indexes = self.costs = None
+        self.query_feats = self.plans_other_operators = self.plans_hash_join = self.plans_nested_loop_join\
+        = self.indexes_other_operators=self.indexes_hash_join=self.indexes_nested_loop_join=  None
 
 
 class InputBatch(object):
@@ -233,12 +254,22 @@ class InputBatch(object):
         self.query_feats = torch.stack(data[0], 0)
         if plan_pad_idx is not None and parent_pos_pad_idx is not None:
             # Transformer.
-            self.plans = collate_tokens(data[1], pad_idx=plan_pad_idx)
-            self.indexes = collate_tokens(data[2], pad_idx=parent_pos_pad_idx)
+            self.plans_other_operators = collate_tokens(data[1], pad_idx=plan_pad_idx)
+            self.plans_hash_join = collate_tokens(data[2], pad_idx=plan_pad_idx)
+            self.plans_nested_loop_join = collate_tokens(data[3], pad_idx=plan_pad_idx)
+            self.indexes_other_operators = collate_tokens(data[4], pad_idx=parent_pos_pad_idx)
+            self.indexes_hash_join = collate_tokens(data[5], pad_idx=parent_pos_pad_idx)
+            self.indexes_nested_loop_join = collate_tokens(data[6], pad_idx=parent_pos_pad_idx)
+            
         else:
-            self.plans = torch.stack(data[1], 0)
-            self.indexes = torch.stack(data[2], 0)
-        self.costs = torch.stack(data[3], 0)
+            
+            self.plans_other_operators = torch.stack(data[1], 0)
+            self.plans_hash_join = torch.stack(data[2], 0)
+            self.plans_nested_loop_join = torch.stack(data[3], 0)
+            self.indexes_other_operators = torch.stack(data[4], 0)
+            self.indexes_hash_join = torch.stack(data[5], 0)
+            self.indexes_nested_loop_join = torch.stack(data[6], 0)
+        self.costs = torch.stack(data[7], 0)
 
     def __len__(self):
         return len(self.plans)
