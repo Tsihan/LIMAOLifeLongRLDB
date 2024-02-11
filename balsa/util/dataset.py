@@ -272,4 +272,4 @@ class InputBatch(object):
         self.costs = torch.stack(data[7], 0)
 
     def __len__(self):
-        return len(self.plans)
+        return len(self.plans_other_operators)

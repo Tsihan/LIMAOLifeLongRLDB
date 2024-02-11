@@ -380,7 +380,7 @@ def TrainSim(p, loggers=None):
     sim = sim_lib.Sim(sim_p)
     if p.sim_checkpoint is None:
         sim.CollectSimulationData()
-    # FIXME Qihan Zhang temporary modify to retain simulator
+    # FIXME Qihan Zhang temporary modify to retain simulator 
     sim.Train(load_from_checkpoint=None, loggers=loggers)
     #sim.Train(load_from_checkpoint=p.sim_checkpoint, loggers=loggers)
     sim.model.freeze()
@@ -2185,11 +2185,11 @@ def Main(argv):
     p.use_local_execution = FLAGS.local
     # Override params here for quick debugging.
     # p.sim_checkpoint = None
-    p.epochs = 1
-    p.val_iters = 1
+    # p.epochs = 1
+    p.val_iters = 10
     # p.query_glob = ['7*.sql']
     # p.test_query_glob = ['7c.sql']
-    p.search_until_n_complete_plans = 1
+    # p.search_until_n_complete_plans = 1
 
     agent = BalsaAgent(p)
     agent.Run()

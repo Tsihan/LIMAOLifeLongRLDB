@@ -401,7 +401,9 @@ class Rand52MinCardCostOnPol(MinCardCostOnPol):
     def Params(self):
         p = super().Params()
         p.test_query_glob = RAND_52_TEST_QUERIES
-        p.sim_checkpoint = 'checkpoints/sim-MinCardCost-rand52split-680secs.ckpt'
+        # 'checkpoints/sim-MinCardCost-rand52split-680secs.ckpt'
+        p.sim_checkpoint = 'checkpoints/epoch=99_v2.ckpt'
+        
         return p
 
 
