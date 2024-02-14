@@ -54,13 +54,19 @@ class TreeConvolution(nn.Module):
         assert version is None, version
         self.attention_merger = AttentionMerger(input_dim=128)
         self.query_mlp = nn.Sequential(
-            nn.Linear(feature_size, 64),
+            nn.Linear(feature_size, 128),
+            nn.LayerNorm(128),
+            nn.LeakyReLU(),
+            nn.Linear(128, 64),
             nn.LayerNorm(64),
             nn.LeakyReLU(),
             nn.Linear(64, 32),
         )
         self.conv_other_operators = nn.Sequential(
-            TreeConv1d(32 + plan_size, 256),
+            TreeConv1d(32 + plan_size, 512),
+            TreeStandardize(),
+            TreeAct(nn.LeakyReLU()),
+            TreeConv1d(512, 256),
             TreeStandardize(),
             TreeAct(nn.LeakyReLU()),
             TreeConv1d(256, 128),
@@ -69,7 +75,10 @@ class TreeConvolution(nn.Module):
             TreeMaxPool(),
         )
         self.conv_hash_join = nn.Sequential(
-            TreeConv1d(32 + plan_size, 256),
+            TreeConv1d(32 + plan_size, 512),
+            TreeStandardize(),
+            TreeAct(nn.LeakyReLU()),
+            TreeConv1d(512, 256),
             TreeStandardize(),
             TreeAct(nn.LeakyReLU()),
             TreeConv1d(256, 128),
@@ -78,7 +87,10 @@ class TreeConvolution(nn.Module):
             TreeMaxPool(),
         )
         self.conv_nested_loop_join = nn.Sequential(
-            TreeConv1d(32 + plan_size, 256),
+            TreeConv1d(32 + plan_size, 512),
+            TreeStandardize(),
+            TreeAct(nn.LeakyReLU()),
+            TreeConv1d(512, 256),
             TreeStandardize(),
             TreeAct(nn.LeakyReLU()),
             TreeConv1d(256, 128),
