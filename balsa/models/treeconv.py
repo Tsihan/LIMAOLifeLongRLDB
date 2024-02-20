@@ -21,9 +21,9 @@ from balsa.util import plans_lib
 DEVICE = 'cuda' if torch.cuda.is_available() else 'cpu'
 
 class AttentionMerger(nn.Module):
-    def __init__(self, input_dim):
+    def __init__(self, input_dim,input_num):
         super(AttentionMerger, self).__init__()
-        self.attention_weights = nn.Parameter(torch.randn(3, 1))
+        self.attention_weights = nn.Parameter(torch.randn(input_num, 1))
         self.softmax = nn.Softmax(dim=0)
 
     def forward(self, conv_outputs):
@@ -52,7 +52,8 @@ class TreeConvolution(nn.Module):
         super(TreeConvolution, self).__init__()
         # None: default
         assert version is None, version
-        self.attention_merger = AttentionMerger(input_dim=128)
+        self.attention_merger_3 = AttentionMerger(input_dim=128,input_num=3)
+        self.attention_merger_2 = AttentionMerger(input_dim=128,input_num=2)
         self.query_mlp = nn.Sequential(
             nn.Linear(feature_size, 128),
             nn.LayerNorm(128),
@@ -62,18 +63,8 @@ class TreeConvolution(nn.Module):
             nn.LeakyReLU(),
             nn.Linear(64, 32),
         )
-        self.conv_other_operators = nn.Sequential(
-            TreeConv1d(32 + plan_size, 512),
-            TreeStandardize(),
-            TreeAct(nn.LeakyReLU()),
-            TreeConv1d(512, 256),
-            TreeStandardize(),
-            TreeAct(nn.LeakyReLU()),
-            TreeConv1d(256, 128),
-            TreeStandardize(),
-            TreeAct(nn.LeakyReLU()),
-            TreeMaxPool(),
-        )
+        
+        
         self.conv_hash_join = nn.Sequential(
             TreeConv1d(32 + plan_size, 512),
             TreeStandardize(),
@@ -98,6 +89,20 @@ class TreeConvolution(nn.Module):
             TreeAct(nn.LeakyReLU()),
             TreeMaxPool(),
         )
+        
+        self.conv = nn.Sequential(
+            TreeConv1d(32 + plan_size, 512),
+            TreeStandardize(),
+            TreeAct(nn.LeakyReLU()),
+            TreeConv1d(512, 256),
+            TreeStandardize(),
+            TreeAct(nn.LeakyReLU()),
+            TreeConv1d(256, 128),
+            TreeStandardize(),
+            TreeAct(nn.LeakyReLU()),
+            TreeMaxPool(),
+        )
+        
         self.out_mlp = nn.Sequential(
             nn.Linear(128, 64),
             nn.LayerNorm(64),
@@ -123,8 +128,8 @@ class TreeConvolution(nn.Module):
                 nn.init.ones_(p)
 
     
-    def forward(self, query_feats,other_operators_feats,hash_join_feats,nested_loop_join_feats,
-                                          other_operators_pos_feats,hash_join_pos_feats,nested_loop_join_pos_feats):
+    def forward(self, query_feats,trees_feats,hash_join_feats,nested_loop_join_feats,indexes_pos_feats,
+                                          hash_join_pos_feats,nested_loop_join_pos_feats,mode):
         """Forward pass.
 
         Args:
@@ -133,36 +138,46 @@ class TreeConvolution(nn.Module):
         Returns:
           Predicted costs: Tensor of float, sized [batch size, 1].
         """
-        query_embs = self.query_mlp(query_feats.unsqueeze(1))
-
-        query_embs = query_embs.transpose(1, 2)
-       
-        max_subtrees_other_operators = other_operators_feats.shape[-1]
-        max_subtrees_hash_join = hash_join_feats.shape[-1]
-        max_subtrees_nested_loop_join = nested_loop_join_feats.shape[-1]
-        
-        query_embs_other_operators = query_embs.expand(query_embs.shape[0], query_embs.shape[1],
-                                       max_subtrees_other_operators)
-        query_embs_hash_join = query_embs.expand(query_embs.shape[0], query_embs.shape[1],
+        if mode == 'Lower_Half_Plan':        
+            query_embs = self.query_mlp(query_feats.unsqueeze(1))
+            query_embs = query_embs.transpose(1, 2)
+            max_subtrees = trees_feats.shape[-1]
+            query_embs = query_embs.expand(query_embs.shape[0], query_embs.shape[1], max_subtrees)
+            concat = torch.cat((query_embs, trees_feats), axis=1)
+            out_hash_join = self.conv_hash_join((concat, indexes_pos_feats))
+            out_nested_loop_join = self.conv_nested_loop_join((concat, indexes_pos_feats))
+            conv_outputs = [out_hash_join, out_nested_loop_join]
+            out_combined = self.attention_merger_2(conv_outputs)
+            out = self.out_mlp(out_combined)
+            return out
+        elif mode == 'Upper_Half_Plan':
+            query_embs = self.query_mlp(query_feats.unsqueeze(1))
+            query_embs = query_embs.transpose(1, 2)
+            
+            max_subtrees = trees_feats.shape[-1]
+            max_subtrees_hash_join = hash_join_feats.shape[-1]
+            max_subtrees_nested_loop_join = nested_loop_join_feats.shape[-1]
+            
+            query_embs = query_embs.expand(query_embs.shape[0], query_embs.shape[1], max_subtrees)
+            query_embs_hash_join = query_embs.expand(query_embs.shape[0], query_embs.shape[1],
                                         max_subtrees_hash_join)
-        query_embs_nested_loop_join = query_embs.expand(query_embs.shape[0], query_embs.shape[1],
+            query_embs_nested_loop_join = query_embs.expand(query_embs.shape[0], query_embs.shape[1],
                                         max_subtrees_nested_loop_join)
         
-        concat_other_operators = torch.cat((query_embs_other_operators, other_operators_feats), axis=1)
-        concat_hash_join = torch.cat((query_embs_hash_join, hash_join_feats), axis=1)
-        concat_nested_loop_join = torch.cat((query_embs_nested_loop_join, nested_loop_join_feats), axis=1)
-     
-        out_other_operators = self.conv_other_operators((concat_other_operators, other_operators_pos_feats))
-        out_hash_join = self.conv_hash_join((concat_hash_join, hash_join_pos_feats))
-        out_nested_loop_join = self.conv_nested_loop_join((concat_nested_loop_join, nested_loop_join_pos_feats))
+            concat = torch.cat((query_embs, trees_feats), axis=1)
+            concat_hash_join = torch.cat((query_embs_hash_join, hash_join_feats), axis=1)
+            concat_nested_loop_join = torch.cat((query_embs_nested_loop_join, nested_loop_join_feats), axis=1)
+            
+            out_other = self.conv((concat, indexes_pos_feats))
+            out_hash_join = self.conv_hash_join((concat_hash_join, hash_join_pos_feats))
+            out_nested_loop_join = self.conv_nested_loop_join((concat_nested_loop_join, nested_loop_join_pos_feats))
        
-        conv_outputs = [out_other_operators, out_hash_join, out_nested_loop_join]
-        out_combined = self.attention_merger(conv_outputs)
-
-        # out_put mlp
-        out = self.out_mlp(out_combined)
-       
-        return out
+            conv_outputs = [out_other,out_hash_join, out_nested_loop_join]
+            out_combined = self.attention_merger_3(conv_outputs)
+            out = self.out_mlp(out_combined)
+            return out
+        else:
+            raise ValueError('mode should be either Lower_Half_Plan or Upper_Half_Plan')
 
 
 class TreeConv1d(nn.Module):
@@ -239,7 +254,30 @@ def _batch(data):
 
 
 # @profile
-def _make_preorder_ids_tree(curr,other_operators_set,hash_join_set,nested_loop_join_set, root_index=1):
+
+def get_last_preorder_index(curr, root_index=1):
+    """Returns the index of the last node in the subtree rooted at the current node
+    based on preorder traversal.
+
+    Args:
+        curr: The current node in the tree.
+        root_index: The preorder index of the current node.
+
+    Returns:
+        The index of the last node in the preorder traversal of the subtree rooted at curr.
+    """
+    if not curr.children:
+        # If the current node is a leaf, it is the last node in its subtree.
+        return root_index
+
+    # Recursively find the last index in the left and right subtrees.
+    last_index_left = get_last_preorder_index(curr.children[0], root_index + 1)
+    last_index_right = get_last_preorder_index(curr.children[1], last_index_left + 1)
+
+    # The last index of the current subtree is the last index of the right subtree.
+    return last_index_right
+
+def _make_preorder_ids_tree(curr,hash_join_set,nested_loop_join_set, root_index=1):
     """Returns a tuple containing a tree of preorder positional IDs.
 
     Returns (tree structure, largest id under me).  The tree structure itself
@@ -254,25 +292,26 @@ def _make_preorder_ids_tree(curr,other_operators_set,hash_join_set,nested_loop_j
     This function traverses each node exactly once (i.e., O(n) time complexity).
     
     """
-    #assert other_operators_set  and hash_join_set  and nested_loop_join_set 
-
+ 
+    last_index = get_last_preorder_index(curr, root_index)
         
     if curr.node_type == 'Hash Join':
-        hash_join_set.add(root_index)
+        for i in range(root_index,last_index+1):
+            hash_join_set.add(i)
+        
     elif curr.node_type == 'Nested Loop':
-        nested_loop_join_set.add(root_index)
-    else:
-        other_operators_set.add(root_index)
+        for i in range(root_index,last_index+1):
+            nested_loop_join_set.add(i)
+        
+
         
     if not curr.children:
         return (root_index, 0, 0), root_index
-    lhs, lhs_max_id = _make_preorder_ids_tree(curr.children[0],  
-                                              other_operators_set=other_operators_set,
+    lhs, lhs_max_id = _make_preorder_ids_tree(curr.children[0],   
                                               hash_join_set=hash_join_set,
                                               nested_loop_join_set=nested_loop_join_set,
                                               root_index=root_index + 1)
-    rhs, rhs_max_id = _make_preorder_ids_tree(curr.children[1],        
-                                              other_operators_set=other_operators_set,
+    rhs, rhs_max_id = _make_preorder_ids_tree(curr.children[1],           
                                               hash_join_set=hash_join_set,
                                               nested_loop_join_set=nested_loop_join_set,
                                                root_index=lhs_max_id + 1)
@@ -291,134 +330,213 @@ def _walk(curr, vecs):
 
 
 # @profile
+# def _make_indexes(root):
+#     # Join(A, B) --> preorder_ids = (1, (2, 0, 0), (3, 0, 0))
+#     # Join(Join(A, B), C) --> preorder_ids = (1, (2, 3, 4), (5, 0, 0))
+   
+#     hash_join_set = set()
+#     nested_loop_join_set = set()
+#     preorder_ids, _ = _make_preorder_ids_tree(root,hash_join_set,nested_loop_join_set)
+#     vecs = []
+#     _walk(preorder_ids, vecs)
+#     # Continuing with the Join(A,B) example:
+#     # Preorder traversal _walk() produces
+#     #   [1, 2, 3]
+#     #   [2, 0, 0]
+#     #   [3, 0, 0]
+#     # which would be reshaped into
+#     #   array([[1],
+#     #          [2],
+#     #          [3],
+#     #          [2],
+#     #          [0],
+#     #          [0],
+#     #    ...,
+#     #          [0]])
+#     vecs = np.asarray(vecs).reshape(-1, 1)
+
+#     node_ids = vecs[:, 0]  # extract all nodes ids
+    
+#     vecs_hash_join = np.where(np.isin(node_ids, list(hash_join_set)), node_ids, 0).reshape(-1, 1)
+#     vecs_nested_loop_join = np.where(np.isin(node_ids, list(nested_loop_join_set)), node_ids, 0).reshape(-1, 1)
+    
+#     return vecs, vecs_hash_join, vecs_nested_loop_join
+
 def _make_indexes(root):
-    # Join(A, B) --> preorder_ids = (1, (2, 0, 0), (3, 0, 0))
-    # Join(Join(A, B), C) --> preorder_ids = (1, (2, 3, 4), (5, 0, 0))
-    other_operators_set = set()
     hash_join_set = set()
     nested_loop_join_set = set()
-    preorder_ids, _ = _make_preorder_ids_tree(root,other_operators_set,hash_join_set,nested_loop_join_set)
+    preorder_ids, _ = _make_preorder_ids_tree(root, hash_join_set, nested_loop_join_set)
     vecs = []
     _walk(preorder_ids, vecs)
-    # Continuing with the Join(A,B) example:
-    # Preorder traversal _walk() produces
-    #   [1, 2, 3]
-    #   [2, 0, 0]
-    #   [3, 0, 0]
-    # which would be reshaped into
-    #   array([[1],
-    #          [2],
-    #          [3],
-    #          [2],
-    #          [0],
-    #          [0],
-    #    ...,
-    #          [0]])
     vecs = np.asarray(vecs).reshape(-1, 1)
-    #now we have to divide the vecs into three vectors, which have the same shape as vecs
-    # : vec_other_operators, vec_hash_join, vec_nested_loop_join
-    #for exaple, if nested_loop_join_set is empty, hash_join_set contains "2", and other_operators_set contains "1" and "3"
-    #and "4" and "5"
+
     node_ids = vecs[:, 0]  # extract all nodes ids
-    vecs_other_operators = np.where(np.isin(node_ids, list(other_operators_set)), node_ids, 0).reshape(-1, 1)
-    vecs_hash_join = np.where(np.isin(node_ids, list(hash_join_set)), node_ids, 0).reshape(-1, 1)
-    vecs_nested_loop_join = np.where(np.isin(node_ids, list(nested_loop_join_set)), node_ids, 0).reshape(-1, 1)
-    
-    return vecs, vecs_other_operators, vecs_hash_join, vecs_nested_loop_join
 
+    # Create masks for hash join and nested loop nodes
+    hash_join_mask = np.isin(node_ids, list(hash_join_set))
+    nested_loop_join_mask = np.isin(node_ids, list(nested_loop_join_set))
 
+    # Update vecs_hash_join and vecs_nested_loop_join to include only relevant nodes
+    vecs_hash_join = np.where(hash_join_mask, node_ids, 0).reshape(-1, 1)
+    vecs_nested_loop_join = np.where(nested_loop_join_mask, node_ids, 0).reshape(-1, 1)
+
+    # Update vecs to include only nodes that are not part of hash join or nested loop subtrees
+    vecs = np.where(~hash_join_mask & ~nested_loop_join_mask, node_ids, 0).reshape(-1, 1)
+
+    return vecs, vecs_hash_join, vecs_nested_loop_join
 # @profile
-def _featurize_tree(curr_node, node_featurizer):
+# def _featurize_tree(curr_node, node_featurizer):
 
+#     def _bottom_up(curr):
+    
+    
+#         """Calls node_featurizer on each node exactly once, bottom-up."""
+#         if hasattr(curr, '__node_feature_vec'):
+#             return curr.__node_feature_vec
+#         if not curr.children:
+#             # this one will tackle with scan operator
+#             vec = node_featurizer.FeaturizeLeaf(curr)
+#             curr.__node_feature_vec = vec
+#             return vec
+#         left_vec = _bottom_up(curr.children[0])
+#         right_vec = _bottom_up(curr.children[1])
+#         # this one will tackle with join operator
+#         vec = node_featurizer.Merge(curr, left_vec, right_vec)
+#         curr.__node_feature_vec = vec
+#         return vec
+
+#     _bottom_up(curr_node)
+    
+#     def append_vecs(node):
+#         # debug
+#         zero_vec = np.zeros(node.__node_feature_vec.size, dtype=np.float32)
+#         vec = getattr(node, '__node_feature_vec', zero_vec)
+#         vecs.append(vec)
+
+#         if node.node_type == "Hash Join":
+#             vecs_hash_join.append(vec)
+#             vecs_nested_loop_join.append(zero_vec)
+#         elif node.node_type == "Nested Loop":
+#             vecs_nested_loop_join.append(vec)
+#             vecs_hash_join.append(zero_vec)
+#         else:
+#             vecs_hash_join.append(zero_vec)
+#             vecs_nested_loop_join.append(zero_vec)
+
+    
+#     vecs = []
+#     vecs_hash_join = []
+#     vecs_nested_loop_join = []
+
+#     plans_lib.MapNode(curr_node, append_vecs)
+#     num_nodes = len(vecs)
+#     vec_size = vecs[0].shape[0]
+#     ret = np.zeros((num_nodes + 1, vec_size), dtype=np.float32)
+#     ret_hash_join = np.zeros((num_nodes + 1, vec_size), dtype=np.float32)
+#     ret_nested_loop_join = np.zeros((num_nodes + 1, vec_size), dtype=np.float32)
+
+
+#     ret[1:] = vecs
+
+#     ret_hash_join[1:] = vecs_hash_join
+
+#     ret_nested_loop_join[1:] = vecs_nested_loop_join
+
+#     return ret, ret_hash_join, ret_nested_loop_join
+def _featurize_tree(curr_node, node_featurizer):
     def _bottom_up(curr):
-    
-    
         """Calls node_featurizer on each node exactly once, bottom-up."""
         if hasattr(curr, '__node_feature_vec'):
             return curr.__node_feature_vec
         if not curr.children:
-            # this one will tackle with scan operator
             vec = node_featurizer.FeaturizeLeaf(curr)
             curr.__node_feature_vec = vec
             return vec
         left_vec = _bottom_up(curr.children[0])
         right_vec = _bottom_up(curr.children[1])
-        # this one will tackle with join operator
         vec = node_featurizer.Merge(curr, left_vec, right_vec)
         curr.__node_feature_vec = vec
         return vec
 
     _bottom_up(curr_node)
     
+    def add_subtree_vecs(node, vecs_list):
+        if hasattr(node, '__node_feature_vec'):
+            vecs_list.append(node.__node_feature_vec)
+        for child in node.children:
+            add_subtree_vecs(child, vecs_list)
+             
     def append_vecs(node):
-        # debug
         zero_vec = np.zeros(node.__node_feature_vec.size, dtype=np.float32)
         vec = getattr(node, '__node_feature_vec', zero_vec)
-        vecs.append(vec)
-
-        if node.node_type == "Hash Join":
+        
+        if node in hash_join_subtree_nodes:
             vecs_hash_join.append(vec)
-            vecs_other_operators.append(zero_vec)
-            vecs_nested_loop_join.append(zero_vec)
-        elif node.node_type == "Nested Loop":
-            vecs_nested_loop_join.append(vec)
-            vecs_other_operators.append(zero_vec)
-            vecs_hash_join.append(zero_vec)
         else:
-            vecs_other_operators.append(vec)
             vecs_hash_join.append(zero_vec)
+
+        if node in nested_loop_subtree_nodes:
+            vecs_nested_loop_join.append(vec)
+        else:
             vecs_nested_loop_join.append(zero_vec)
+
+        if node not in hash_join_subtree_nodes and node not in nested_loop_subtree_nodes:
+            vecs.append(vec)
+        else:
+            vecs.append(zero_vec)
+            
+    def add_subtree_nodes(node, nodes_set):
+        """Recursively adds all nodes in the subtree rooted at the given node to the specified set."""
+        nodes_set.add(node)
+        for child in node.children:
+            add_subtree_nodes(child, nodes_set)
+
+    def mark_subtree_nodes(node):
+        """Mark all nodes in the subtree rooted at a Hash Join or Nested Loop node."""
+        if node.node_type == "Hash Join":
+            add_subtree_nodes(node, hash_join_subtree_nodes)
+        elif node.node_type == "Nested Loop":
+            add_subtree_nodes(node, nested_loop_subtree_nodes)
+        for child in node.children:
+            mark_subtree_nodes(child)
+      
+      
+      
+      
     
+    
+    hash_join_subtree_nodes = set()
+    nested_loop_subtree_nodes = set()        
+    mark_subtree_nodes(curr_node)        
     vecs = []
-    vecs_other_operators = []
     vecs_hash_join = []
     vecs_nested_loop_join = []
+   
 
     plans_lib.MapNode(curr_node, append_vecs)
+
     num_nodes = len(vecs)
     vec_size = vecs[0].shape[0]
     ret = np.zeros((num_nodes + 1, vec_size), dtype=np.float32)
-    ret_other_operators = np.zeros((num_nodes + 1, vec_size), dtype=np.float32)
     ret_hash_join = np.zeros((num_nodes + 1, vec_size), dtype=np.float32)
     ret_nested_loop_join = np.zeros((num_nodes + 1, vec_size), dtype=np.float32)
 
-    #import pprint
     ret[1:] = vecs
-    #np.set_printoptions(threshold=np.inf)
-    #print("ret:", pprint.pformat(ret))
-    ret_other_operators[1:] = vecs_other_operators
-    #print("ret_other_operators:", pprint.pformat(ret_other_operators))
-    ret_hash_join[1:] = vecs_hash_join
-    #print("ret_hash_join:", pprint.pformat(ret_hash_join))
-    ret_nested_loop_join[1:] = vecs_nested_loop_join
-    #print("ret_nested_loop_join:", pprint.pformat(ret_nested_loop_join))
-    # if we want to check if the ret is the sum of the other three arrays
-    # combined_array = ret_other_operators + ret_hash_join + ret_nested_loop_join
-    # is_equal = np.allclose(ret[1:], combined_array[1:], atol=1e-7)
-    # print("Is ret the sum of the other three arrays:", is_equal) #true
-    
-    # now we get the ret, ret_other_operators, ret_hash_join, ret_nested_loop_join
-    return ret, ret_other_operators, ret_hash_join, ret_nested_loop_join
+    ret_hash_join[1:len(vecs_hash_join) + 1] = vecs_hash_join
+    ret_nested_loop_join[1:len(vecs_nested_loop_join) + 1] = vecs_nested_loop_join
 
+    return ret, ret_hash_join, ret_nested_loop_join
 
-# @profile
-# def make_and_featurize_trees(trees, node_featurizer):
-#     # now we need to output decomposed trees, and the indexes of the nodes
-#     indexes = torch.from_numpy(_batch([_make_indexes(x) for x in trees])).long()
-#     trees = torch.from_numpy(
-#         _batch([_featurize_tree(x, node_featurizer) for x in trees
-#                ])).transpose(1, 2)
-#     return trees, indexes
 
 def make_and_featurize_trees(trees, node_featurizer):
     # 初始化列表以存储来自_make_indexes和_featurize_tree的不同向量
     indexes_list = []
-    other_operators_indexes_list = []
+   
     hash_join_indexes_list = []
     nested_loop_join_indexes_list = []
 
     trees_list = []
-    other_operators_trees_list = []
+    
     hash_join_trees_list = []
     nested_loop_join_trees_list = []
 
@@ -427,37 +545,34 @@ def make_and_featurize_trees(trees, node_featurizer):
         # 调用_make_indexes函数并收集输出
         index_components = _make_indexes(tree)
         indexes_list.append(index_components[0])
-        other_operators_indexes_list.append(index_components[1])
-        hash_join_indexes_list.append(index_components[2])
-        nested_loop_join_indexes_list.append(index_components[3])
+        hash_join_indexes_list.append(index_components[1])
+        nested_loop_join_indexes_list.append(index_components[2])
 
         # 调用_featurize_tree函数并收集输出
         tree_components = _featurize_tree(tree, node_featurizer)
         trees_list.append(tree_components[0])
-        other_operators_trees_list.append(tree_components[1])
-        hash_join_trees_list.append(tree_components[2])
-        nested_loop_join_trees_list.append(tree_components[3])
+     
+        hash_join_trees_list.append(tree_components[1])
+        nested_loop_join_trees_list.append(tree_components[2])
 
     # 批量化索引数据并转换为长整数张量
     indexes_batch = torch.from_numpy(_batch(indexes_list)).long()
-    other_operators_indexes_batch = torch.from_numpy(_batch(other_operators_indexes_list)).long()
+   
     hash_join_indexes_batch = torch.from_numpy(_batch(hash_join_indexes_list)).long()
     nested_loop_join_indexes_batch = torch.from_numpy(_batch(nested_loop_join_indexes_list)).long()
 
     # 批量化特征数据并转换为浮点数张量
     trees_batch = torch.from_numpy(_batch(trees_list)).transpose(1, 2).float()
-    other_operators_trees_batch = torch.from_numpy(_batch(other_operators_trees_list)).transpose(1, 2).float()
+   
     hash_join_trees_batch = torch.from_numpy(_batch(hash_join_trees_list)).transpose(1, 2).float()
     nested_loop_join_trees_batch = torch.from_numpy(_batch(nested_loop_join_trees_list)).transpose(1, 2).float()
 
     # 返回所有的批量树和索引
     return (
         trees_batch,
-        other_operators_trees_batch,
         hash_join_trees_batch,
         nested_loop_join_trees_batch,
         indexes_batch,
-        other_operators_indexes_batch,
         hash_join_indexes_batch,
         nested_loop_join_indexes_batch
     )

@@ -75,12 +75,12 @@ class SimModel(pl.LightningModule):
         self.query_featurizer = query_featurizer
         self.perturb_query_features = perturb_query_features
     # called!
-    def forward(self,query_feats,other_operators_feats,hash_join_feats,nested_loop_join_feats,
-                other_operators_pos_feats=None,hash_join_pos_feats=None,nested_loop_join_pos_feats=None):
+    def forward(self,query_feats,join_feats,hash_join_feats,nested_loop_join_feats,pos_feats=None,
+                hash_join_pos_feats=None,nested_loop_join_pos_feats=None,mode='Upper_Half_Plan'):
         if self.use_tree_conv:
             # FIXME MODIFY INPUT QIhan Zhang
-            return self.tree_conv(query_feats,other_operators_feats,hash_join_feats,nested_loop_join_feats,
-                other_operators_pos_feats,hash_join_pos_feats,nested_loop_join_pos_feats)
+            return self.tree_conv(query_feats,join_feats,hash_join_feats,nested_loop_join_feats,pos_feats,
+                hash_join_pos_feats,nested_loop_join_pos_feats,mode)
         #return self.mlp(torch.cat([query_feat, plan_feat], -1))
 
     def configure_optimizers(self):
@@ -100,8 +100,8 @@ class SimModel(pl.LightningModule):
         return result
 
     def _ComputeLoss(self, batch):
-        query_feat,plans_other_operators_feat,plans_hash_join,plans_nested_loop_join,\
-        indexes_other_operators,indexes_hash_join,indexes_nested_loop_join,cost = batch
+        query_feat,plans,plans_hash_join,plans_nested_loop_join,\
+       indexes,indexes_hash_join,indexes_nested_loop_join,cost = batch
         target = cost
         if self.training and self.perturb_query_features is not None:
             # No-op for non-enabled featurizers.
@@ -109,12 +109,13 @@ class SimModel(pl.LightningModule):
                 query_feat, distribution=self.perturb_query_features)
         if self.use_tree_conv:
             #assert len(rest) == 2
-            output = self.forward(query_feat, plans_other_operators_feat,plans_hash_join,plans_nested_loop_join,
-                    indexes_other_operators,indexes_hash_join,indexes_nested_loop_join)
+            # use defalut mode
+            output = self.forward(query_feat,plans,plans_hash_join,plans_nested_loop_join,
+                   indexes,indexes_hash_join,indexes_nested_loop_join,mode='Upper_Half_Plan')
         else:
             #assert len(rest) == 1
             raise NotImplementedError("Cannot go this branch for now! Qihan Zhang")
-            #output = self.forward(query_feat, plan_feat)
+            
         if self.loss_type == 'mean_qerror':
             output_inverted = self.torch_invert_cost(output.reshape(-1,))
             target_inverted = self.torch_invert_cost(target.reshape(-1,))
@@ -778,7 +779,7 @@ class Sim(object):
     def _MakeDatasetAndLoader(self, data):
         p = self.params
         all_query_vecs = data[0]
-        all_plans_other_operators_vecs = data[1]
+        all_plans_operators_vecs = data[1]
         all_plans_hash_join_vecs = data[2]
         all_plans_nested_loop_join_vecs = data[3]
         
@@ -787,17 +788,18 @@ class Sim(object):
         # 'use_positions' is True iff we want to use a TreeConv to process the
         # subplans.  If using a non-tree-aware featurization, it becomes
         # unused.
-        use_positions = data[4][0] is not None or data[5][0] is not None or data[6][0] is not None
+        use_positions = data[4][0] is not None or data[5][0] is not None  or data[6][0] is not None
      
-        all_pa_pos_other_operators_vecs = data[4]
+        all_pa_pos_operators_vecs = data[4]
         all_pa_pos_hash_join_vecs = data[5]
         all_pa_pos_nested_loop_join_vecs = data[6]
+        
         dataset = ds.PlansDataset(
             all_query_vecs,
-            all_plans_other_operators_vecs,
+            all_plans_operators_vecs,
             all_plans_hash_join_vecs,
             all_plans_nested_loop_join_vecs,
-            all_pa_pos_other_operators_vecs,
+            all_pa_pos_operators_vecs,
             all_pa_pos_hash_join_vecs,
             all_pa_pos_nested_loop_join_vecs,
             all_costs,
@@ -1028,6 +1030,7 @@ class Sim(object):
 
     def Predict(self, query_node, nodes):
         """Runs forward pass on 'nodes' to predict their costs."""
+        # default use upper version Qihan Zhang
         return self._GetPlanner().infer(query_node, nodes)
 
     def _LoadBestCheckpointForEval(self):

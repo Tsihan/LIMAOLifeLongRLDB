@@ -381,8 +381,8 @@ def TrainSim(p, loggers=None):
     if p.sim_checkpoint is None:
         sim.CollectSimulationData()
     # FIXME Qihan Zhang temporary modify to retain simulator p.sim_checkpoint None
+    #sim.Train(load_from_checkpoint=None, loggers=loggers)
     sim.Train(load_from_checkpoint=p.sim_checkpoint, loggers=loggers)
-    #sim.Train(load_from_checkpoint=p.sim_checkpoint, loggers=loggers)
     sim.model.freeze()
     sim.EvaluateCost()
     sim.FreeData()
@@ -542,15 +542,13 @@ class BalsaModel(pl.LightningModule):
     def SetLoggingPrefix(self, prefix):
         """Useful for prepending value iteration numbers."""
         self.logging_prefix = prefix
-#query_feats,other_operators_feats,hash_join_feats,nested_loop_join_feats,other_operators_pos_feats,hash_join_pos_feats,nested_loop_join_pos_feats
-    # def forward(self, query_feat, plan_feat, indexes):
-    #     return self.model(query_feat, plan_feat, indexes)
+
     # FIXME QIHANZHANG
-    def forward(self, query_feats,other_operators_feats,hash_join_feats,nested_loop_join_feats,
-                other_operators_pos_feats,hash_join_pos_feats,nested_loop_join_pos_feats):
+    def forward(self, query_feats,tree_feats,hash_join_feats,nested_loop_join_feats,pos_feats,
+                hash_join_pos_feats,nested_loop_join_pos_feats,mode):
     # def forward(self, query_feat, plan_feat, indexes):
-        return self.model(query_feats,other_operators_feats,hash_join_feats,nested_loop_join_feats,
-                other_operators_pos_feats,hash_join_pos_feats,nested_loop_join_pos_feats)
+        return self.model(query_feats,tree_feats,hash_join_feats,nested_loop_join_feats,
+                pos_feats,hash_join_pos_feats,nested_loop_join_pos_feats,mode)
 
     def configure_optimizers(self):
         p = self.params
@@ -625,21 +623,21 @@ class BalsaModel(pl.LightningModule):
             query_feat = self.query_featurizer.PerturbQueryFeatures(
                 query_feat, distribution=self.perturb_query_features)
             
-        query_feat, other_operators_feat, hash_join_feat,nested_loop_join_feat,\
-        other_operators_pos_feat,hash_join_pos_feat,nested_loop_join_pos_feat, \
-        target = (query_feat.to(dev),
-                    batch.plans_other_operators.to(dev),
+        query_feat, tree_feat, hash_join_feat,nested_loop_join_feat,\
+        pos_feat,hash_join_pos_feat,nested_loop_join_pos_feat, \
+        target = (query_feat.to(dev),  
+                    batch.plans.to(dev),
                     batch.plans_hash_join.to(dev),
                     batch.plans_nested_loop_join.to(dev),
-                    batch.indexes_other_operators.to(dev),
+                    batch.indexes.to(dev),
                     batch.indexes_hash_join.to(dev),
                     batch.indexes_nested_loop_join.to(dev),
                     batch.costs.to(dev))
         # FIXME QIHANZHANG
 
-        #output = self.forward(query_feat, plan_feat, indexes)
-        output = self.forward(query_feat, other_operators_feat,hash_join_feat,nested_loop_join_feat,\
-                other_operators_pos_feat,hash_join_pos_feat,nested_loop_join_pos_feat)
+        # default use upper
+        output = self.forward(query_feat,tree_feat,hash_join_feat,nested_loop_join_feat,\
+                pos_feat,hash_join_pos_feat,nested_loop_join_pos_feat,'Upper_Half_Plan')
         
         if p.cross_entropy:
             log_probs = output.log_softmax(-1)
@@ -911,8 +909,8 @@ class BalsaAgent(object):
             skip_training_on_timeouts=p.skip_training_on_timeouts)
         # [np.ndarray], torch.Tensor, torch.Tensor, [float].
         #all_query_vecs, all_feat_vecs, all_pos_vecs, all_costs = tup[:4]
-        all_query_vecs,all_other_operators_trees_vecs,all_hash_join_trees_vecs,all_nested_loop_join_trees_vecs,\
-        all_other_operators_pos_indexes_vecs,all_hash_join_pos_indexes_vecs,all_nested_loop_join_pos_indexes_vecs, all_costs = tup[:8]
+        all_query_vecs,all_trees_vecs,all_hash_join_trees_vecs,all_nested_loop_join_trees_vecs,\
+        all_pos_indexes_vecs,all_hash_join_pos_indexes_vecs,all_nested_loop_join_pos_indexes_vecs, all_costs = tup[:8]
         num_new_datapoints = None
         if len(tup) == 5:
             num_new_datapoints = tup[-1]
@@ -940,10 +938,10 @@ class BalsaAgent(object):
             self.label_std = self.label_running_stats.Std(epsilon_guard=False)
 
         dataset = ds.PlansDataset(all_query_vecs,
-                                  all_other_operators_trees_vecs,
+                                  all_trees_vecs,
                                   all_hash_join_trees_vecs,
                                   all_nested_loop_join_trees_vecs,
-                                  all_other_operators_pos_indexes_vecs,
+                                  all_pos_indexes_vecs,
                                   all_hash_join_pos_indexes_vecs,
                                   all_nested_loop_join_pos_indexes_vecs,
                                   all_costs,
@@ -985,13 +983,11 @@ class BalsaAgent(object):
                 use_last_n_iters=-1,
                 use_new_data_only=False,
                 skip_training_on_timeouts=p.skip_training_on_timeouts)
-            (all_query_vecs_val,all_other_operators_trees_vecs_val,all_hash_join_trees_vecs_val,all_nested_loop_join_trees_vecs_val,\
-            all_other_operators_pos_indexes_vecs_val,all_hash_join_pos_indexes_vecs_val,all_nested_loop_join_pos_indexes_vecs_val, all_costs_val) = tup[:8]
+            (all_query_vecs_val,all_hash_join_trees_vecs_val,all_nested_loop_join_trees_vecs_val,\
+            all_hash_join_pos_indexes_vecs_val,all_nested_loop_join_pos_indexes_vecs_val, all_costs_val) = tup[:6]
             dataset_val = ds.PlansDataset(all_query_vecs_val,
-                                          all_other_operators_trees_vecs_val,
                                           all_hash_join_trees_vecs_val,
                                           all_nested_loop_join_trees_vecs_val,
-                                          all_other_operators_pos_indexes_vecs_val,
                                           all_hash_join_pos_indexes_vecs_val,
                                           all_nested_loop_join_pos_indexes_vecs_val,
                                           all_costs_val,

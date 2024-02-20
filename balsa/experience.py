@@ -34,11 +34,11 @@ def TreeConvFeaturize(plan_featurizer, subplans):
     # padding.  This is different from our other per-node Featurizers.
     print('Calling make_and_featurize_trees()...')
     t1 = time.time()
-    _,other_operators_trees,hash_join_trees,nested_loop_join_trees\
-    ,_,other_operators_pos_indexes,hash_join_pos_indexes,nested_loop_join_pos_indexes = treeconv.make_and_featurize_trees(subplans,
+    trees,hash_join_trees,nested_loop_join_trees\
+    ,pos_indexes,hash_join_pos_indexes,nested_loop_join_pos_indexes = treeconv.make_and_featurize_trees(subplans,
                                                        plan_featurizer)
     print('took {:.1f}s'.format(time.time() - t1))
-    return other_operators_trees,hash_join_trees,nested_loop_join_trees,other_operators_pos_indexes,hash_join_pos_indexes,nested_loop_join_pos_indexes
+    return trees,hash_join_trees,nested_loop_join_trees,pos_indexes,hash_join_pos_indexes,nested_loop_join_pos_indexes
 
 #NOTE
 # pay attention to this one
@@ -326,13 +326,13 @@ class Experience(object):
         self.prepare(rewrite_generic, verbose)
         # Training data.
         all_query_vecs = []
-        # all_feat_vecs = []  # plan features
-        # all_pos_vecs = []  # plan positions/indexes
+        all_feat_vecs = []  # plan features
+        all_pos_vecs = []  # plan positions/indexes
         
-        all_other_operators_trees_vecs = []
+        #all_other_operators_trees_vecs = []
         all_hash_join_trees_vecs = []
         all_nested_loop_join_trees_vecs = []
-        all_other_operators_pos_indexes_vecs = []
+        #all_other_operators_pos_indexes_vecs = []
         all_hash_join_pos_indexes_vecs = []
         all_nested_loop_join_pos_indexes_vecs = []
         
@@ -403,11 +403,11 @@ class Experience(object):
 
         # Tree conv requires batch-featurization.
         if self.tree_conv and all_subtrees:
-            assert len(all_other_operators_trees_vecs) == 0 and len(all_hash_join_trees_vecs) == 0 and len(all_nested_loop_join_trees_vecs) == 0
-            assert len(all_other_operators_pos_indexes_vecs) == 0 and len(all_hash_join_pos_indexes_vecs) == 0 and len(all_nested_loop_join_pos_indexes_vecs) == 0
+            assert  len(all_hash_join_trees_vecs) == 0 and len(all_nested_loop_join_trees_vecs) == 0
+            assert  len(all_hash_join_pos_indexes_vecs) == 0 and len(all_nested_loop_join_pos_indexes_vecs) == 0
 
-            all_other_operators_trees_vecs,all_hash_join_trees_vecs,all_nested_loop_join_trees_vecs,\
-           all_other_operators_pos_indexes_vecs,all_hash_join_pos_indexes_vecs,all_nested_loop_join_pos_indexes_vecs  = TreeConvFeaturize(self.featurizer, all_subtrees)
+            all_feat_vecs,all_hash_join_trees_vecs,all_nested_loop_join_trees_vecs,\
+           all_pos_vecs,all_hash_join_pos_indexes_vecs,all_nested_loop_join_pos_indexes_vecs  = TreeConvFeaturize(self.featurizer, all_subtrees)
 
         # Logging.
         print(
@@ -416,16 +416,17 @@ class Experience(object):
             .format(num_total_subtrees, len(all_query_vecs),
                     num_new_datapoints))
         print('head')
-        for i in range(3):
+        for i in range(2):
             print('  query={:.3f} feat={} cost={}'.format(
-                all_query_vecs[i].sum(), all_other_operators_trees_vecs[i].sum(), all_costs[i]))
+                all_query_vecs[i].sum(), all_hash_join_trees_vecs[i].sum(), all_costs[i]))
         print('tail')
-        for i in range(3):
+        for i in range(2):
             j = -1 - i
             print('  query={:.3f} feat={} cost={}'.format(
-                all_query_vecs[j].sum(), all_other_operators_pos_indexes_vecs[j].sum(), all_costs[j]))
-        return (all_query_vecs, all_other_operators_trees_vecs,all_hash_join_trees_vecs,all_nested_loop_join_trees_vecs,\
-                all_other_operators_pos_indexes_vecs,all_hash_join_pos_indexes_vecs,all_nested_loop_join_pos_indexes_vecs, all_costs,\
+                all_query_vecs[j].sum(), all_nested_loop_join_trees_vecs[j].sum(), all_costs[j]))
+            
+        return (all_query_vecs,all_feat_vecs,all_hash_join_trees_vecs,all_nested_loop_join_trees_vecs,\
+                all_pos_vecs,all_hash_join_pos_indexes_vecs,all_nested_loop_join_pos_indexes_vecs, all_costs,\
                 num_new_datapoints)
 
     def _featurize_hindsight_relabeling(self,
@@ -708,12 +709,12 @@ class SimpleReplayBuffer(Experience):
                                                   len(self.nodes))
         self.prepare(rewrite_generic, verbose)
         all_query_vecs = [None] * len(self.nodes)
-        # all_feat_vecs = [None] * len(self.nodes)
-        # all_pa_pos_vecs = [None] * len(self.nodes)
-        all_other_operators_feats_vecs = [None] * len(self.nodes)
+        all_feat_vecs = [None] * len(self.nodes)
+        all_pa_pos_vecs = [None] * len(self.nodes)
+        #all_other_operators_feats_vecs = [None] * len(self.nodes)
         all_hash_join_feats_vecs = [None] * len(self.nodes)
         all_nested_loop_join_feats_vecs = [None] * len(self.nodes)
-        all_other_operators_pa_pos_vecs = [None] * len(self.nodes)
+        #all_other_operators_pa_pos_vecs = [None] * len(self.nodes)
         all_hash_join_pa_pos_vecs = [None] * len(self.nodes)
         all_nested_loop_join_pa_pos_vecs = [None] * len(self.nodes)
         
@@ -725,8 +726,8 @@ class SimpleReplayBuffer(Experience):
 
         print('Spent {:.1f}s'.format(time.time() - t1))
         if isinstance(self.featurizer, plans_lib.TreeNodeFeaturizer):
-            all_other_operators_feats_vecs,all_hash_join_feats_vecs,all_nested_loop_join_feats_vecs,\
-            all_other_operators_pa_pos_vecs,all_hash_join_pa_pos_vecs,all_nested_loop_join_pa_pos_vecs\
+            all_feat_vecs,all_hash_join_feats_vecs,all_nested_loop_join_feats_vecs,\
+            all_pa_pos_vecs,all_hash_join_pa_pos_vecs,all_nested_loop_join_pa_pos_vecs\
             = TreeConvFeaturize(
                 self.featurizer, subplans)
         else:
@@ -741,8 +742,8 @@ class SimpleReplayBuffer(Experience):
         #          np.arange(1, 1 + len(all_query_vecs[i]))).sum(),
         #         all_feat_vecs[i], all_costs[i]))
 
-        return all_query_vecs, all_other_operators_feats_vecs, all_hash_join_feats_vecs, all_nested_loop_join_feats_vecs,\
-        all_other_operators_pa_pos_vecs, all_hash_join_pa_pos_vecs, all_nested_loop_join_pa_pos_vecs, all_costs
+        return all_query_vecs, all_feat_vecs,all_hash_join_feats_vecs, all_nested_loop_join_feats_vecs,\
+        all_pa_pos_vecs,all_hash_join_pa_pos_vecs, all_nested_loop_join_pa_pos_vecs, all_costs
         
 
 

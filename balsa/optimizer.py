@@ -155,7 +155,7 @@ class Optimizer(object):
         self.label_cache = {}
 
     # @profile
-    def infer(self, query_node, plan_nodes, set_model_eval=False):
+    def infer(self, query_node, plan_nodes, set_model_eval=False,Use_Lower_Half_Plan = False):
         """Forward pass.
 
         Args:
@@ -195,79 +195,55 @@ class Optimizer(object):
             # mark all the tables with 1, and transform the value 1.
             query_enc = self.query_featurizer(query_node)
             all_query_vecs = [query_enc] * len(plans)
-            # all_plans = []
-            # all_indexes = []
-            
-            other_operators_plans = []
+            all_plans = []
+            all_indexes = []
+           
             hash_join_plans = []
             nested_loop_join_plans = []
-            other_operators_indexes = []
+           
             hash_join_indexes = []
             nested_loop_join = []
             # default this if branch
             if self.tree_conv:
                 # TODO pay attention to here, how it features the plans!
-                _,other_operators_plans,hash_join_plans,nested_loop_join_plans\
-                , _,other_operators_indexes,hash_join_indexes,nested_loop_join = treeconv.make_and_featurize_trees(
+                all_plans,hash_join_plans,nested_loop_join_plans\
+                , all_indexes,hash_join_indexes,nested_loop_join = treeconv.make_and_featurize_trees(
                     plans, self.plan_featurizer)
             else:
                 raise NotImplementedError("This branch cannot be used for now! Qihan Zhang")
                 
-                # for plan_node in plans:
-                #     all_plans.append(self.plan_featurizer(plan_node))
 
-                # if self.parent_pos_featurizer is not None:
-                #     for plan_node in plans:
-                #         all_indexes.append(
-                #             self.parent_pos_featurizer(plan_node))
             # default go this if branch
             if self.tree_conv or hasattr(self.plan_featurizer, 'pad'):
                 query_feat = torch.from_numpy(np.asarray(all_query_vecs)).to(
                     DEVICE, non_blocking=True)
                 
-                # plan_feat = torch.from_numpy(np.asarray(all_plans)).to(
-                #     DEVICE, non_blocking=True)
-                # pos_feat = torch.from_numpy(np.asarray(all_indexes)).to(
-                #     DEVICE, non_blocking=True)
-                
-                other_operators_feat = torch.from_numpy(np.asarray(other_operators_plans)).to(
+                plan_feat = torch.from_numpy(np.asarray(all_plans)).to(
                     DEVICE, non_blocking=True)
+                pos_feat = torch.from_numpy(np.asarray(all_indexes)).to(
+                    DEVICE, non_blocking=True)
+
                 hash_join_feat = torch.from_numpy(np.asarray(hash_join_plans)).to(
                     DEVICE, non_blocking=True)
                 nested_loop_join_feat = torch.from_numpy(np.asarray(nested_loop_join_plans)).to(
                     DEVICE, non_blocking=True)
                 
-                other_operators_pos_feat = torch.from_numpy(np.asarray(other_operators_indexes)).to(
-                    DEVICE, non_blocking=True)
+
                 hash_join_pos_feat = torch.from_numpy(np.asarray(hash_join_indexes)).to(
                     DEVICE, non_blocking=True)
                 nested_loop_join_pos_feat = torch.from_numpy(np.asarray(nested_loop_join)).to(
                     DEVICE, non_blocking=True)
                 
-                # cost = self.value_network(query_feat, plan_feat,
-                #                           pos_feat).cpu().numpy()
-                
-                cost = self.value_network(query_feat,other_operators_feat,hash_join_feat,nested_loop_join_feat,
-                                          other_operators_pos_feat,hash_join_pos_feat,nested_loop_join_pos_feat).cpu().numpy()
+ 
+                if not Use_Lower_Half_Plan:
+                    cost = self.value_network(query_feat,plan_feat,hash_join_feat,nested_loop_join_feat,pos_feat,
+                                          hash_join_pos_feat,nested_loop_join_pos_feat,'Upper_Half_Plan').cpu().numpy()
+                else:
+                    cost = self.value_network(query_feat,plan_feat,hash_join_feat,nested_loop_join_feat,pos_feat,
+                                          hash_join_pos_feat,nested_loop_join_pos_feat,'Lower_Half_Plan').cpu().numpy()
             else:
                 # TODO since we modify the forword of network, this one needs modify but we leave it furture
                 raise NotImplementedError("This branch cannot be used for now! Qihan Zhang")
-                # all_costs = [1] * len(all_plans)
-                # batch = ds.PlansDataset(
-                #     all_query_vecs,
-                #     all_plans,
-                #     all_indexes,
-                #     all_costs,
-                #     transform_cost=False,
-                #     return_indexes=False,
-                # )
-                # loader = torch.utils.data.DataLoader(batch,
-                #                                      batch_size=len(all_plans),
-                #                                      shuffle=False)
-                # processed_batch = list(loader)[0]
-                # query_feat, plan_feat = processed_batch[0].to(
-                #     DEVICE), processed_batch[1].to(DEVICE)
-                # cost = self.value_network(query_feat, plan_feat).cpu().numpy()
 
             cost = self.inverse_label_transform_fn(cost)
             plan_labels = cost.reshape(-1,).tolist()
@@ -440,7 +416,11 @@ class Optimizer(object):
             valid_costs[i] = new_state_cost
             valid_new_states[i] = new_state
         return valid_costs, valid_new_states
-
+    
+    def get_depth(self, plan):
+        if plan.IsJoin():
+            return max(self.get_depth(plan.children[0]), self.get_depth(plan.children[1])) + 1
+        return 1
     # @profile
     def _beam_search_bk(self,
                         query_node,
@@ -460,6 +440,8 @@ class Optimizer(object):
           beam_size: size of the fixed set of most promising Nodes to be
             explored.
         """
+        this_query_depth = self.get_depth(query_node)
+        
         if planner_config:
             if bushy:
                 assert planner_config.search_space == 'bushy', planner_config
@@ -538,8 +520,16 @@ class Optimizer(object):
                 bushy=bushy,
                 planner_config=planner_config,
                 avoid_eq_filters=avoid_eq_filters)
+            
+            depth_record = []
+            for i in range(len(possible_plans)):
+                depth_record.append(self.get_depth(possible_plans[i][0]))
+            avg_depth = sum(depth_record) / len(possible_plans)
+            ##### Modify logic here
+            Use_Lower_Half_Plan = avg_depth < (this_query_depth / 2)
+            
             costs = self.infer(query_node,
-                               [join for join, _, _ in possible_plans])
+                               [join for join, _, _ in possible_plans],Use_Lower_Half_Plan = Use_Lower_Half_Plan)
             valid_costs, valid_new_states = self._make_new_states(
                 state, costs, possible_plans)
 
@@ -621,16 +611,23 @@ class Optimizer(object):
         num_random_plans = 1000
 
         def _SampleOne(state):
+            this_query_depth = self.get_depth(query_node)
             while len(state) > 1:
                 possible_plans = self._get_possible_plans(query_node,
                                                           state,
                                                           join_graph,
                                                           bushy=bushy)
+                depth_record = []
+                for i in range(len(possible_plans)):
+                    depth_record.append(self.get_depth(possible_plans[i][0]))
+                avg_depth = sum(depth_record) / len(possible_plans)
+                Use_Lower_Half_Plan = avg_depth < (this_query_depth / 2)
+                
                 _, valid_new_states = self._make_new_states(
                     state, [0.0] * len(possible_plans), possible_plans)
                 rand_idx = np.random.randint(len(valid_new_states))
                 state = valid_new_states[rand_idx]
-            predicted = self.infer(query_node, [state[0]])
+            predicted = self.infer(query_node, [state[0]],Use_Lower_Half_Plan=Use_Lower_Half_Plan )
             return predicted, state
 
         best_predicted = [np.inf]
