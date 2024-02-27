@@ -441,8 +441,13 @@ class Sim(object):
         p.Define('infer_beam_size', 10, 'Beam size.')
         p.Define('infer_search_until_n_complete_plans', 1,
                  'Search until how many complete plans?')
-        # Workload.
-        p.Define('workload', envs.JoinOrderBenchmark.Params(),
+        # # Workload.
+        # p.Define('workload', envs.JoinOrderBenchmark.Params(),
+        #          'Params of the Workload, i.e., a set of queries.')
+        
+        # Workload. 
+        #Qihan Zhang Need a paprameter here to decide which workload to use
+        p.Define('workload', envs.IMDB_BAO.Params(),
                  'Params of the Workload, i.e., a set of queries.')
         # Data collection.
         p.Define('skip_data_collection_geq_num_rels', None,

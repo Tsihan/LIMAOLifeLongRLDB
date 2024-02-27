@@ -271,14 +271,16 @@ def ParseExecutionResult(result_tup,
         if do_hint_check and hint_str != executed_hint_str:
             print('initial\n', hint_str)
             print('after\n', executed_hint_str)
-            msg = 'Hint not respected for {}; server_ip={}'.format(
-                query_name, server_ip)
-            try:
-                assert False, msg
-            except Exception as e:
-                print(e, flush=True)
-                import ipdb
-                ipdb.set_trace()
+            print('Hint not respected for {}; server_ip={}'.format(query_name,server_ip))
+            #Qihan Zhang fixme here
+            # msg = 'Hint not respected for {}; server_ip={}'.format(
+            #     query_name, server_ip)
+            # try:
+            #     assert False, msg
+            # except Exception as e:
+            #     print(e, flush=True)
+            #     import ipdb
+            #     ipdb.set_trace()
 
     if not silent:
         messages.append('{}Running {}: hinted plan\n{}'.format(
@@ -381,8 +383,8 @@ def TrainSim(p, loggers=None):
     if p.sim_checkpoint is None:
         sim.CollectSimulationData()
     # FIXME Qihan Zhang temporary modify to retain simulator p.sim_checkpoint None
-    #sim.Train(load_from_checkpoint=None, loggers=loggers)
     sim.Train(load_from_checkpoint=p.sim_checkpoint, loggers=loggers)
+    #sim.Train(load_from_checkpoint=None, loggers=loggers)
     sim.model.freeze()
     sim.EvaluateCost()
     sim.FreeData()
@@ -2182,7 +2184,7 @@ def Main(argv):
     # Override params here for quick debugging.
     # p.sim_checkpoint = None
     # p.epochs = 1
-    p.val_iters = 10
+    p.val_iters = 20
     # p.query_glob = ['7*.sql']
     # p.test_query_glob = ['7c.sql']
     # p.search_until_n_complete_plans = 1

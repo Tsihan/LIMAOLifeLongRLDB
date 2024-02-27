@@ -402,64 +402,8 @@ def _make_indexes(root):
 
     return vecs, vecs_hash_join, vecs_nested_loop_join
 # @profile
-# def _featurize_tree(curr_node, node_featurizer):
-
-#     def _bottom_up(curr):
-    
-    
-#         """Calls node_featurizer on each node exactly once, bottom-up."""
-#         if hasattr(curr, '__node_feature_vec'):
-#             return curr.__node_feature_vec
-#         if not curr.children:
-#             # this one will tackle with scan operator
-#             vec = node_featurizer.FeaturizeLeaf(curr)
-#             curr.__node_feature_vec = vec
-#             return vec
-#         left_vec = _bottom_up(curr.children[0])
-#         right_vec = _bottom_up(curr.children[1])
-#         # this one will tackle with join operator
-#         vec = node_featurizer.Merge(curr, left_vec, right_vec)
-#         curr.__node_feature_vec = vec
-#         return vec
-
-#     _bottom_up(curr_node)
-    
-#     def append_vecs(node):
-#         # debug
-#         zero_vec = np.zeros(node.__node_feature_vec.size, dtype=np.float32)
-#         vec = getattr(node, '__node_feature_vec', zero_vec)
-#         vecs.append(vec)
-
-#         if node.node_type == "Hash Join":
-#             vecs_hash_join.append(vec)
-#             vecs_nested_loop_join.append(zero_vec)
-#         elif node.node_type == "Nested Loop":
-#             vecs_nested_loop_join.append(vec)
-#             vecs_hash_join.append(zero_vec)
-#         else:
-#             vecs_hash_join.append(zero_vec)
-#             vecs_nested_loop_join.append(zero_vec)
-
-    
-#     vecs = []
-#     vecs_hash_join = []
-#     vecs_nested_loop_join = []
-
-#     plans_lib.MapNode(curr_node, append_vecs)
-#     num_nodes = len(vecs)
-#     vec_size = vecs[0].shape[0]
-#     ret = np.zeros((num_nodes + 1, vec_size), dtype=np.float32)
-#     ret_hash_join = np.zeros((num_nodes + 1, vec_size), dtype=np.float32)
-#     ret_nested_loop_join = np.zeros((num_nodes + 1, vec_size), dtype=np.float32)
 
 
-#     ret[1:] = vecs
-
-#     ret_hash_join[1:] = vecs_hash_join
-
-#     ret_nested_loop_join[1:] = vecs_nested_loop_join
-
-#     return ret, ret_hash_join, ret_nested_loop_join
 def _featurize_tree(curr_node, node_featurizer):
     def _bottom_up(curr):
         """Calls node_featurizer on each node exactly once, bottom-up."""

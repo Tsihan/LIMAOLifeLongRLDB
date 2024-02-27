@@ -33,6 +33,12 @@ RAND_52_TEST_QUERIES = [
     '22b.sql', '17c.sql', '24b.sql', '10a.sql', '22c.sql'
 ]
 
+
+RAND_52_TEST_QUERIES_IMDB_BAO = [
+    '12b.sql', '3a.sql', '38b.sql', '31c.sql', '22c.sql', '21b.sql', '37b.sql', 
+    '16c.sql', '18b.sql', '2b.sql', '40a.sql', '6c.sql', '7c.sql', '35a.sql', 
+    '36b.sql', '8c.sql', '15c.sql', '19c.sql', '27c.sql', '1a.sql']
+
 LR_SCHEDULES = {
     'C': {
         'lr_piecewise': [
@@ -401,7 +407,7 @@ class Rand52MinCardCostOnPol(MinCardCostOnPol):
     def Params(self):
         p = super().Params()
         p.test_query_glob = RAND_52_TEST_QUERIES
-        # 'checkpoints/sim-MinCardCost-rand52split-680secs.ckpt'
+        #p.sim_checkpoint = 'checkpoints/sim-MinCardCost-rand52split-680secs.ckpt'
         p.sim_checkpoint = 'checkpoints/epoch=10.ckpt'
         
         return p
@@ -421,6 +427,20 @@ class Balsa_JOBRandSplit(Rand52MinCardCostOnPolLrC):
         p = super().Params()
         p.increment_iter_despite_timeouts = True
         p = p.Set(**LR_SCHEDULES['C10'])
+        return p
+    
+# Qihan Zhang define genral IMDB workload from Bao's data set.
+@balsa.params_registry.Register  # keep
+class Balsa_JOBRandSplit_IMDB_BAO(Rand52MinCardCostOnPolLrC):
+
+    def Params(self):
+        p = super().Params()
+        p.increment_iter_despite_timeouts = True
+        p = p.Set(**LR_SCHEDULES['C10'])
+        p.test_query_glob = RAND_52_TEST_QUERIES_IMDB_BAO
+        p.sim_checkpoint = 'checkpoints/epoch=10.ckpt'
+        p.query_dir = 'queries/sample_queries_imdb'
+                
         return p
 
 
