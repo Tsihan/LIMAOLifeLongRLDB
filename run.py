@@ -99,8 +99,6 @@ def MakeModel(p, exp, dataset):
     num_label_bins = int(
         dataset.costs.max().item()) + 2  # +1 for 0, +1 for ceil(max cost).
     query_feat_size = len(exp.query_featurizer(exp.nodes[0]))
-    # TODO here we use PhysicalTreeNodeFeaturizer
-    # TODO try to divide blocking operotors!!!
     batch = exp.featurizer(exp.nodes[0])
     assert batch.ndim == 1
     plan_feat_size = batch.shape[0]
@@ -271,10 +269,11 @@ def ParseExecutionResult(result_tup,
         if do_hint_check and hint_str != executed_hint_str:
             print('initial\n', hint_str)
             print('after\n', executed_hint_str)
-            print('Hint not respected for {}; server_ip={}'.format(query_name,server_ip))
-            #Qihan Zhang fixme here
-            # msg = 'Hint not respected for {}; server_ip={}'.format(
-            #     query_name, server_ip)
+            print('Hint not respected for {}; server_ip={}'.format(
+                query_name, server_ip))
+            
+
+            #FIXME Qihan Zhang, when we run IMDB from BAO, it will occur this exception
             # try:
             #     assert False, msg
             # except Exception as e:
@@ -382,9 +381,9 @@ def TrainSim(p, loggers=None):
     sim = sim_lib.Sim(sim_p)
     if p.sim_checkpoint is None:
         sim.CollectSimulationData()
-    # FIXME Qihan Zhang temporary modify to retain simulator p.sim_checkpoint None
+        #FIXME QIHANZHANG 暂时修改 None p.sim_checkpoint
+    #sim.Train(load_from_checkpoint=None, loggers=loggers)    
     sim.Train(load_from_checkpoint=p.sim_checkpoint, loggers=loggers)
-    #sim.Train(load_from_checkpoint=None, loggers=loggers)
     sim.model.freeze()
     sim.EvaluateCost()
     sim.FreeData()
@@ -545,12 +544,8 @@ class BalsaModel(pl.LightningModule):
         """Useful for prepending value iteration numbers."""
         self.logging_prefix = prefix
 
-    # FIXME QIHANZHANG
-    def forward(self, query_feats,tree_feats,hash_join_feats,nested_loop_join_feats,pos_feats,
-                hash_join_pos_feats,nested_loop_join_pos_feats,mode):
-    # def forward(self, query_feat, plan_feat, indexes):
-        return self.model(query_feats,tree_feats,hash_join_feats,nested_loop_join_feats,
-                pos_feats,hash_join_pos_feats,nested_loop_join_pos_feats,mode)
+    def forward(self, query_feat, plan_feat, indexes):
+        return self.model(query_feat, plan_feat, indexes)
 
     def configure_optimizers(self):
         p = self.params
@@ -624,23 +619,11 @@ class BalsaModel(pl.LightningModule):
             # No-op for non-enabled featurizers.
             query_feat = self.query_featurizer.PerturbQueryFeatures(
                 query_feat, distribution=self.perturb_query_features)
-            
-        query_feat, tree_feat, hash_join_feat,nested_loop_join_feat,\
-        pos_feat,hash_join_pos_feat,nested_loop_join_pos_feat, \
-        target = (query_feat.to(dev),  
-                    batch.plans.to(dev),
-                    batch.plans_hash_join.to(dev),
-                    batch.plans_nested_loop_join.to(dev),
-                    batch.indexes.to(dev),
-                    batch.indexes_hash_join.to(dev),
-                    batch.indexes_nested_loop_join.to(dev),
-                    batch.costs.to(dev))
-        # FIXME QIHANZHANG
-
-        # default use upper
-        output = self.forward(query_feat,tree_feat,hash_join_feat,nested_loop_join_feat,\
-                pos_feat,hash_join_pos_feat,nested_loop_join_pos_feat,'Upper_Half_Plan')
-        
+        query_feat, plan_feat, indexes, target = (query_feat.to(dev),
+                                                  batch.plans.to(dev),
+                                                  batch.indexes.to(dev),
+                                                  batch.costs.to(dev))
+        output = self.forward(query_feat, plan_feat, indexes)
         if p.cross_entropy:
             log_probs = output.log_softmax(-1)
             target_dist = torch.zeros_like(log_probs)
@@ -801,7 +784,10 @@ class BalsaAgent(object):
             # Filter queries based on the current query_glob.
             workload.FilterQueries(p.query_dir, p.query_glob, p.test_query_glob)
         else:
-            wp = envs.JoinOrderBenchmark.Params()
+            # Qihan Zhang FIXME make it flexible
+            #wp = envs.JoinOrderBenchmark.Params()
+            wp = envs.TPCH10.Params()
+            #wp = envs.SO.Params()
             wp.query_dir = p.query_dir
             wp.query_glob = p.query_glob
             wp.test_query_glob = None
@@ -868,7 +854,7 @@ class BalsaAgent(object):
                                  p.tree_conv,
                                  workload_info=wi,
                                  query_featurizer_cls=query_featurizer_cls,
-                                 plan_featurizer_cls=plan_feat_cls)
+                                 plan_featurizer_cls=plan_feat_cls,seed=77)
             exp_val.Load(p.prev_replay_buffers_glob_val)
             pa = plan_analysis.PlanAnalysis.Build(
                 exp_val.nodes[exp_val.initial_size:])
@@ -910,9 +896,7 @@ class BalsaAgent(object):
             use_new_data_only=p.use_new_data_only,
             skip_training_on_timeouts=p.skip_training_on_timeouts)
         # [np.ndarray], torch.Tensor, torch.Tensor, [float].
-        #all_query_vecs, all_feat_vecs, all_pos_vecs, all_costs = tup[:4]
-        all_query_vecs,all_trees_vecs,all_hash_join_trees_vecs,all_nested_loop_join_trees_vecs,\
-        all_pos_indexes_vecs,all_hash_join_pos_indexes_vecs,all_nested_loop_join_pos_indexes_vecs, all_costs = tup[:8]
+        all_query_vecs, all_feat_vecs, all_pos_vecs, all_costs = tup[:4]
         num_new_datapoints = None
         if len(tup) == 5:
             num_new_datapoints = tup[-1]
@@ -940,19 +924,14 @@ class BalsaAgent(object):
             self.label_std = self.label_running_stats.Std(epsilon_guard=False)
 
         dataset = ds.PlansDataset(all_query_vecs,
-                                  all_trees_vecs,
-                                  all_hash_join_trees_vecs,
-                                  all_nested_loop_join_trees_vecs,
-                                  all_pos_indexes_vecs,
-                                  all_hash_join_pos_indexes_vecs,
-                                  all_nested_loop_join_pos_indexes_vecs,
+                                  all_feat_vecs,
+                                  all_pos_vecs,
                                   all_costs,
                                   tree_conv=p.tree_conv,
                                   transform_cost=p.label_transforms,
                                   label_mean=self.label_mean,
                                   label_std=self.label_std,
                                   cross_entropy=p.cross_entropy)
-        
         if do_replay_training and self.curr_value_iter == 0:
             self.label_mean = dataset.mean
             self.label_std = dataset.std
@@ -985,13 +964,11 @@ class BalsaAgent(object):
                 use_last_n_iters=-1,
                 use_new_data_only=False,
                 skip_training_on_timeouts=p.skip_training_on_timeouts)
-            (all_query_vecs_val,all_hash_join_trees_vecs_val,all_nested_loop_join_trees_vecs_val,\
-            all_hash_join_pos_indexes_vecs_val,all_nested_loop_join_pos_indexes_vecs_val, all_costs_val) = tup[:6]
+            (all_query_vecs_val, all_feat_vecs_val, all_pos_vecs_val,
+             all_costs_val) = tup[:4]
             dataset_val = ds.PlansDataset(all_query_vecs_val,
-                                          all_hash_join_trees_vecs_val,
-                                          all_nested_loop_join_trees_vecs_val,
-                                          all_hash_join_pos_indexes_vecs_val,
-                                          all_nested_loop_join_pos_indexes_vecs_val,
+                                          all_feat_vecs_val,
+                                          all_pos_vecs_val,
                                           all_costs_val,
                                           tree_conv=p.tree_conv,
                                           transform_cost=p.label_transforms,
@@ -1248,7 +1225,9 @@ class BalsaAgent(object):
             print('Execution time: {}'.format(real_cost))
         # NOTE: if engine != pg, we're still saving PG plans but with target
         # engine's latencies.  This mainly affects debug strings.
-        Save(self.workload, './data/initial_policy_data.pkl')
+        # Save(self.workload, './data/JOB/initial_policy_data.pkl')
+        # Save(self.workload, './data/SO/initial_policy_data.pkl')
+        Save(self.workload, './data/TPCH/initial_policy_data.pkl')
         self.LogExpertExperience(self.train_nodes, self.test_nodes)
 
     def Train(self, train_from_scratch=False):
@@ -1761,7 +1740,17 @@ class BalsaAgent(object):
         p = self.params
         # "<class 'experiments.ConfigName'>" -> "ConfigName".
         experiment = str(p.cls).split('.')[-1][:-2]
-        path = 'data/replay-{}-{}execs-{}nodes-{}s-{}iters-{}.pkl'.format(
+        # path = 'data/JOB/replay-{}-{}execs-{}nodes-{}s-{}iters-{}.pkl'.format(
+        #     experiment, self.num_query_execs, len(self.exp.nodes),
+        #     int(iter_total_latency / 1e3), self.curr_value_iter,
+        #     self.wandb_logger.experiment.id)
+        
+        # path = 'data/SO/replay-{}-{}execs-{}nodes-{}s-{}iters-{}.pkl'.format(
+        #     experiment, self.num_query_execs, len(self.exp.nodes),
+        #     int(iter_total_latency / 1e3), self.curr_value_iter,
+        #     self.wandb_logger.experiment.id)
+        
+        path = 'data/TPCH/replay-{}-{}execs-{}nodes-{}s-{}iters-{}.pkl'.format(
             experiment, self.num_query_execs, len(self.exp.nodes),
             int(iter_total_latency / 1e3), self.curr_value_iter,
             self.wandb_logger.experiment.id)
@@ -2183,11 +2172,11 @@ def Main(argv):
     p.use_local_execution = FLAGS.local
     # Override params here for quick debugging.
     # p.sim_checkpoint = None
-    # p.epochs = 1
+    #p.epochs = 1
     p.val_iters = 20
     # p.query_glob = ['7*.sql']
     # p.test_query_glob = ['7c.sql']
-    # p.search_until_n_complete_plans = 1
+    #p.search_until_n_complete_plans = 1
 
     agent = BalsaAgent(p)
     agent.Run()

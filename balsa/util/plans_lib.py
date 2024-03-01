@@ -290,7 +290,12 @@ class Node(object):
             # PG uses the former & the extension expects the latter.
             node_type = node_type.replace('NestedLoop', 'NestLoop')
             if t.IsScan():
-                scans.append(node_type + '(' + t.table_alias + ')')
+                #FIXME QIHAN zhang
+                
+                if t.table_alias is  None:
+                    print('debug Scan!!! table_alias is None')
+                if t.table_alias is not None:
+                    scans.append(node_type + '(' + t.table_alias + ')')
                 return [t.table_alias], t.table_alias
             rels = []  # Flattened
             leading = []  # Hierarchical
@@ -298,6 +303,8 @@ class Node(object):
                 a, b = helper(child)
                 rels.extend(a)
                 leading.append(b)
+            # print('debug joins!!!')
+            # print(node_type + '(' + ' '.join(rels) + ')')
             joins.append(node_type + '(' + ' '.join(rels) + ')')
             return rels, leading
 
@@ -572,11 +579,11 @@ def GetAllSubtrees(nodes):
 
     def _fn(node, trees):
         #trees.append(node)
-        if (node.node_type == 'Nested Loop' or node.node_type == 'Hash Join'):
-                trees.append(node)
-        else:
-            if (np.random.rand()) > 0.7:
-                trees.append(node)
+        # if (node.node_type == 'Nested Loop' or node.node_type == 'Hash Join'):
+        #         trees.append(node)
+        # else:
+        #     if (np.random.rand()) > 0.7:
+        #         trees.append(node)
                 
         for c in node.children:
             _fn(c, trees)
@@ -595,11 +602,11 @@ def GetAllSubtreesNoLeaves(nodes):
 
     def _fn(node, trees):
         if  len(node.children):
-            if (node.node_type == 'Nested Loop' or node.node_type == 'Hash Join'):
-                trees.append(node)
-            else:
-                if (np.random.rand()) > 0.7:
-                    trees.append(node)
+            # if (node.node_type == 'Nested Loop' or node.node_type == 'Hash Join'):
+            #     trees.append(node)
+            # else:
+            #     if (np.random.rand()) > 0.7:
+            trees.append(node)
             for c in node.children:
                 _fn(c, trees)
 
@@ -609,6 +616,7 @@ def GetAllSubtreesNoLeaves(nodes):
     for node in nodes:
         _fn(node, trees)
     return trees
+
 
 class Featurizer(object):
 

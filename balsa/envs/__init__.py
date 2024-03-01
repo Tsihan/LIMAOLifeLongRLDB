@@ -16,3 +16,5 @@ from .envs import JoinOrderBenchmark
 from .envs import RunningStats
 from .envs import Workload
 from .envs import IMDB_BAO
+from .envs import TPCH10
+from .envs import SO

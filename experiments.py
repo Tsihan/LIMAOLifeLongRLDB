@@ -39,6 +39,18 @@ RAND_52_TEST_QUERIES_IMDB_BAO = [
     '16c.sql', '18b.sql', '2b.sql', '40a.sql', '6c.sql', '7c.sql', '35a.sql', 
     '36b.sql', '8c.sql', '15c.sql', '19c.sql', '27c.sql', '1a.sql']
 
+RAND_52_TEST_QUERIES_TPCH = [
+    '10a.sql', '10b.sql', '10c.sql', '10d.sql', '10e.sql', 
+    '10f.sql', '10g.sql', '10h.sql', '10i.sql', '10j.sql']
+
+RAND_52_TEST_QUERIES_SO = [
+    'q9-003.sql', 'q10-007.sql', 'q7-005.sql', 'q2-004.sql', 'q8-001.sql', 'q13-007.sql', 'q8-003.sql', 
+    'q6-007.sql', 'q8-005.sql', 'q3-003.sql', 'q3-009.sql', 'q9-007.sql', 'q15-005.sql', 'q7-001.sql', 
+    'q10-004.sql', 'q14-005.sql', 'q14-003.sql', 'q13-005.sql', 'q16-004.sql', 'q13-001.sql', 'q9-002.sql', 
+    'q5-005.sql', 'q6-008.sql', 'q6-009.sql']
+
+
+
 LR_SCHEDULES = {
     'C': {
         'lr_piecewise': [
@@ -200,7 +212,7 @@ class BalsaParams(object):
 
         # Training data / replay buffer.
         p.Define(
-            'init_experience', 'data/initial_policy_data.pkl',
+            'init_experience', 'data/JOB/initial_policy_data.pkl',
             'Initial data set of query plans to learn from. By default, this'\
             ' is the expert optimizer experience collected when baseline'\
             ' performance is evaluated.'
@@ -408,7 +420,7 @@ class Rand52MinCardCostOnPol(MinCardCostOnPol):
         p = super().Params()
         p.test_query_glob = RAND_52_TEST_QUERIES
         #p.sim_checkpoint = 'checkpoints/sim-MinCardCost-rand52split-680secs.ckpt'
-        p.sim_checkpoint = 'checkpoints/epoch=10.ckpt'
+        p.sim_checkpoint = 'checkpoints/JOB/epoch=10.ckpt'
         
         return p
 
@@ -438,12 +450,45 @@ class Balsa_JOBRandSplit_IMDB_BAO(Rand52MinCardCostOnPolLrC):
         p.increment_iter_despite_timeouts = True
         p = p.Set(**LR_SCHEDULES['C10'])
         p.test_query_glob = RAND_52_TEST_QUERIES_IMDB_BAO
-        p.sim_checkpoint = 'checkpoints/epoch=10.ckpt'
+        p.sim_checkpoint = 'checkpoints/IMDB/epoch=10.ckpt'
         p.query_dir = 'queries/sample_queries_imdb'
                 
         return p
 
+# Qihan Zhang define genral TPCH workload 
+@balsa.params_registry.Register  # keep
+class Balsa_JOBRandSplit_TPCH10(Rand52MinCardCostOnPolLrC):
 
+    def Params(self):
+        p = super().Params()
+        p.increment_iter_despite_timeouts = True
+        p = p.Set(**LR_SCHEDULES['C10'])
+        p.db = 'tpch10load'
+        p.init_experience = 'data/TPCH/initial_policy_data.pkl'
+        
+        p.test_query_glob = RAND_52_TEST_QUERIES_TPCH
+        p.sim_checkpoint = 'checkpoints/TPCH/epoch=37.ckpt'
+        p.query_dir = 'queries/sample_queries_tpch'
+                
+        return p
+    
+# Qihan Zhang define genral SO workload 
+@balsa.params_registry.Register  # keep
+class Balsa_JOBRandSplit_SO(Rand52MinCardCostOnPolLrC):
+
+    def Params(self):
+        p = super().Params()
+        p.increment_iter_despite_timeouts = True
+        p = p.Set(**LR_SCHEDULES['C10'])
+        p.db = 'soload'
+        p.init_experience = 'data/SO/initial_policy_data.pkl'
+       
+        p.test_query_glob = RAND_52_TEST_QUERIES_SO
+        p.sim_checkpoint = 'checkpoints/SO/epoch=42.ckpt'
+        p.query_dir = 'queries/sample_queries_so'
+                
+        return p   
+    
 @balsa.params_registry.Register
 class Balsa_JOBRandSplitReplay(Balsa_JOBRandSplit):  # keep
 
