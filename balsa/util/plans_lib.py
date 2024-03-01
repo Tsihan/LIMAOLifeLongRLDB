@@ -294,7 +294,7 @@ class Node(object):
                 
                 if t.table_alias is  None:
                     print('debug Scan!!! table_alias is None')
-                if t.table_alias is not None:
+                else:
                     scans.append(node_type + '(' + t.table_alias + ')')
                 return [t.table_alias], t.table_alias
             rels = []  # Flattened

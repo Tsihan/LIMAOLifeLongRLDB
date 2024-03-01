@@ -74,11 +74,14 @@ class SimModel(pl.LightningModule):
         self.torch_invert_cost = torch_invert_cost
         self.query_featurizer = query_featurizer
         self.perturb_query_features = perturb_query_features
-
-    def forward(self, query_feat, plan_feat, indexes=None):
+    # called!
+    def forward(self,query_feats,join_feats,hash_join_feats,nested_loop_join_feats,pos_feats=None,
+                hash_join_pos_feats=None,nested_loop_join_pos_feats=None,mode='Upper_Half_Plan'):
         if self.use_tree_conv:
-            return self.tree_conv(query_feat, plan_feat, indexes)
-        return self.mlp(torch.cat([query_feat, plan_feat], -1))
+            # FIXME MODIFY INPUT QIhan Zhang
+            return self.tree_conv(query_feats,join_feats,hash_join_feats,nested_loop_join_feats,pos_feats,
+                hash_join_pos_feats,nested_loop_join_pos_feats,mode)
+        #return self.mlp(torch.cat([query_feat, plan_feat], -1))
 
     def configure_optimizers(self):
         optimizer = torch.optim.Adam(self.parameters(), lr=3e-3)
@@ -97,22 +100,27 @@ class SimModel(pl.LightningModule):
         return result
 
     def _ComputeLoss(self, batch):
-        query_feat, plan_feat, *rest = batch
-        target = rest[-1]
+        query_feat,plans,plans_hash_join,plans_nested_loop_join,\
+       indexes,indexes_hash_join,indexes_nested_loop_join,cost = batch
+        target = cost
         if self.training and self.perturb_query_features is not None:
             # No-op for non-enabled featurizers.
             query_feat = self.query_featurizer.PerturbQueryFeatures(
                 query_feat, distribution=self.perturb_query_features)
         if self.use_tree_conv:
-            assert len(rest) == 2
-            output = self.forward(query_feat, plan_feat, rest[0])
+            #assert len(rest) == 2
+            # use defalut mode
+            output = self.forward(query_feat,plans,plans_hash_join,plans_nested_loop_join,
+                   indexes,indexes_hash_join,indexes_nested_loop_join,mode='Upper_Half_Plan')
         else:
-            assert len(rest) == 1
-            output = self.forward(query_feat, plan_feat)
+            #assert len(rest) == 1
+            raise NotImplementedError("Cannot go this branch for now! Qihan Zhang")
+            
         if self.loss_type == 'mean_qerror':
             output_inverted = self.torch_invert_cost(output.reshape(-1,))
             target_inverted = self.torch_invert_cost(target.reshape(-1,))
             return train_utils.QErrorLoss(output_inverted, target_inverted)
+        #The size of tensor a (3072) must match the size of tensor b (1024) at non-singleton dimension 0
         return F.mse_loss(output.reshape(-1,), target.reshape(-1,))
 
     def on_after_backward(self):
@@ -122,7 +130,7 @@ class SimModel(pl.LightningModule):
             self.logger.log_metrics({'total_grad_norm': total_norm},
                                     step=self.global_step)
 
-
+# TODO this one is used to be a query_featurizer
 class SimQueryFeaturizer(plans_lib.Featurizer):
     """Implements the query featurizer.
 
@@ -138,6 +146,7 @@ class SimQueryFeaturizer(plans_lib.Featurizer):
 
         # Joined tables: [table: 1].
         joined = node.leaf_ids()
+        # mark the tables
         for rel_id in joined:
             idx = np.where(self.workload_info.rel_ids == rel_id)[0][0]
             vec[idx] = 1.0
@@ -432,7 +441,7 @@ class Sim(object):
         p.Define('infer_beam_size', 10, 'Beam size.')
         p.Define('infer_search_until_n_complete_plans', 1,
                  'Search until how many complete plans?')
-        # Workload.
+         # Workload.
         # p.Define('workload', envs.JoinOrderBenchmark.Params(),
         #          'Params of the Workload, i.e., a set of queries.')
         #Qihan Zhang Need a paprameter here to decide which workload to use
@@ -649,11 +658,10 @@ class Sim(object):
 
     def _SimulationDataPath(self):
         p = self.params
-        hash_key = Sim.HashOfSimData(p)
+        hash_key = Sim.HashOfSimData(p)        
         #return 'data/JOB/sim-data-{}.pkl'.format(hash_key)
         return 'data/TPCH/sim-data-{}.pkl'.format(hash_key)
         #return 'data/SO/sim-data-{}.pkl'.format(hash_key)
-
     def _LoadSimulationData(self):
         path = self._SimulationDataPath()
         try:
@@ -681,10 +689,9 @@ class Sim(object):
     def _FeaturizedDataPath(self):
         p = self.params
         hash_key = Sim.HashOfFeaturizedData(p)
-        # return 'data/JOB/sim-featurized-{}.pkl'.format(hash_key)
-        return 'data/TPCH/sim-featurized-{}.pkl'.format(hash_key)
-
+        ##return 'data/IMDB/sim-featurized-{}.pkl'.format(hash_key)
         #return 'data/SO/sim-featurized-{}.pkl'.format(hash_key)
+        return 'data/TPCH/sim-featurized-{}.pkl'.format(hash_key)
 
     def _LoadFeaturizedData(self):
         path = self._FeaturizedDataPath()
@@ -785,17 +792,29 @@ class Sim(object):
     def _MakeDatasetAndLoader(self, data):
         p = self.params
         all_query_vecs = data[0]
-        all_feat_vecs = data[1]
-        all_costs = data[3]
+        all_plans_operators_vecs = data[1]
+        all_plans_hash_join_vecs = data[2]
+        all_plans_nested_loop_join_vecs = data[3]
+        
+     
+        all_costs = data[7]
         # 'use_positions' is True iff we want to use a TreeConv to process the
         # subplans.  If using a non-tree-aware featurization, it becomes
         # unused.
-        use_positions = data[2][0] is not None
-        all_pa_pos_vecs = data[2]
+        use_positions = data[4][0] is not None or data[5][0] is not None  or data[6][0] is not None
+     
+        all_pa_pos_operators_vecs = data[4]
+        all_pa_pos_hash_join_vecs = data[5]
+        all_pa_pos_nested_loop_join_vecs = data[6]
+        
         dataset = ds.PlansDataset(
             all_query_vecs,
-            all_feat_vecs,
-            all_pa_pos_vecs,
+            all_plans_operators_vecs,
+            all_plans_hash_join_vecs,
+            all_plans_nested_loop_join_vecs,
+            all_pa_pos_operators_vecs,
+            all_pa_pos_hash_join_vecs,
+            all_pa_pos_nested_loop_join_vecs,
             all_costs,
             transform_cost=p.label_transforms,
             cross_entropy=False,
@@ -828,7 +847,8 @@ class Sim(object):
         df = postgres.GetServerConfigsAsDf()
         path = os.path.join(wandb_run.dir, 'postgres-conf.txt')
         df.to_csv(path, index=False, header=True)
-
+        
+    # FIXME 
     def _FeaturizeTrainingData(self, try_load=True):
         """Pre-processes/featurizes simulation data into tensors."""
         p = self.params
@@ -854,7 +874,7 @@ class Sim(object):
             done, data = self._LoadFeaturizedData()
             if done:
                 return data
-
+        # this one will take time once the data is empty
         if not self.simulation_data:
             self.CollectSimulationData(try_load)
 
@@ -1023,6 +1043,7 @@ class Sim(object):
 
     def Predict(self, query_node, nodes):
         """Runs forward pass on 'nodes' to predict their costs."""
+        # default use upper version Qihan Zhang
         return self._GetPlanner().infer(query_node, nodes)
 
     def _LoadBestCheckpointForEval(self):
