@@ -1,0 +1,40 @@
+2024-03-01 03:05:35.096 UTC [30136] LOG:  starting PostgreSQL 12.5 on x86_64-pc-linux-gnu, compiled by gcc (Ubuntu 9.4.0-1ubuntu1~20.04.2) 9.4.0, 64-bit
+2024-03-01 03:05:35.096 UTC [30136] LOG:  listening on IPv4 address "0.0.0.0", port 5432
+2024-03-01 03:05:35.097 UTC [30136] LOG:  listening on IPv6 address "::", port 5432
+2024-03-01 03:05:35.099 UTC [30136] LOG:  listening on Unix socket "/tmp/.s.PGSQL.5432"
+2024-03-01 03:05:36.184 UTC [30158] LOG:  database system was shut down at 2024-03-01 02:59:15 UTC
+2024-03-01 03:05:36.194 UTC [30136] LOG:  database system is ready to accept connections
+2024-03-01 03:06:26.811 UTC [31933] qihan@imdbload ERROR:  relation "customer" does not exist at character 217
+2024-03-01 03:06:26.811 UTC [31933] qihan@imdbload STATEMENT:  explain(verbose, format json)
+	SELECT
+	    c.c_custkey,
+	    c.c_name,
+	    SUM(l.l_extendedprice * (1 - l.l_discount)) AS revenue,
+	    c.c_acctbal,
+	    n.n_name,
+	    c.c_address,
+	    c.c_phone,
+	    c.c_comment
+	FROM
+	    customer AS c,
+	    orders AS o,
+	    lineitem AS l,
+	    nation AS n
+	WHERE
+	    c.c_custkey = o.o_custkey
+	    AND l.l_orderkey = o.o_orderkey
+	    AND o.o_orderdate >= DATE '1995-01-01'
+	    AND o.o_orderdate < DATE '1995-01-01' + INTERVAL '4' MONTH
+	    AND l.l_returnflag = 'R'
+	    AND c.c_nationkey = n.n_nationkey
+	GROUP BY
+	    c.c_custkey,
+	    c.c_name,
+	    c.c_acctbal,
+	    c.c_phone,
+	    n.n_name,
+	    c.c_address,
+	    c.c_comment
+	ORDER BY
+	    revenue DESC;
+	

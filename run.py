@@ -382,8 +382,8 @@ def TrainSim(p, loggers=None):
     if p.sim_checkpoint is None:
         sim.CollectSimulationData()
         #FIXME QIHANZHANG 暂时修改 None p.sim_checkpoint
-    #sim.Train(load_from_checkpoint=None, loggers=loggers)    
-    sim.Train(load_from_checkpoint=p.sim_checkpoint, loggers=loggers)
+    sim.Train(load_from_checkpoint=None, loggers=loggers)    
+    #sim.Train(load_from_checkpoint=p.sim_checkpoint, loggers=loggers)
     sim.model.freeze()
     sim.EvaluateCost()
     sim.FreeData()
