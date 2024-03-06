@@ -30,11 +30,13 @@ import ray
 # REMOTE_DSN = "postgres://psycopg:psycopg@localhost/imdbload"
 #FIXME Qihan Zhang more flexible!!!
 # TPC-H.
-LOCAL_DSN = "host=/tmp dbname=tpch10load"
-REMOTE_DSN = "postgres://psycopg:psycopg@localhost/tpch10load"
+# LOCAL_DSN = "host=/tmp dbname=tpch10load"
+# REMOTE_DSN = "postgres://psycopg:psycopg@localhost/tpch10load"
 # SO
-# LOCAL_DSN = "host=/tmp dbname=soload"
-# REMOTE_DSN = "postgres://psycopg:psycopg@localhost/soload"
+LOCAL_DSN = "host=/tmp dbname=soload"
+REMOTE_DSN = "postgres://psycopg:psycopg@localhost/soload"
+
+
 # A simple class holding an execution result.
 #   result: a list, outputs from cursor.fetchall().  E.g., the textual outputs
 #     from EXPLAIN ANALYZE.

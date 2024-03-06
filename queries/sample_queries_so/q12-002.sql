@@ -1,4 +1,4 @@
-SELECT t1.name, COUNT(*)
+SELECT  COUNT(*)
 FROM
 site AS s,
 so_user AS u1,
@@ -23,4 +23,3 @@ AND (q1.view_count >= 0)
 AND (q1.view_count <= 100)
 AND (u1.reputation >= 10)
 AND (u1.reputation <= 100000)
-GROUP BY t1.name

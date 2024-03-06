@@ -16,7 +16,6 @@ tq1.tag_id = t1.id AND
 a1.site_id = q1.site_id AND
 a1.question_id = q1.id AND
 a1.owner_user_id = u1.id AND
-a1.site_id = u1.site_id AND
 t2.site_id = s2.site_id AND
 q2.site_id = s2.site_id AND
 tq2.site_id = s2.site_id AND

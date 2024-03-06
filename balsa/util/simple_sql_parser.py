@@ -16,7 +16,6 @@ import re
 
 import networkx as nx
 
-
 def _CanonicalizeJoinCond(join_cond):
     """join_cond: 4-tuple"""
     t1, c1, t2, c2 = join_cond
@@ -32,6 +31,7 @@ def _DedupJoinConds(join_conds):
 
 
 def _GetJoinConds(sql):
+    
     """Returns a list of join conditions in the form of (t1, c1, t2, c2)."""
     join_cond_pat = re.compile(
         r"""
@@ -39,7 +39,7 @@ def _GetJoinConds(sql):
         \.     # the dot "."
         (\w+)  # 1st table column
         \s*    # optional whitespace
-        =      # the equal sign "="
+        [=!<>]+  # the comparison operator
         \s*    # optional whitespace
         (\w+)  # 2nd table
         \.     # the dot "."
@@ -48,11 +48,11 @@ def _GetJoinConds(sql):
     join_conds = join_cond_pat.findall(sql)
     return _DedupJoinConds(join_conds)
 
-
 def _GetGraph(join_conds):
-    g = nx.Graph()
+    g = nx.MultiGraph()
     for t1, c1, t2, c2 in join_conds:
         g.add_edge(t1, t2, join_keys={t1: c1, t2: c2})
+        #print("now the length of graph's edges is: ", len(g.edges))
     return g
 
 
@@ -66,6 +66,7 @@ def ParseSql(sql, filepath=None, query_name=None):
 
     Both use aliases to refer to tables.
     """
+    # FIXME Qihan Zhang cannot parse correctly!
     join_conds = _GetJoinConds(sql)
     graph = _GetGraph(join_conds)
     join_conds = [_FormatJoinCond(c) for c in join_conds]

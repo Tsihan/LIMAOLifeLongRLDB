@@ -439,7 +439,7 @@ class WorkloadInfo(object):
 
 def ExistsJoinEdgeInGraph(node1, node2, join_graph):
     """Checks if two nodes are connected via an edge in the join graph."""
-    assert isinstance(join_graph, nx.Graph), join_graph
+    assert isinstance(join_graph, nx.MultiGraph), join_graph
     leaves1 = node1.leaf_ids(alias_only=True)
     leaves2 = node2.leaf_ids(alias_only=True)
     edges = join_graph.edges
@@ -578,7 +578,7 @@ def GetAllSubtrees(nodes):
     trees = []
 
     def _fn(node, trees):
-        #trees.append(node)
+        trees.append(node)
         # if (node.node_type == 'Nested Loop' or node.node_type == 'Hash Join'):
         #         trees.append(node)
         # else:

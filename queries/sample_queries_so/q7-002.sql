@@ -8,7 +8,6 @@ WHERE
 acc.website_url != '' AND
 b1.name = 'Illuminator' AND
 b2.name = 'Nice Question' AND
-b2.date > b1.date + '9 months'::interval AND
 acc.id = su.account_id AND
 b1.site_id = su.site_id AND
 b1.user_id = su.id AND

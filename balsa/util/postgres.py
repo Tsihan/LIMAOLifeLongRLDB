@@ -370,23 +370,31 @@ def GetAllTableNumRows(rel_names):
     #     'title': 2528312,
     # }
     
-    CACHE = {
-        'part':2000000,
-        'customer':1500000,
-        'orders':15000000,
-        'nation':25,
-        'region':5,
-        'supplier':100000,
-        'partsupp':8000000,
-        'part':2000000,
-        'lineitem':59986052,
-        
-    } 
-    
     # CACHE = {
-     
+    #     'part':2000000,
+    #     'customer':1500000,
+    #     'orders':15000000,
+    #     'nation':25,
+    #     'region':5,
+    #     'supplier':100000,
+    #     'partsupp':8000000,
+    #     'part':2000000,
+    #     'lineitem':59986052,
         
     # } 
+    
+    CACHE = {
+     'account':13872153,
+     'answer':6347553,
+        'badge':51236903,
+        'comment':103459956,
+        'post_link':2264333,
+        'question':12666441,
+        'site':173,
+        'so_user':21097302,
+        'tag':186770,
+        'tag_question':36883819,
+    } 
 
     d = {}
     with pg_executor.Cursor() as cursor:

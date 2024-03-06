@@ -1,4 +1,4 @@
-SELECT t1.name, COUNT(*)
+SELECT  COUNT(*)
 FROM
 site AS s,
 so_user AS u1,
@@ -23,4 +23,3 @@ AND (q1.favorite_count >= 0)
 AND (q1.favorite_count <= 10000)
 AND (u1.upvotes >= 10)
 AND (u1.upvotes <= 1000000)
-GROUP BY t1.name

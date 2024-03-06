@@ -43,13 +43,15 @@ RAND_52_TEST_QUERIES_TPCH = [
     '10a.sql', '10b.sql', '10c.sql', '10d.sql', '10e.sql', 
     '10f.sql', '10g.sql', '10h.sql', '10i.sql', '10j.sql']
 
+# RAND_52_TEST_QUERIES_SO = [
+#     'q9-003.sql', 'q10-007.sql', 'q7-005.sql', 'q2-004.sql', 'q8-001.sql', 'q13-007.sql', 'q8-003.sql', 
+#     'q6-007.sql', 'q8-005.sql', 'q3-003.sql', 'q3-009.sql', 'q9-007.sql', 'q15-005.sql', 'q7-001.sql', 
+#     'q10-004.sql', 'q14-005.sql', 'q14-003.sql', 'q13-005.sql', 'q16-004.sql', 'q13-001.sql', 'q9-002.sql', 
+#     'q5-005.sql', 'q6-008.sql', 'q6-009.sql']
+
 RAND_52_TEST_QUERIES_SO = [
-    'q9-003.sql', 'q10-007.sql', 'q7-005.sql', 'q2-004.sql', 'q8-001.sql', 'q13-007.sql', 'q8-003.sql', 
-    'q6-007.sql', 'q8-005.sql', 'q3-003.sql', 'q3-009.sql', 'q9-007.sql', 'q15-005.sql', 'q7-001.sql', 
-    'q10-004.sql', 'q14-005.sql', 'q14-003.sql', 'q13-005.sql', 'q16-004.sql', 'q13-001.sql', 'q9-002.sql', 
-    'q5-005.sql', 'q6-008.sql', 'q6-009.sql']
-
-
+    'q2-002.sql', 'q7-002.sql', 'q13-003.sql', 'q11-001.sql', 'q6-001.sql', 
+    'q12-003.sql', 'q15-003.sql']
 
 LR_SCHEDULES = {
     'C': {
