@@ -486,7 +486,7 @@ class Balsa_JOBRandSplit_SO(Rand52MinCardCostOnPolLrC):
         p.init_experience = 'data/SO/initial_policy_data.pkl'
        
         p.test_query_glob = RAND_52_TEST_QUERIES_SO
-        p.sim_checkpoint = 'checkpoints/SO/epoch=42.ckpt'
+        p.sim_checkpoint = 'checkpoints/SO/epoch=47.ckpt'
         p.query_dir = 'queries/sample_queries_so'
                 
         return p   

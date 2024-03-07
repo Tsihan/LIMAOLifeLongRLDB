@@ -53,7 +53,7 @@ class TreeConvolution(nn.Module):
         # None: default
         assert version is None, version
         self.attention_merger_3 = AttentionMerger(input_dim=128,input_num=3)
-        self.attention_merger_2 = AttentionMerger(input_dim=128,input_num=2)
+
         self.query_mlp = nn.Sequential(
             nn.Linear(feature_size, 128),
             nn.LayerNorm(128),
