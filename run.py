@@ -801,7 +801,8 @@ class BalsaAgent(object):
         else:
             #wp = envs.JoinOrderBenchmark.Params()
             #wp = envs.TPCH10.Params()
-            wp = envs.SO.Params()
+            #wp = envs.SO.Params()
+            wp = envs.IMDB_BAO.Params()
             wp.query_dir = p.query_dir
             wp.query_glob = p.query_glob
             wp.test_query_glob = None
@@ -1249,7 +1250,8 @@ class BalsaAgent(object):
         # NOTE: if engine != pg, we're still saving PG plans but with target
         # engine's latencies.  This mainly affects debug strings.
         # Save(self.workload, './data/JOB/initial_policy_data.pkl')
-        Save(self.workload, './data/SO/initial_policy_data.pkl')
+        Save(self.workload, './data/IMDB_BAO/initial_policy_data.pkl')
+        #Save(self.workload, './data/SO/initial_policy_data.pkl')
         #Save(self.workload, './data/TPCH/initial_policy_data.pkl')
         self.LogExpertExperience(self.train_nodes, self.test_nodes)
 
@@ -1768,15 +1770,20 @@ class BalsaAgent(object):
         #     int(iter_total_latency / 1e3), self.curr_value_iter,
         #     self.wandb_logger.experiment.id)
         
-        path = 'data/SO/replay-{}-{}execs-{}nodes-{}s-{}iters-{}.pkl'.format(
-            experiment, self.num_query_execs, len(self.exp.nodes),
-            int(iter_total_latency / 1e3), self.curr_value_iter,
-            self.wandb_logger.experiment.id)
+        # path = 'data/SO/replay-{}-{}execs-{}nodes-{}s-{}iters-{}.pkl'.format(
+        #     experiment, self.num_query_execs, len(self.exp.nodes),
+        #     int(iter_total_latency / 1e3), self.curr_value_iter,
+        #     self.wandb_logger.experiment.id)
         
         # path = 'data/TPCH/replay-{}-{}execs-{}nodes-{}s-{}iters-{}.pkl'.format(
         #     experiment, self.num_query_execs, len(self.exp.nodes),
         #     int(iter_total_latency / 1e3), self.curr_value_iter,
         #     self.wandb_logger.experiment.id)
+        
+        path = 'data/IMDB_BAO/replay-{}-{}execs-{}nodes-{}s-{}iters-{}.pkl'.format(
+            experiment, self.num_query_execs, len(self.exp.nodes),
+            int(iter_total_latency / 1e3), self.curr_value_iter,
+            self.wandb_logger.experiment.id)
         self.exp.Save(path)
         # Remove previous.
         if self._latest_replay_buffer_path is not None:

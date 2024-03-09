@@ -1,3 +1,3 @@
-python run.py --run Balsa_JOBRandSplit_SO --local
-# python run.py --run Balsa_JOBRandSplit_SO --local
-# python run.py --run Balsa_JOBRandSplit_SO --local
+python run.py --run JOBRandSplit_PostgresSim_IMDB_BAO --local
+# python run.py --run JOBRandSplit_PostgresSim_IMDB_BAO --local
+# python run.py --run JOBRandSplit_PostgresSim_IMDB_BAO --local

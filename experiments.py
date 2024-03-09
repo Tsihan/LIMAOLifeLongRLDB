@@ -727,6 +727,15 @@ class JOBRandSplit_PostgresSim(Balsa_JOBRandSplit):
         return p
 
 
+@balsa.params_registry.Register  # keep
+class JOBRandSplit_PostgresSim_IMDB_BAO(Balsa_JOBRandSplit_IMDB_BAO):
+
+    def Params(self):
+        p = super().Params()
+        # Use PostgresCost as the simulator.
+        p.cost_model = 'postgrescost'
+        p.sim_checkpoint = 'checkpoints/IMDB_BAO/epoch=2.ckpt'
+        return p
 ########################## Ablation: timeouts ##########################
 
 

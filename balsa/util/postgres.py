@@ -346,29 +346,29 @@ def GetAllTableNumRows(rel_names):
       A dict, {rel name: # rows}.
     """
 
-    # CACHE = {
-    #     'aka_name': 901343,
-    #     'aka_title': 361472,
-    #     'cast_info': 36244344,
-    #     'char_name': 3140339,
-    #     'comp_cast_type': 4,
-    #     'company_name': 234997,
-    #     'company_type': 4,
-    #     'complete_cast': 135086,
-    #     'info_type': 113,
-    #     'keyword': 134170,
-    #     'kind_type': 7,
-    #     'link_type': 18,
-    #     'movie_companies': 2609129,
-    #     'movie_info': 14835720,
-    #     'movie_info_idx': 1380035,
-    #     'movie_keyword': 4523930,
-    #     'movie_link': 29997,
-    #     'name': 4167491,
-    #     'person_info': 2963664,
-    #     'role_type': 12,
-    #     'title': 2528312,
-    # }
+    CACHE = {
+        'aka_name': 901343,
+        'aka_title': 361472,
+        'cast_info': 36244344,
+        'char_name': 3140339,
+        'comp_cast_type': 4,
+        'company_name': 234997,
+        'company_type': 4,
+        'complete_cast': 135086,
+        'info_type': 113,
+        'keyword': 134170,
+        'kind_type': 7,
+        'link_type': 18,
+        'movie_companies': 2609129,
+        'movie_info': 14835720,
+        'movie_info_idx': 1380035,
+        'movie_keyword': 4523930,
+        'movie_link': 29997,
+        'name': 4167491,
+        'person_info': 2963664,
+        'role_type': 12,
+        'title': 2528312,
+    }
     
     # CACHE = {
     #     'part':2000000,
@@ -383,18 +383,18 @@ def GetAllTableNumRows(rel_names):
         
     # } 
     
-    CACHE = {
-     'account':13872153,
-     'answer':6347553,
-        'badge':51236903,
-        'comment':103459956,
-        'post_link':2264333,
-        'question':12666441,
-        'site':173,
-        'so_user':21097302,
-        'tag':186770,
-        'tag_question':36883819,
-    } 
+    # CACHE = {
+    #  'account':13872153,
+    #  'answer':6347553,
+    #     'badge':51236903,
+    #     'comment':103459956,
+    #     'post_link':2264333,
+    #     'question':12666441,
+    #     'site':173,
+    #     'so_user':21097302,
+    #     'tag':186770,
+    #     'tag_question':36883819,
+    # } 
 
     d = {}
     with pg_executor.Cursor() as cursor:

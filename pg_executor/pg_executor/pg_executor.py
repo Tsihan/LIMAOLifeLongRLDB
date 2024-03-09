@@ -26,15 +26,16 @@ import ray
 
 # JOB/IMDB.
 # LOCAL_DSN = "postgres://psycopg:psycopg@localhost/imdb"
-# LOCAL_DSN = "host=/tmp dbname=imdbload"
-# REMOTE_DSN = "postgres://psycopg:psycopg@localhost/imdbload"
+
+LOCAL_DSN = "host=/tmp dbname=imdbload"
+REMOTE_DSN = "postgres://psycopg:psycopg@localhost/imdbload"
 #FIXME Qihan Zhang more flexible!!!
 # TPC-H.
 # LOCAL_DSN = "host=/tmp dbname=tpch10load"
 # REMOTE_DSN = "postgres://psycopg:psycopg@localhost/tpch10load"
 # SO
-LOCAL_DSN = "host=/tmp dbname=soload"
-REMOTE_DSN = "postgres://psycopg:psycopg@localhost/soload"
+# LOCAL_DSN = "host=/tmp dbname=soload"
+# REMOTE_DSN = "postgres://psycopg:psycopg@localhost/soload"
 
 
 # A simple class holding an execution result.
