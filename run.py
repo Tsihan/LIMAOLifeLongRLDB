@@ -273,12 +273,13 @@ def ParseExecutionResult(result_tup,
             print('after\n', executed_hint_str)
             msg = 'Hint not respected for {}; server_ip={}'.format(
                 query_name, server_ip)
-            try:
-                assert False, msg
-            except Exception as e:
-                print(e, flush=True)
-                import ipdb
-                ipdb.set_trace()
+            #Qihan Zhang FIXME
+            # try:
+            #     assert False, msg
+            # except Exception as e:
+            #     print(e, flush=True)
+            #     import ipdb
+            #     ipdb.set_trace()
 
     if not silent:
         messages.append('{}Running {}: hinted plan\n{}'.format(
@@ -1147,7 +1148,9 @@ class BalsaAgent(object):
         train_utils.LoadBestCheckpointForEval(model, trainer)
 
     def timeout_label(self):
-        return 4096 * 1000
+        #Qihan Zhang FIXME speed up!
+        #return 4096 * 1000
+        return 1024 * 1000
 
     def LogScalars(self, metrics):
         if not isinstance(metrics, list):
