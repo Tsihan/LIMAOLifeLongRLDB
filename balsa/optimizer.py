@@ -155,7 +155,7 @@ class Optimizer(object):
         self.label_cache = {}
 
     # @profile
-    def infer(self, query_node, plan_nodes, set_model_eval=False,Use_Lower_Half_Plan = False):
+    def infer(self, query_node, plan_nodes, set_model_eval=False):
         """Forward pass.
 
         Args:
@@ -235,12 +235,9 @@ class Optimizer(object):
                     DEVICE, non_blocking=True)
                 
  
-                if not Use_Lower_Half_Plan:
-                    cost = self.value_network(query_feat,plan_feat,hash_join_feat,nested_loop_join_feat,pos_feat,
-                                          hash_join_pos_feat,nested_loop_join_pos_feat,'Upper_Half_Plan').cpu().numpy()
-                else:
-                    cost = self.value_network(query_feat,plan_feat,hash_join_feat,nested_loop_join_feat,pos_feat,
-                                          hash_join_pos_feat,nested_loop_join_pos_feat,'Lower_Half_Plan').cpu().numpy()
+
+                cost = self.value_network(query_feat,plan_feat,hash_join_feat,nested_loop_join_feat,pos_feat,
+                                          hash_join_pos_feat,nested_loop_join_pos_feat).cpu().numpy()
             else:
                 # TODO since we modify the forword of network, this one needs modify but we leave it furture
                 raise NotImplementedError("This branch cannot be used for now! Qihan Zhang")
@@ -439,9 +436,7 @@ class Optimizer(object):
             convenient proxy.
           beam_size: size of the fixed set of most promising Nodes to be
             explored.
-        """
-        this_query_depth = self.get_depth(query_node)
-        
+        """  
         if planner_config:
             if bushy:
                 assert planner_config.search_space == 'bushy', planner_config
@@ -524,12 +519,9 @@ class Optimizer(object):
             depth_record = []
             for i in range(len(possible_plans)):
                 depth_record.append(self.get_depth(possible_plans[i][0]))
-            avg_depth = sum(depth_record) / len(possible_plans)
-            ##### Modify logic here
-            Use_Lower_Half_Plan = avg_depth < (this_query_depth / 2)
-            
+     
             costs = self.infer(query_node,
-                               [join for join, _, _ in possible_plans],Use_Lower_Half_Plan = Use_Lower_Half_Plan)
+                               [join for join, _, _ in possible_plans])
             valid_costs, valid_new_states = self._make_new_states(
                 state, costs, possible_plans)
 
@@ -611,7 +603,7 @@ class Optimizer(object):
         num_random_plans = 1000
 
         def _SampleOne(state):
-            this_query_depth = self.get_depth(query_node)
+            
             while len(state) > 1:
                 possible_plans = self._get_possible_plans(query_node,
                                                           state,
@@ -620,14 +612,12 @@ class Optimizer(object):
                 depth_record = []
                 for i in range(len(possible_plans)):
                     depth_record.append(self.get_depth(possible_plans[i][0]))
-                avg_depth = sum(depth_record) / len(possible_plans)
-                Use_Lower_Half_Plan = avg_depth < (this_query_depth / 2)
                 
                 _, valid_new_states = self._make_new_states(
                     state, [0.0] * len(possible_plans), possible_plans)
                 rand_idx = np.random.randint(len(valid_new_states))
                 state = valid_new_states[rand_idx]
-            predicted = self.infer(query_node, [state[0]],Use_Lower_Half_Plan=Use_Lower_Half_Plan )
+            predicted = self.infer(query_node, [state[0]])
             return predicted, state
 
         best_predicted = [np.inf]
