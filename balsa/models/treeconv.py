@@ -129,7 +129,7 @@ class TreeConvolution(nn.Module):
 
     
     def forward(self, query_feats,trees_feats,hash_join_feats,nested_loop_join_feats,indexes_pos_feats,
-                                          hash_join_pos_feats,nested_loop_join_pos_feats,mode):
+                                          hash_join_pos_feats,nested_loop_join_pos_feats):
         """Forward pass.
 
         Args:
@@ -138,63 +138,37 @@ class TreeConvolution(nn.Module):
         Returns:
           Predicted costs: Tensor of float, sized [batch size, 1].
         """
-        if mode == 'Lower_Half_Plan':        
-            query_embs = self.query_mlp(query_feats.unsqueeze(1))
-            query_embs = query_embs.transpose(1, 2)
+           
+        query_embs = self.query_mlp(query_feats.unsqueeze(1))
+        query_embs = query_embs.transpose(1, 2)
             
             
-            max_subtrees = trees_feats.shape[-1]
-            max_subtrees_hash_join = hash_join_feats.shape[-1]
-            max_subtrees_nested_loop_join = nested_loop_join_feats.shape[-1]
+        max_subtrees = trees_feats.shape[-1]
+        max_subtrees_hash_join = hash_join_feats.shape[-1]
+        max_subtrees_nested_loop_join = nested_loop_join_feats.shape[-1]
             
             
-            query_embs = query_embs.expand(query_embs.shape[0], query_embs.shape[1], max_subtrees)
-            query_embs_hash_join = query_embs.expand(query_embs.shape[0], query_embs.shape[1],
+        query_embs = query_embs.expand(query_embs.shape[0], query_embs.shape[1], max_subtrees)
+        query_embs_hash_join = query_embs.expand(query_embs.shape[0], query_embs.shape[1],
                                         max_subtrees_hash_join)
-            query_embs_nested_loop_join = query_embs.expand(query_embs.shape[0], query_embs.shape[1],
+        query_embs_nested_loop_join = query_embs.expand(query_embs.shape[0], query_embs.shape[1],
                                         max_subtrees_nested_loop_join)
             
             
-            concat = torch.cat((query_embs, trees_feats), axis=1)
-            concat_hash_join = torch.cat((query_embs_hash_join, hash_join_feats), axis=1)
-            concat_nested_loop_join = torch.cat((query_embs_nested_loop_join, nested_loop_join_feats), axis=1)
+        concat = torch.cat((query_embs, trees_feats), axis=1)
+        concat_hash_join = torch.cat((query_embs_hash_join, hash_join_feats), axis=1)
+        concat_nested_loop_join = torch.cat((query_embs_nested_loop_join, nested_loop_join_feats), axis=1)
             
-            out_other = self.conv((concat, indexes_pos_feats))
-            out_hash_join = self.conv_hash_join((concat_hash_join, hash_join_pos_feats))
-            out_nested_loop_join = self.conv_nested_loop_join((concat_nested_loop_join, nested_loop_join_pos_feats))
+        out_other = self.conv((concat, indexes_pos_feats))
+        out_hash_join = self.conv_hash_join((concat_hash_join, hash_join_pos_feats))
+        out_nested_loop_join = self.conv_nested_loop_join((concat_nested_loop_join, nested_loop_join_pos_feats))
             
-            conv_outputs = [out_other, out_hash_join, out_nested_loop_join]
-            out_combined = self.attention_merger_3(conv_outputs)
-            out = self.out_mlp(out_combined)
-            return out
-        elif mode == 'Upper_Half_Plan':
-            query_embs = self.query_mlp(query_feats.unsqueeze(1))
-            query_embs = query_embs.transpose(1, 2)
-            
-            max_subtrees = trees_feats.shape[-1]
-            max_subtrees_hash_join = hash_join_feats.shape[-1]
-            max_subtrees_nested_loop_join = nested_loop_join_feats.shape[-1]
-            
-            query_embs = query_embs.expand(query_embs.shape[0], query_embs.shape[1], max_subtrees)
-            query_embs_hash_join = query_embs.expand(query_embs.shape[0], query_embs.shape[1],
-                                        max_subtrees_hash_join)
-            query_embs_nested_loop_join = query_embs.expand(query_embs.shape[0], query_embs.shape[1],
-                                        max_subtrees_nested_loop_join)
-        
-            concat = torch.cat((query_embs, trees_feats), axis=1)
-            concat_hash_join = torch.cat((query_embs_hash_join, hash_join_feats), axis=1)
-            concat_nested_loop_join = torch.cat((query_embs_nested_loop_join, nested_loop_join_feats), axis=1)
-            
-            out_other = self.conv((concat, indexes_pos_feats))
-            out_hash_join = self.conv_hash_join((concat_hash_join, hash_join_pos_feats))
-            out_nested_loop_join = self.conv_nested_loop_join((concat_nested_loop_join, nested_loop_join_pos_feats))
-       
-            conv_outputs = [out_other,out_hash_join, out_nested_loop_join]
-            out_combined = self.attention_merger_3(conv_outputs)
-            out = self.out_mlp(out_combined)
-            return out
-        else:
-            raise ValueError('mode should be either Lower_Half_Plan or Upper_Half_Plan')
+        conv_outputs = [out_other, out_hash_join, out_nested_loop_join]
+        out_combined = self.attention_merger_3(conv_outputs)
+        out = self.out_mlp(out_combined)
+        return out
+
+
 
 
 class TreeConv1d(nn.Module):

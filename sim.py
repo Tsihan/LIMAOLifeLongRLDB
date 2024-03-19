@@ -76,12 +76,12 @@ class SimModel(pl.LightningModule):
         self.perturb_query_features = perturb_query_features
     # called!
     def forward(self,query_feats,join_feats,hash_join_feats,nested_loop_join_feats,pos_feats=None,
-                hash_join_pos_feats=None,nested_loop_join_pos_feats=None,mode='Upper_Half_Plan'):
+                hash_join_pos_feats=None,nested_loop_join_pos_feats=None):
         if self.use_tree_conv:
             # FIXME MODIFY INPUT QIhan Zhang
             return self.tree_conv(query_feats,join_feats,hash_join_feats,nested_loop_join_feats,pos_feats,
-                hash_join_pos_feats,nested_loop_join_pos_feats,mode)
-        #return self.mlp(torch.cat([query_feat, plan_feat], -1))
+                hash_join_pos_feats,nested_loop_join_pos_feats)
+        
 
     def configure_optimizers(self):
         optimizer = torch.optim.Adam(self.parameters(), lr=3e-3)
@@ -111,7 +111,7 @@ class SimModel(pl.LightningModule):
             #assert len(rest) == 2
             # use defalut mode
             output = self.forward(query_feat,plans,plans_hash_join,plans_nested_loop_join,
-                   indexes,indexes_hash_join,indexes_nested_loop_join,mode='Upper_Half_Plan')
+                   indexes,indexes_hash_join,indexes_nested_loop_join)
         else:
             #assert len(rest) == 1
             raise NotImplementedError("Cannot go this branch for now! Qihan Zhang")
@@ -442,12 +442,12 @@ class Sim(object):
         p.Define('infer_search_until_n_complete_plans', 1,
                  'Search until how many complete plans?')
          # Workload.
-        # p.Define('workload', envs.JoinOrderBenchmark.Params(),
-        #          'Params of the Workload, i.e., a set of queries.')
+        p.Define('workload', envs.JoinOrderBenchmark.Params(),
+                 'Params of the Workload, i.e., a set of queries.')
         #Qihan Zhang Need a paprameter here to decide which workload to use
         # Workload.
-        p.Define('workload', envs.IMDB_BAO.Params(),
-               'Params of the Workload, i.e., a set of queries.')
+        # p.Define('workload', envs.IMDB_BAO.Params(),
+        #        'Params of the Workload, i.e., a set of queries.')
         
         # p.Define('workload', envs.TPCH10.Params(),
         #          'Params of the Workload, i.e., a set of queries.')
@@ -659,9 +659,9 @@ class Sim(object):
     def _SimulationDataPath(self):
         p = self.params
         hash_key = Sim.HashOfSimData(p)        
-        #return 'data/JOB/sim-data-{}.pkl'.format(hash_key)
+        return 'data/JOB/sim-data-{}.pkl'.format(hash_key)
         #return 'data/TPCH/sim-data-{}.pkl'.format(hash_key)
-        return 'data/IMDB_BAO/sim-data-{}.pkl'.format(hash_key)
+        #return 'data/IMDB_BAO/sim-data-{}.pkl'.format(hash_key)
         #return 'data/SO/sim-data-{}.pkl'.format(hash_key)
     def _LoadSimulationData(self):
         path = self._SimulationDataPath()
@@ -690,8 +690,8 @@ class Sim(object):
     def _FeaturizedDataPath(self):
         p = self.params
         hash_key = Sim.HashOfFeaturizedData(p)
-        #return 'data/IMDB/sim-featurized-{}.pkl'.format(hash_key)
-        return 'data/IMDB_BAO/sim-featurized-{}.pkl'.format(hash_key)
+        return 'data/JOB/sim-featurized-{}.pkl'.format(hash_key)
+        #return 'data/IMDB_BAO/sim-featurized-{}.pkl'.format(hash_key)
         #return 'data/SO/sim-featurized-{}.pkl'.format(hash_key)
         #return 'data/TPCH/sim-featurized-{}.pkl'.format(hash_key)
 

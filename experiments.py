@@ -453,7 +453,7 @@ class Balsa_JOBRandSplit_IMDB_BAO(Rand52MinCardCostOnPolLrC):
         p = p.Set(**LR_SCHEDULES['C10'])
         p.test_query_glob = RAND_52_TEST_QUERIES_IMDB_BAO
         p.init_experience = 'data/IMDB_BAO/initial_policy_data.pkl'
-        p.sim_checkpoint = 'checkpoints/IMDB/epoch=10.ckpt'
+        p.sim_checkpoint = 'checkpoints/IMDB_BAO/epoch=10.ckpt'
         p.query_dir = 'queries/sample_queries_imdb'
                 
         return p

@@ -382,8 +382,8 @@ def TrainSim(p, loggers=None):
     if p.sim_checkpoint is None:
         sim.CollectSimulationData()
     # FIXME Qihan Zhang temporary modify to retain simulator p.sim_checkpoint None
-    #sim.Train(load_from_checkpoint=None, loggers=loggers)
-    sim.Train(load_from_checkpoint=p.sim_checkpoint, loggers=loggers)
+    sim.Train(load_from_checkpoint=None, loggers=loggers)
+    #sim.Train(load_from_checkpoint=p.sim_checkpoint, loggers=loggers)
     sim.model.freeze()
     sim.EvaluateCost()
     sim.FreeData()
@@ -546,10 +546,10 @@ class BalsaModel(pl.LightningModule):
 
     # FIXME QIHANZHANG
     def forward(self, query_feats,tree_feats,hash_join_feats,nested_loop_join_feats,pos_feats,
-                hash_join_pos_feats,nested_loop_join_pos_feats,mode):
-    # def forward(self, query_feat, plan_feat, indexes):
+                hash_join_pos_feats,nested_loop_join_pos_feats):
+    
         return self.model(query_feats,tree_feats,hash_join_feats,nested_loop_join_feats,
-                pos_feats,hash_join_pos_feats,nested_loop_join_pos_feats,mode)
+                pos_feats,hash_join_pos_feats,nested_loop_join_pos_feats)
 
     def configure_optimizers(self):
         p = self.params
@@ -638,7 +638,7 @@ class BalsaModel(pl.LightningModule):
 
         # default use upper
         output = self.forward(query_feat,tree_feat,hash_join_feat,nested_loop_join_feat,\
-                pos_feat,hash_join_pos_feat,nested_loop_join_pos_feat,'Upper_Half_Plan')
+                pos_feat,hash_join_pos_feat,nested_loop_join_pos_feat)
         
         if p.cross_entropy:
             log_probs = output.log_softmax(-1)
@@ -800,10 +800,10 @@ class BalsaAgent(object):
             # Filter queries based on the current query_glob.
             workload.FilterQueries(p.query_dir, p.query_glob, p.test_query_glob)
         else:
-            #wp = envs.JoinOrderBenchmark.Params()
+            wp = envs.JoinOrderBenchmark.Params()
             #wp = envs.TPCH10.Params()
             #wp = envs.SO.Params()
-            wp = envs.IMDB_BAO.Params()
+            #wp = envs.IMDB_BAO.Params()
             wp.query_dir = p.query_dir
             wp.query_glob = p.query_glob
             wp.test_query_glob = None
@@ -1252,8 +1252,8 @@ class BalsaAgent(object):
             print('Execution time: {}'.format(real_cost))
         # NOTE: if engine != pg, we're still saving PG plans but with target
         # engine's latencies.  This mainly affects debug strings.
-        # Save(self.workload, './data/JOB/initial_policy_data.pkl')
-        Save(self.workload, './data/IMDB_BAO/initial_policy_data.pkl')
+        Save(self.workload, './data/JOB/initial_policy_data.pkl')
+        #Save(self.workload, './data/IMDB_BAO/initial_policy_data.pkl')
         #Save(self.workload, './data/SO/initial_policy_data.pkl')
         #Save(self.workload, './data/TPCH/initial_policy_data.pkl')
         self.LogExpertExperience(self.train_nodes, self.test_nodes)
@@ -1768,10 +1768,10 @@ class BalsaAgent(object):
         p = self.params
         # "<class 'experiments.ConfigName'>" -> "ConfigName".
         experiment = str(p.cls).split('.')[-1][:-2]
-        # path = 'data/JOB/replay-{}-{}execs-{}nodes-{}s-{}iters-{}.pkl'.format(
-        #     experiment, self.num_query_execs, len(self.exp.nodes),
-        #     int(iter_total_latency / 1e3), self.curr_value_iter,
-        #     self.wandb_logger.experiment.id)
+        path = 'data/JOB/replay-{}-{}execs-{}nodes-{}s-{}iters-{}.pkl'.format(
+            experiment, self.num_query_execs, len(self.exp.nodes),
+            int(iter_total_latency / 1e3), self.curr_value_iter,
+            self.wandb_logger.experiment.id)
         
         # path = 'data/SO/replay-{}-{}execs-{}nodes-{}s-{}iters-{}.pkl'.format(
         #     experiment, self.num_query_execs, len(self.exp.nodes),
@@ -1783,10 +1783,11 @@ class BalsaAgent(object):
         #     int(iter_total_latency / 1e3), self.curr_value_iter,
         #     self.wandb_logger.experiment.id)
         
-        path = 'data/IMDB_BAO/replay-{}-{}execs-{}nodes-{}s-{}iters-{}.pkl'.format(
-            experiment, self.num_query_execs, len(self.exp.nodes),
-            int(iter_total_latency / 1e3), self.curr_value_iter,
-            self.wandb_logger.experiment.id)
+        # path = 'data/IMDB_BAO/replay-{}-{}execs-{}nodes-{}s-{}iters-{}.pkl'.format(
+        #     experiment, self.num_query_execs, len(self.exp.nodes),
+        #     int(iter_total_latency / 1e3), self.curr_value_iter,
+        #     self.wandb_logger.experiment.id)
+        
         self.exp.Save(path)
         # Remove previous.
         if self._latest_replay_buffer_path is not None:
