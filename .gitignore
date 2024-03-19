@@ -23,3 +23,5 @@ logfile
 logs/**/*.pdf
 tensorboard_logs
 tensorboard_logs_balsa
+
+run_multiple.sh
