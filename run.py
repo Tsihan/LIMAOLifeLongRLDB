@@ -382,8 +382,8 @@ def TrainSim(p, loggers=None):
     if p.sim_checkpoint is None:
         sim.CollectSimulationData()
     # FIXME Qihan Zhang temporary modify to retain simulator p.sim_checkpoint None
-    sim.Train(load_from_checkpoint=None, loggers=loggers)
-    #sim.Train(load_from_checkpoint=p.sim_checkpoint, loggers=loggers)
+    #sim.Train(load_from_checkpoint=None, loggers=loggers)
+    sim.Train(load_from_checkpoint=p.sim_checkpoint, loggers=loggers)
     sim.model.freeze()
     sim.EvaluateCost()
     sim.FreeData()
@@ -545,10 +545,10 @@ class BalsaModel(pl.LightningModule):
         self.logging_prefix = prefix
 
     # FIXME QIHANZHANG
-    def forward(self, query_feats,tree_feats,hash_join_feats,nested_loop_join_feats,pos_feats,
+    def forward(self,idx_other_modulelist,idx_hash_join_modulelist,idx_nested_loop_join_modulelist,query_feats,tree_feats,hash_join_feats,nested_loop_join_feats,pos_feats,
                 hash_join_pos_feats,nested_loop_join_pos_feats):
     
-        return self.model(query_feats,tree_feats,hash_join_feats,nested_loop_join_feats,
+        return self.model(idx_other_modulelist,idx_hash_join_modulelist,idx_nested_loop_join_modulelist,query_feats,tree_feats,hash_join_feats,nested_loop_join_feats,
                 pos_feats,hash_join_pos_feats,nested_loop_join_pos_feats)
 
     def configure_optimizers(self):
@@ -635,9 +635,11 @@ class BalsaModel(pl.LightningModule):
                     batch.indexes_nested_loop_join.to(dev),
                     batch.costs.to(dev))
         # FIXME QIHANZHANG
-
+        def fake_three_indexes():
+            return 0,0,0
+        idx_other_module_list, idx_hash_join_module_list, idx_nested_loop_join_module_list = fake_three_indexes()
         # default use upper
-        output = self.forward(query_feat,tree_feat,hash_join_feat,nested_loop_join_feat,\
+        output = self.forward(idx_other_module_list,idx_hash_join_module_list,idx_nested_loop_join_module_list,query_feat,tree_feat,hash_join_feat,nested_loop_join_feat,\
                 pos_feat,hash_join_pos_feat,nested_loop_join_pos_feat)
         
         if p.cross_entropy:

@@ -75,11 +75,13 @@ class SimModel(pl.LightningModule):
         self.query_featurizer = query_featurizer
         self.perturb_query_features = perturb_query_features
     # called!
-    def forward(self,query_feats,join_feats,hash_join_feats,nested_loop_join_feats,pos_feats=None,
-                hash_join_pos_feats=None,nested_loop_join_pos_feats=None):
+    def forward(self,
+                idx_other_modulelist, idx_hash_join_modulelist, idx_nested_loop_join_modulelist
+                ,query_feats,join_feats,hash_join_feats,nested_loop_join_feats,
+                pos_feats=None,hash_join_pos_feats=None,nested_loop_join_pos_feats=None):
         if self.use_tree_conv:
             # FIXME MODIFY INPUT QIhan Zhang
-            return self.tree_conv(query_feats,join_feats,hash_join_feats,nested_loop_join_feats,pos_feats,
+            return self.tree_conv(idx_other_modulelist,idx_hash_join_modulelist,idx_nested_loop_join_modulelist,query_feats,join_feats,hash_join_feats,nested_loop_join_feats,pos_feats,
                 hash_join_pos_feats,nested_loop_join_pos_feats)
         
 
@@ -110,7 +112,10 @@ class SimModel(pl.LightningModule):
         if self.use_tree_conv:
             #assert len(rest) == 2
             # use defalut mode
-            output = self.forward(query_feat,plans,plans_hash_join,plans_nested_loop_join,
+            #Qihan Zhang FIXME the idxs should be calculated in the future
+            idx_other_modulelist, idx_hash_join_modulelist, idx_nested_loop_join_modulelist = 0,0,0
+            output = self.forward(idx_other_modulelist, idx_hash_join_modulelist, idx_nested_loop_join_modulelist,
+                                  query_feat,plans,plans_hash_join,plans_nested_loop_join,          
                    indexes,indexes_hash_join,indexes_nested_loop_join)
         else:
             #assert len(rest) == 1

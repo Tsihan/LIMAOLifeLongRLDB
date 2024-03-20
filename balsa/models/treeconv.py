@@ -20,27 +20,7 @@ from balsa.util import plans_lib
 
 DEVICE = 'cuda' if torch.cuda.is_available() else 'cpu'
 
-class AttentionMerger(nn.Module):
-    def __init__(self, input_dim,input_num):
-        super(AttentionMerger, self).__init__()
-        self.attention_weights = nn.Parameter(torch.randn(input_num, 1))
-        self.softmax = nn.Softmax(dim=0)
-
-    def forward(self, conv_outputs):
-    # conv_outputs: list of tensors from the 3 conv layers, each [batch size, feature_dim]
-        stacked_outputs = torch.stack(conv_outputs, dim=0)  # Shape: [3, batch size, feature_dim]
-        weights = self.softmax(self.attention_weights)  # Shape: [3, 1]
-    
-    # 不需要为weights增加两个维度，而是直接应用weights并保持输出维度不变
-    # 使用broadcasting机制对stacked_outputs的每个feature_dim进行加权
-    # 首先调整weights的形状以匹配stacked_outputs的broadcasting要求
-        weights = weights.view(-1, 1, 1)  # Adjusted shape for broadcasting: [3, 1, 1]
-        weighted_outputs = weights * stacked_outputs  # Broadcasting weights to each feature_dim
-    
-    # 加权求和，不增加额外的维度，保持[batch size, feature_dim]形状
-        weighted_sum = torch.sum(weighted_outputs, dim=0)  # Shape: [batch size, feature_dim]
-        return weighted_sum
-    
+ 
     
 class TreeConvolution(nn.Module):
     """Balsa's tree convolution neural net: (query, plan) -> value.
@@ -53,6 +33,8 @@ class TreeConvolution(nn.Module):
         # None: default
         assert version is None, version
         self.attention_merger_3 = AttentionMerger(input_dim=128,input_num=3)
+        # record it for later use
+        self.plan_size = plan_size
 
         self.query_mlp = nn.Sequential(
             nn.Linear(feature_size, 128),
@@ -64,45 +46,10 @@ class TreeConvolution(nn.Module):
             nn.Linear(64, 32),
         )
         
-        
-        self.conv_hash_join = nn.Sequential(
-            TreeConv1d(32 + plan_size, 512),
-            TreeStandardize(),
-            TreeAct(nn.LeakyReLU()),
-            TreeConv1d(512, 256),
-            TreeStandardize(),
-            TreeAct(nn.LeakyReLU()),
-            TreeConv1d(256, 128),
-            TreeStandardize(),
-            TreeAct(nn.LeakyReLU()),
-            TreeMaxPool(),
-        )
-        self.conv_nested_loop_join = nn.Sequential(
-            TreeConv1d(32 + plan_size, 512),
-            TreeStandardize(),
-            TreeAct(nn.LeakyReLU()),
-            TreeConv1d(512, 256),
-            TreeStandardize(),
-            TreeAct(nn.LeakyReLU()),
-            TreeConv1d(256, 128),
-            TreeStandardize(),
-            TreeAct(nn.LeakyReLU()),
-            TreeMaxPool(),
-        )
-        
-        self.conv = nn.Sequential(
-            TreeConv1d(32 + plan_size, 512),
-            TreeStandardize(),
-            TreeAct(nn.LeakyReLU()),
-            TreeConv1d(512, 256),
-            TreeStandardize(),
-            TreeAct(nn.LeakyReLU()),
-            TreeConv1d(256, 128),
-            TreeStandardize(),
-            TreeAct(nn.LeakyReLU()),
-            TreeMaxPool(),
-        )
-        
+                # 初始化三个模块列表
+        self.conv_module_list_other = nn.ModuleList([self.create_conv_module(plan_size)])
+        self.conv_module_list_hash_join = nn.ModuleList([self.create_conv_module(plan_size)])
+        self.conv_module_list_nested_loop_join = nn.ModuleList([self.create_conv_module(plan_size)]) 
         self.out_mlp = nn.Sequential(
             nn.Linear(128, 64),
             nn.LayerNorm(64),
@@ -113,7 +60,20 @@ class TreeConvolution(nn.Module):
             nn.Linear(32, label_size),
         )
         self.reset_weights()
-
+        
+    def create_conv_module(self, input_size):
+        return nn.Sequential(
+            TreeConv1d(32 + input_size, 512),
+            TreeStandardize(),
+            TreeAct(nn.LeakyReLU()),
+            TreeConv1d(512, 256),
+            TreeStandardize(),
+            TreeAct(nn.LeakyReLU()),
+            TreeConv1d(256, 128),
+            TreeStandardize(),
+            TreeAct(nn.LeakyReLU()),
+            TreeMaxPool(),
+            )
     def reset_weights(self):
         for name, p in self.named_parameters():
             if p.dim() > 1:
@@ -128,8 +88,10 @@ class TreeConvolution(nn.Module):
                 nn.init.ones_(p)
 
     
-    def forward(self, query_feats,trees_feats,hash_join_feats,nested_loop_join_feats,indexes_pos_feats,
-                                          hash_join_pos_feats,nested_loop_join_pos_feats):
+    def forward(self, idx_other,idx_hash_join,idx_nested_loop_join,
+                query_feats,trees_feats,hash_join_feats,nested_loop_join_feats,indexes_pos_feats,
+                                          hash_join_pos_feats,nested_loop_join_pos_feats
+                                          ):
         """Forward pass.
 
         Args:
@@ -158,11 +120,25 @@ class TreeConvolution(nn.Module):
         concat = torch.cat((query_embs, trees_feats), axis=1)
         concat_hash_join = torch.cat((query_embs_hash_join, hash_join_feats), axis=1)
         concat_nested_loop_join = torch.cat((query_embs_nested_loop_join, nested_loop_join_feats), axis=1)
-            
-        out_other = self.conv((concat, indexes_pos_feats))
-        out_hash_join = self.conv_hash_join((concat_hash_join, hash_join_pos_feats))
-        out_nested_loop_join = self.conv_nested_loop_join((concat_nested_loop_join, nested_loop_join_pos_feats))
-            
+        
+        if idx_other == -1:
+            new_module_other = self.create_conv_module(32 + self.plan_size)
+            self.conv_module_list_other.append(new_module_other)
+            idx_other = len(self.conv_module_list_other) - 1
+        out_other = self.conv_module_list_other[idx_other]((concat,indexes_pos_feats))
+        
+        if idx_hash_join == -1:
+            new_module_hash_join = self.create_conv_module(32 + self.plan_size)
+            self.conv_module_list_hash_join.append(new_module_hash_join)
+            idx_hash_join = len(self.conv_module_list_hash_join) - 1
+        out_hash_join = self.conv_module_list_hash_join[idx_hash_join]((concat_hash_join,hash_join_pos_feats))
+        
+        if idx_nested_loop_join == -1:
+            new_module_nested_loop_join = self.create_conv_module(32 + self.plan_size)
+            self.conv_module_list_nested_loop_join.append(new_module_nested_loop_join)
+            idx_nested_loop_join = len(self.conv_module_list_nested_loop_join) - 1   
+        out_nested_loop_join = self.conv_module_list_nested_loop_join[idx_nested_loop_join]((concat_nested_loop_join,nested_loop_join_pos_feats))
+        
         conv_outputs = [out_other, out_hash_join, out_nested_loop_join]
         out_combined = self.attention_merger_3(conv_outputs)
         out = self.out_mlp(out_combined)
@@ -170,7 +146,27 @@ class TreeConvolution(nn.Module):
 
 
 
+class AttentionMerger(nn.Module):
+    def __init__(self, input_dim,input_num):
+        super(AttentionMerger, self).__init__()
+        self.attention_weights = nn.Parameter(torch.randn(input_num, 1))
+        self.softmax = nn.Softmax(dim=0)
 
+    def forward(self, conv_outputs):
+    # conv_outputs: list of tensors from the 3 conv layers, each [batch size, feature_dim]
+        stacked_outputs = torch.stack(conv_outputs, dim=0)  # Shape: [3, batch size, feature_dim]
+        weights = self.softmax(self.attention_weights)  # Shape: [3, 1]
+    
+    # 不需要为weights增加两个维度，而是直接应用weights并保持输出维度不变
+    # 使用broadcasting机制对stacked_outputs的每个feature_dim进行加权
+    # 首先调整weights的形状以匹配stacked_outputs的broadcasting要求
+        weights = weights.view(-1, 1, 1)  # Adjusted shape for broadcasting: [3, 1, 1]
+        weighted_outputs = weights * stacked_outputs  # Broadcasting weights to each feature_dim
+    
+    # 加权求和，不增加额外的维度，保持[batch size, feature_dim]形状
+        weighted_sum = torch.sum(weighted_outputs, dim=0)  # Shape: [batch size, feature_dim]
+        return weighted_sum
+   
 class TreeConv1d(nn.Module):
     """Conv1d adapted to tree data."""
 

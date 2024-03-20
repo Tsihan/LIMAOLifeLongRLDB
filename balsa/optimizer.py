@@ -236,7 +236,7 @@ class Optimizer(object):
                 
  
 
-                cost = self.value_network(query_feat,plan_feat,hash_join_feat,nested_loop_join_feat,pos_feat,
+                cost = self.value_network(0,0,0,query_feat,plan_feat,hash_join_feat,nested_loop_join_feat,pos_feat,
                                           hash_join_pos_feat,nested_loop_join_pos_feat).cpu().numpy()
             else:
                 # TODO since we modify the forword of network, this one needs modify but we leave it furture
