@@ -25,3 +25,5 @@ tensorboard_logs
 tensorboard_logs_balsa
 
 run_multiple.sh
+read_pkl.py
+read_ckpt.py
