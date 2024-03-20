@@ -122,19 +122,22 @@ class TreeConvolution(nn.Module):
         concat_nested_loop_join = torch.cat((query_embs_nested_loop_join, nested_loop_join_feats), axis=1)
         
         if idx_other == -1:
-            new_module_other = self.create_conv_module(32 + self.plan_size)
+            new_module_other = self.create_conv_module(self.plan_size)
+            new_module_other.to(query_feats.device)
             self.conv_module_list_other.append(new_module_other)
             idx_other = len(self.conv_module_list_other) - 1
         out_other = self.conv_module_list_other[idx_other]((concat,indexes_pos_feats))
         
         if idx_hash_join == -1:
-            new_module_hash_join = self.create_conv_module(32 + self.plan_size)
+            new_module_hash_join = self.create_conv_module(self.plan_size)
+            new_module_hash_join.to(query_feats.device)
             self.conv_module_list_hash_join.append(new_module_hash_join)
             idx_hash_join = len(self.conv_module_list_hash_join) - 1
         out_hash_join = self.conv_module_list_hash_join[idx_hash_join]((concat_hash_join,hash_join_pos_feats))
         
         if idx_nested_loop_join == -1:
-            new_module_nested_loop_join = self.create_conv_module(32 + self.plan_size)
+            new_module_nested_loop_join = self.create_conv_module(self.plan_size)
+            new_module_nested_loop_join.to(query_feats.device)
             self.conv_module_list_nested_loop_join.append(new_module_nested_loop_join)
             idx_nested_loop_join = len(self.conv_module_list_nested_loop_join) - 1   
         out_nested_loop_join = self.conv_module_list_nested_loop_join[idx_nested_loop_join]((concat_nested_loop_join,nested_loop_join_pos_feats))

@@ -233,10 +233,31 @@ class Optimizer(object):
                     DEVICE, non_blocking=True)
                 nested_loop_join_pos_feat = torch.from_numpy(np.asarray(nested_loop_join)).to(
                     DEVICE, non_blocking=True)
+                # Based on the debugging situation, only one BalsaModel and one SimModel will be used
+                if self.value_network.__class__.__name__ == 'BalsaModel':
+                    length_of_other_modulelist = len(self.value_network.model.conv_module_list_other)
+                    length_of_hash_join_modulelist = len(self.value_network.model.conv_module_list_hash_join)
+                    length_of_nested_loop_join_modulelist = len(self.value_network.model.conv_module_list_nested_loop_join)
+                else:
+                    length_of_other_modulelist = len(self.value_network.tree_conv.conv_module_list_other)
+                    length_of_hash_join_modulelist = len(self.value_network.tree_conv.conv_module_list_hash_join)
+                    length_of_nested_loop_join_modulelist = len(self.value_network.tree_conv.conv_module_list_nested_loop_join)
+                    
+                    
+                chosen_idx_other = length_of_other_modulelist - 1
+                if length_of_hash_join_modulelist < 2:
+                    chosen_idx_other = -1
                 
- 
+                chosen_idx_hash_join = length_of_hash_join_modulelist - 1
+                if length_of_hash_join_modulelist < 2:
+                    chosen_idx_hash_join = -1
+                
+                chosen_idx_nested_loop_join = length_of_nested_loop_join_modulelist - 1
+                if length_of_nested_loop_join_modulelist < 2:
+                    chosen_idx_nested_loop_join = -1
 
-                cost = self.value_network(0,0,0,query_feat,plan_feat,hash_join_feat,nested_loop_join_feat,pos_feat,
+                cost = self.value_network(chosen_idx_other,chosen_idx_hash_join,chosen_idx_nested_loop_join,
+                                          query_feat,plan_feat,hash_join_feat,nested_loop_join_feat,pos_feat,
                                           hash_join_pos_feat,nested_loop_join_pos_feat).cpu().numpy()
             else:
                 # TODO since we modify the forword of network, this one needs modify but we leave it furture
