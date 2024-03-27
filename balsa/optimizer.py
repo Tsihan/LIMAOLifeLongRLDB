@@ -153,6 +153,29 @@ class Optimizer(object):
         self.value_network.eval()
         # Reset the cache due to model being changed.
         self.label_cache = {}
+        
+    def add_nodetype_recursively(self, node, res):
+        if node.node_type == 'Hash Join':
+            res.append(0)
+        elif node.node_type == 'Nested Loop':
+            res.append(1)
+        elif node.node_type == 'Merge Join':
+            res.append(2)
+        elif node.node_type == 'Seq Scan':
+            res.append(3)
+        elif node.node_type == 'Index Scan':
+            res.append(4)
+        elif node.node_type == 'Index Only Scan':
+            res.append(5)
+        else:
+            res.append(6)
+        if node.children:
+            if node.children[0]:
+                self.add_nodetype_recursively(node.children[0], res)
+        
+            if node.children[1]:
+                self.add_nodetype_recursively(node.children[1], res)
+        
 
     # @profile
     def infer(self, query_node, plan_nodes, set_model_eval=False):
@@ -194,6 +217,13 @@ class Optimizer(object):
             # TODO pay attention to here, how it features the query(CONTEXT)!
             # mark all the tables with 1, and transform the value 1.
             # TODO according to query_enc, we decide which sub-modules to use
+            # DEBUG 
+            #print("query_node: ",query_node)
+            # <class 'balsa.util.plans_lib.Node'>
+            operators_env = []
+            self.add_nodetype_recursively(query_node,operators_env)
+            indexes_env = treeconv._make_indexes_environment(query_node)
+            
             query_enc = self.query_featurizer(query_node)
             all_query_vecs = [query_enc] * len(plans)
             all_plans = []

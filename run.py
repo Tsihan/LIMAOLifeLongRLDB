@@ -638,7 +638,7 @@ class BalsaModel(pl.LightningModule):
         def fake_three_indexes():
             return 0,0,0
         idx_other_module_list, idx_hash_join_module_list, idx_nested_loop_join_module_list = fake_three_indexes()
-        # default use upper
+        
         output = self.forward(idx_other_module_list,idx_hash_join_module_list,idx_nested_loop_join_module_list,query_feat,tree_feat,hash_join_feat,nested_loop_join_feat,\
                 pos_feat,hash_join_pos_feat,nested_loop_join_pos_feat)
         

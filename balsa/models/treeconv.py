@@ -318,39 +318,39 @@ def _walk(curr, vecs):
         _walk(curr[1], vecs)
         _walk(curr[2], vecs)
 
+def _make_preorder_ids_tree_environment(curr, root_index=1):
 
-# @profile
-# def _make_indexes(root):
-#     # Join(A, B) --> preorder_ids = (1, (2, 0, 0), (3, 0, 0))
-#     # Join(Join(A, B), C) --> preorder_ids = (1, (2, 3, 4), (5, 0, 0))
-   
-#     hash_join_set = set()
-#     nested_loop_join_set = set()
-#     preorder_ids, _ = _make_preorder_ids_tree(root,hash_join_set,nested_loop_join_set)
-#     vecs = []
-#     _walk(preorder_ids, vecs)
-#     # Continuing with the Join(A,B) example:
-#     # Preorder traversal _walk() produces
-#     #   [1, 2, 3]
-#     #   [2, 0, 0]
-#     #   [3, 0, 0]
-#     # which would be reshaped into
-#     #   array([[1],
-#     #          [2],
-#     #          [3],
-#     #          [2],
-#     #          [0],
-#     #          [0],
-#     #    ...,
-#     #          [0]])
-#     vecs = np.asarray(vecs).reshape(-1, 1)
 
-#     node_ids = vecs[:, 0]  # extract all nodes ids
-    
-#     vecs_hash_join = np.where(np.isin(node_ids, list(hash_join_set)), node_ids, 0).reshape(-1, 1)
-#     vecs_nested_loop_join = np.where(np.isin(node_ids, list(nested_loop_join_set)), node_ids, 0).reshape(-1, 1)
-    
-#     return vecs, vecs_hash_join, vecs_nested_loop_join
+    if not curr.children:
+        return (root_index, 0, 0), root_index
+    lhs, lhs_max_id = _make_preorder_ids_tree_environment(curr.children[0],
+                                              root_index=root_index + 1)
+    rhs, rhs_max_id = _make_preorder_ids_tree_environment(curr.children[1],
+                                              root_index=lhs_max_id + 1)
+    return (root_index, lhs, rhs), rhs_max_id
+
+def _make_indexes_environment(root):
+    # Join(A, B) --> preorder_ids = (1, (2, 0, 0), (3, 0, 0))
+    # Join(Join(A, B), C) --> preorder_ids = (1, (2, 3, 4), (5, 0, 0))
+    preorder_ids, _ = _make_preorder_ids_tree_environment(root)
+    vecs = []
+    _walk(preorder_ids, vecs)
+    # Continuing with the Join(A,B) example:
+    # Preorder traversal _walk() produces
+    #   [1, 2, 3]
+    #   [2, 0, 0]
+    #   [3, 0, 0]
+    # which would be reshaped into
+    #   array([[1],
+    #          [2],
+    #          [3],
+    #          [2],
+    #          [0],
+    #          [0],
+    #    ...,
+    #          [0]])
+    vecs = np.asarray(vecs).reshape(-1, 1)
+    return vecs
 
 def _make_indexes(root):
     hash_join_set = set()
