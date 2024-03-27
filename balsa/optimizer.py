@@ -193,6 +193,7 @@ class Optimizer(object):
         with torch.no_grad():
             # TODO pay attention to here, how it features the query(CONTEXT)!
             # mark all the tables with 1, and transform the value 1.
+            # TODO according to query_enc, we decide which sub-modules to use
             query_enc = self.query_featurizer(query_node)
             all_query_vecs = [query_enc] * len(plans)
             all_plans = []
