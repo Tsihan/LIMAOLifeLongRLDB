@@ -245,7 +245,7 @@ class Optimizer(object):
                     
                     
                 chosen_idx_other = length_of_other_modulelist - 1
-                if length_of_hash_join_modulelist < 2:
+                if length_of_other_modulelist < 2:
                     chosen_idx_other = -1
                 
                 chosen_idx_hash_join = length_of_hash_join_modulelist - 1

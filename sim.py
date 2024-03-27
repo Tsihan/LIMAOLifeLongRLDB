@@ -113,6 +113,7 @@ class SimModel(pl.LightningModule):
             #assert len(rest) == 2
             # use defalut mode
             #Qihan Zhang FIXME the idxs should be calculated in the future
+            # when we initialize model, we start from here
             idx_other_modulelist, idx_hash_join_modulelist, idx_nested_loop_join_modulelist = 0,0,0
             output = self.forward(idx_other_modulelist, idx_hash_join_modulelist, idx_nested_loop_join_modulelist,
                                   query_feat,plans,plans_hash_join,plans_nested_loop_join,          
