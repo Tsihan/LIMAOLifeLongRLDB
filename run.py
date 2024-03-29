@@ -382,8 +382,8 @@ def TrainSim(p, loggers=None):
     if p.sim_checkpoint is None:
         sim.CollectSimulationData()
     # FIXME Qihan Zhang temporary modify to retain simulator p.sim_checkpoint None
-    #sim.Train(load_from_checkpoint=None, loggers=loggers)
-    sim.Train(load_from_checkpoint=p.sim_checkpoint, loggers=loggers)
+    sim.Train(load_from_checkpoint=None, loggers=loggers)
+    #sim.Train(load_from_checkpoint=p.sim_checkpoint, loggers=loggers)
     sim.model.freeze()
     sim.EvaluateCost()
     sim.FreeData()
@@ -802,8 +802,8 @@ class BalsaAgent(object):
             # Filter queries based on the current query_glob.
             workload.FilterQueries(p.query_dir, p.query_glob, p.test_query_glob)
         else:
-            wp = envs.JoinOrderBenchmark.Params()
-            #wp = envs.TPCH10.Params()
+            #wp = envs.JoinOrderBenchmark.Params()
+            wp = envs.TPCH10.Params()
             #wp = envs.SO.Params()
             #wp = envs.IMDB_BAO.Params()
             wp.query_dir = p.query_dir
@@ -1254,10 +1254,10 @@ class BalsaAgent(object):
             print('Execution time: {}'.format(real_cost))
         # NOTE: if engine != pg, we're still saving PG plans but with target
         # engine's latencies.  This mainly affects debug strings.
-        Save(self.workload, './data/JOB/initial_policy_data.pkl')
+        #Save(self.workload, './data/JOB/initial_policy_data.pkl')
         #Save(self.workload, './data/IMDB_BAO/initial_policy_data.pkl')
         #Save(self.workload, './data/SO/initial_policy_data.pkl')
-        #Save(self.workload, './data/TPCH/initial_policy_data.pkl')
+        Save(self.workload, './data/TPCH/initial_policy_data.pkl')
         self.LogExpertExperience(self.train_nodes, self.test_nodes)
 
     def Train(self, train_from_scratch=False):
@@ -1770,20 +1770,20 @@ class BalsaAgent(object):
         p = self.params
         # "<class 'experiments.ConfigName'>" -> "ConfigName".
         experiment = str(p.cls).split('.')[-1][:-2]
-        path = 'data/JOB/replay-{}-{}execs-{}nodes-{}s-{}iters-{}.pkl'.format(
-            experiment, self.num_query_execs, len(self.exp.nodes),
-            int(iter_total_latency / 1e3), self.curr_value_iter,
-            self.wandb_logger.experiment.id)
+        # path = 'data/JOB/replay-{}-{}execs-{}nodes-{}s-{}iters-{}.pkl'.format(
+        #     experiment, self.num_query_execs, len(self.exp.nodes),
+        #     int(iter_total_latency / 1e3), self.curr_value_iter,
+        #     self.wandb_logger.experiment.id)
         
         # path = 'data/SO/replay-{}-{}execs-{}nodes-{}s-{}iters-{}.pkl'.format(
         #     experiment, self.num_query_execs, len(self.exp.nodes),
         #     int(iter_total_latency / 1e3), self.curr_value_iter,
         #     self.wandb_logger.experiment.id)
         
-        # path = 'data/TPCH/replay-{}-{}execs-{}nodes-{}s-{}iters-{}.pkl'.format(
-        #     experiment, self.num_query_execs, len(self.exp.nodes),
-        #     int(iter_total_latency / 1e3), self.curr_value_iter,
-        #     self.wandb_logger.experiment.id)
+        path = 'data/TPCH/replay-{}-{}execs-{}nodes-{}s-{}iters-{}.pkl'.format(
+            experiment, self.num_query_execs, len(self.exp.nodes),
+            int(iter_total_latency / 1e3), self.curr_value_iter,
+            self.wandb_logger.experiment.id)
         
         # path = 'data/IMDB_BAO/replay-{}-{}execs-{}nodes-{}s-{}iters-{}.pkl'.format(
         #     experiment, self.num_query_execs, len(self.exp.nodes),
