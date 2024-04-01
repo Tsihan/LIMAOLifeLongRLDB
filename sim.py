@@ -80,7 +80,7 @@ class SimModel(pl.LightningModule):
                 ,query_feats,join_feats,hash_join_feats,nested_loop_join_feats,
                 pos_feats=None,hash_join_pos_feats=None,nested_loop_join_pos_feats=None):
         if self.use_tree_conv:
-            # FIXME MODIFY INPUT QIhan Zhang
+            # FIXME MODIFY INPUT QIhan Zhang we always use first index for the three submodules
             return self.tree_conv(idx_other_modulelist,idx_hash_join_modulelist,idx_nested_loop_join_modulelist,query_feats,join_feats,hash_join_feats,nested_loop_join_feats,pos_feats,
                 hash_join_pos_feats,nested_loop_join_pos_feats)
         
@@ -112,7 +112,6 @@ class SimModel(pl.LightningModule):
         if self.use_tree_conv:
             #assert len(rest) == 2
             # use defalut mode
-            #Qihan Zhang FIXME the idxs should be calculated in the future
             # when we initialize model, we start from here
             idx_other_modulelist, idx_hash_join_modulelist, idx_nested_loop_join_modulelist = 0,0,0
             output = self.forward(idx_other_modulelist, idx_hash_join_modulelist, idx_nested_loop_join_modulelist,
@@ -448,15 +447,15 @@ class Sim(object):
         p.Define('infer_search_until_n_complete_plans', 1,
                  'Search until how many complete plans?')
          # Workload.
-        # p.Define('workload', envs.JoinOrderBenchmark.Params(),
-        #          'Params of the Workload, i.e., a set of queries.')
+        p.Define('workload', envs.JoinOrderBenchmark.Params(),
+                 'Params of the Workload, i.e., a set of queries.')
         #Qihan Zhang Need a paprameter here to decide which workload to use
         # Workload.
         # p.Define('workload', envs.IMDB_BAO.Params(),
         #        'Params of the Workload, i.e., a set of queries.')
         
-        p.Define('workload', envs.TPCH10.Params(),
-                 'Params of the Workload, i.e., a set of queries.')
+        # p.Define('workload', envs.TPCH10.Params(),
+        #          'Params of the Workload, i.e., a set of queries.')
         
         # p.Define('workload', envs.SO.Params(),
         #          'Params of the Workload, i.e., a set of queries.')
@@ -665,8 +664,8 @@ class Sim(object):
     def _SimulationDataPath(self):
         p = self.params
         hash_key = Sim.HashOfSimData(p)        
-        #return 'data/JOB/sim-data-{}.pkl'.format(hash_key)
-        return 'data/TPCH/sim-data-{}.pkl'.format(hash_key)
+        return 'data/JOB/sim-data-{}.pkl'.format(hash_key)
+        #return 'data/TPCH/sim-data-{}.pkl'.format(hash_key)
         #return 'data/IMDB_BAO/sim-data-{}.pkl'.format(hash_key)
         #return 'data/SO/sim-data-{}.pkl'.format(hash_key)
     def _LoadSimulationData(self):
@@ -696,10 +695,10 @@ class Sim(object):
     def _FeaturizedDataPath(self):
         p = self.params
         hash_key = Sim.HashOfFeaturizedData(p)
-        #return 'data/JOB/sim-featurized-{}.pkl'.format(hash_key)
+        return 'data/JOB/sim-featurized-{}.pkl'.format(hash_key)
         #return 'data/IMDB_BAO/sim-featurized-{}.pkl'.format(hash_key)
         #return 'data/SO/sim-featurized-{}.pkl'.format(hash_key)
-        return 'data/TPCH/sim-featurized-{}.pkl'.format(hash_key)
+        #return 'data/TPCH/sim-featurized-{}.pkl'.format(hash_key)
 
     def _LoadFeaturizedData(self):
         path = self._FeaturizedDataPath()

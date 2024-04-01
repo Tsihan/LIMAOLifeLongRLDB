@@ -127,7 +127,11 @@ class Optimizer(object):
         self.inverse_label_transform_fn = inverse_label_transform_fn
         self.use_label_cache = use_label_cache
         self.use_plan_restrictions = use_plan_restrictions
-
+        
+        #Qihan Zhang, add current_other_module_index, current_hash_join_module_index, current_nested_loop_join_module_index
+        self.current_other_module_index = 0
+        self.current_hash_join_module_index = 0
+        self.current_nested_loop_join_module_index = 0
         # Plan search params default don't go
         if not plan_physical:
             jts = workload_info.join_types
@@ -178,7 +182,8 @@ class Optimizer(object):
         
 
     # @profile
-    def infer(self, query_node, plan_nodes, set_model_eval=False):
+    def infer(self, query_node, plan_nodes, 
+              chosen_idx_other,chosen_idx_hash_join, chosen_idx_nested_loop_join, set_model_eval=False):
         """Forward pass.
 
         Args:
@@ -256,27 +261,17 @@ class Optimizer(object):
                 nested_loop_join_pos_feat = torch.from_numpy(np.asarray(nested_loop_join)).to(
                     DEVICE, non_blocking=True)
                 # Based on the debugging situation, only one BalsaModel and one SimModel will be used
-                if self.value_network.__class__.__name__ == 'BalsaModel':
-                    length_of_other_modulelist = len(self.value_network.model.conv_module_list_other)
-                    length_of_hash_join_modulelist = len(self.value_network.model.conv_module_list_hash_join)
-                    length_of_nested_loop_join_modulelist = len(self.value_network.model.conv_module_list_nested_loop_join)
-                else:
-                    length_of_other_modulelist = len(self.value_network.tree_conv.conv_module_list_other)
-                    length_of_hash_join_modulelist = len(self.value_network.tree_conv.conv_module_list_hash_join)
-                    length_of_nested_loop_join_modulelist = len(self.value_network.tree_conv.conv_module_list_nested_loop_join)
+                # if self.value_network.__class__.__name__ == 'BalsaModel':
+                #     length_of_other_modulelist = len(self.value_network.model.conv_module_list_other)
+                #     length_of_hash_join_modulelist = len(self.value_network.model.conv_module_list_hash_join)
+                #     length_of_nested_loop_join_modulelist = len(self.value_network.model.conv_module_list_nested_loop_join)
+                # else:
+                #     length_of_other_modulelist = len(self.value_network.tree_conv.conv_module_list_other)
+                #     length_of_hash_join_modulelist = len(self.value_network.tree_conv.conv_module_list_hash_join)
+                #     length_of_nested_loop_join_modulelist = len(self.value_network.tree_conv.conv_module_list_nested_loop_join)
                     
                     
-                chosen_idx_other = length_of_other_modulelist - 1
-                if length_of_other_modulelist < 2:
-                    chosen_idx_other = -1
-                
-                chosen_idx_hash_join = length_of_hash_join_modulelist - 1
-                if length_of_hash_join_modulelist < 2:
-                    chosen_idx_hash_join = -1
-                
-                chosen_idx_nested_loop_join = length_of_nested_loop_join_modulelist - 1
-                if length_of_nested_loop_join_modulelist < 2:
-                    chosen_idx_nested_loop_join = -1
+               
 
                 cost = self.value_network(chosen_idx_other,chosen_idx_hash_join,chosen_idx_nested_loop_join,
                                           query_feat,plan_feat,hash_join_feat,nested_loop_join_feat,pos_feat,
@@ -502,8 +497,28 @@ class Optimizer(object):
         print("sql_str: ",sql_str)
         # One-hot vector [GROUP BY, ORDER BY, Aggregate Function, Subquery]
         sql_feature_encode = simple_sql_parser.simple_encode_sql(sql_str)
-        
-        
+        if self.value_network.__class__.__name__ == 'BalsaModel':
+            length_of_other_modulelist = len(self.value_network.model.conv_module_list_other)
+            length_of_hash_join_modulelist = len(self.value_network.model.conv_module_list_hash_join)
+            length_of_nested_loop_join_modulelist = len(self.value_network.model.conv_module_list_nested_loop_join)
+        else:
+            length_of_other_modulelist = len(self.value_network.tree_conv.conv_module_list_other)
+            length_of_hash_join_modulelist = len(self.value_network.tree_conv.conv_module_list_hash_join)
+            length_of_nested_loop_join_modulelist = len(self.value_network.tree_conv.conv_module_list_nested_loop_join)
+                    
+                    
+        chosen_idx_other = self.current_other_module_index
+        if length_of_other_modulelist < 2:
+            chosen_idx_other = -1
+                
+        chosen_idx_hash_join = self.current_hash_join_module_index
+        if length_of_hash_join_modulelist < 2:
+            chosen_idx_hash_join = -1
+                
+        chosen_idx_nested_loop_join = self.current_nested_loop_join_module_index
+        if length_of_nested_loop_join_modulelist < 2:
+            chosen_idx_nested_loop_join = -1
+
         planning_start_t = time.time()
         # Join graph.
         join_graph, _ = query_node.GetOrParseSql()
@@ -583,7 +598,7 @@ class Optimizer(object):
                 depth_record.append(self.get_depth(possible_plans[i][0]))
      
             costs = self.infer(query_node,
-                               [join for join, _, _ in possible_plans])
+                               [join for join, _, _ in possible_plans],chosen_idx_other,chosen_idx_hash_join, chosen_idx_nested_loop_join)
             valid_costs, valid_new_states = self._make_new_states(
                 state, costs, possible_plans)
 
