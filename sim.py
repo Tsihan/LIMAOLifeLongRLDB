@@ -1051,7 +1051,8 @@ class Sim(object):
     def Predict(self, query_node, nodes):
         """Runs forward pass on 'nodes' to predict their costs."""
         # default use upper version Qihan Zhang
-        return self._GetPlanner().infer(query_node, nodes)
+        # TODO debug mssing args!
+        return self._GetPlanner().infer(query_node, nodes,0,0,0)
 
     def _LoadBestCheckpointForEval(self):
         """Loads the checkpoint with the best validation loss."""

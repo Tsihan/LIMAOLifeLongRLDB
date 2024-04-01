@@ -1472,7 +1472,9 @@ class BalsaAgent(object):
                                               [tup[1] for tup in found_plans])
             # Model-predicted latency of the expert plan.  Allows us to track
             # what exactly the model thinks of the expert plan.
-            node.info['curr_predicted_latency'] = planner.infer(node, [node])[0]
+            #TODO DEBUG balsa.optimizer.Optimizer object
+            node.info['curr_predicted_latency'] = planner.infer(node, [node],
+            planner.current_other_module_index, planner.current_hash_join_module_index, planner.current_nested_loop_join_module_index)[0]
             self.LogScalars([('predicted_latency_expert_plans/q{}'.format(
                 node.info['query_name']),
                               node.info['curr_predicted_latency'] / 1e3,

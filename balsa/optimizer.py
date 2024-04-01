@@ -497,6 +497,9 @@ class Optimizer(object):
         print("sql_str: ",sql_str)
         # One-hot vector [GROUP BY, ORDER BY, Aggregate Function, Subquery]
         sql_feature_encode = simple_sql_parser.simple_encode_sql(sql_str)
+        
+        
+        
         if self.value_network.__class__.__name__ == 'BalsaModel':
             length_of_other_modulelist = len(self.value_network.model.conv_module_list_other)
             length_of_hash_join_modulelist = len(self.value_network.model.conv_module_list_hash_join)
@@ -510,14 +513,17 @@ class Optimizer(object):
         chosen_idx_other = self.current_other_module_index
         if length_of_other_modulelist < 2:
             chosen_idx_other = -1
+            self.current_other_module_index = length_of_other_modulelist 
                 
         chosen_idx_hash_join = self.current_hash_join_module_index
         if length_of_hash_join_modulelist < 2:
             chosen_idx_hash_join = -1
+            self.current_hash_join_module_index = length_of_hash_join_modulelist 
                 
         chosen_idx_nested_loop_join = self.current_nested_loop_join_module_index
         if length_of_nested_loop_join_modulelist < 2:
             chosen_idx_nested_loop_join = -1
+            self.current_nested_loop_join_module_index = length_of_nested_loop_join_modulelist 
 
         planning_start_t = time.time()
         # Join graph.
@@ -576,8 +582,9 @@ class Optimizer(object):
 
         terminal_states = []
         # the number of states and costs are shrinking during this while loop
-        while len(terminal_states) < self.search_until_n_complete_plans and \
-              fringe:
+        construct_new_modules = True
+        while len(terminal_states) < self.search_until_n_complete_plans and fringe:
+
             state_cost, state = fringe.pop(0)
             MoveFromOpenToExpanded(state_cost, state)
             if len(state) == 1:
@@ -596,11 +603,24 @@ class Optimizer(object):
             depth_record = []
             for i in range(len(possible_plans)):
                 depth_record.append(self.get_depth(possible_plans[i][0]))
-     
-            costs = self.infer(query_node,
-                               [join for join, _, _ in possible_plans],chosen_idx_other,chosen_idx_hash_join, chosen_idx_nested_loop_join)
+            if construct_new_modules:
+                costs = self.infer(query_node,[join for join, _, _ in possible_plans],chosen_idx_other,chosen_idx_hash_join, chosen_idx_nested_loop_join)
+                construct_new_modules = False
+                if self.value_network.__class__.__name__ == 'BalsaModel':
+                    chosen_idx_other = len(self.value_network.model.conv_module_list_other) - 1
+                    chosen_idx_hash_join = len(self.value_network.model.conv_module_list_hash_join) - 1
+                    chosen_idx_nested_loop_join = len(self.value_network.model.conv_module_list_nested_loop_join) -1
+                else:
+                    chosen_idx_other = len(self.value_network.tree_conv.conv_module_list_other)-1
+                    chosen_idx_hash_join = len(self.value_network.tree_conv.conv_module_list_hash_join)-1
+                    chosen_idx_nested_loop_join = len(self.value_network.tree_conv.conv_module_list_nested_loop_join)-1
+             
+            else:
+                costs = self.infer(query_node,[join for join, _, _ in possible_plans],chosen_idx_other,chosen_idx_hash_join, chosen_idx_nested_loop_join)
             valid_costs, valid_new_states = self._make_new_states(
                 state, costs, possible_plans)
+            
+            
 
             for i, (valid_cost,
                     new_state) in enumerate(zip(valid_costs, valid_new_states)):
