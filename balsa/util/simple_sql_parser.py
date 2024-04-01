@@ -74,36 +74,6 @@ def ParseSql(sql, filepath=None, query_name=None):
 
 
 def simple_encode_sql(sql_str):
-#     sql_str = """
-# SELECT
-#     l.l_shipmode,
-#     SUM(CASE
-#         WHEN o.o_orderpriority = '1-URGENT'
-#             OR o.o_orderpriority = '3-MEDIUM'
-#             THEN 1
-#         ELSE 0
-#     END) AS high_line_count,
-#     SUM(CASE
-#         WHEN o.o_orderpriority <> '1-URGENT'
-#             AND o.o_orderpriority <> '3-MEDIUM'
-#             THEN 1
-#         ELSE 0
-#     END) AS low_line_count
-# FROM
-#     orders AS o,
-#     lineitem AS l
-# WHERE
-#     o.o_orderkey = l.l_orderkey
-#     AND l.l_shipmode IN ('RAIL', 'AIR')
-#     AND l.l_commitdate < l.l_receiptdate
-#     AND l.l_shipdate < l.l_commitdate
-#     AND l.l_receiptdate >= DATE '1993-01-01'
-#     AND l.l_receiptdate < DATE '1993-01-01' + INTERVAL '3' YEAR
-# GROUP BY
-#     l.l_shipmode
-# ORDER BY
-#     l.l_shipmode;
-# """
 
     # One-hot vector [GROUP BY, ORDER BY, Aggregate Function, Subquery]
     features = [0, 0, 0, 0]
@@ -127,8 +97,12 @@ def simple_encode_sql(sql_str):
 
     # Check for subqueries
     subquery_patterns = [
-    r"\bSELECT\b.*\bFROM\b.*\bSELECT\b",  # Nested SELECT
-    r"\bEXISTS\b", r"\bIN\b", r"\bANY\b", r"\bSOME\b", r"\bALL\b"  # Keywords
+    r"\bSELECT\b.*?\bFROM\b.*?\bSELECT\b",  # Nested SELECT
+    r"\bEXISTS\b",  # EXISTS
+    r"\bIN\s*\(\s*SELECT\b",  # IN followed by SELECT
+    r"\bANY\s*\(\s*SELECT\b",  # ANY followed by SELECT
+    r"\bSOME\s*\(\s*SELECT\b",  # SOME followed by SELECT
+    r"\bALL\s*\(\s*SELECT\b"    # ALL followed by SELECT
     ]
     for pattern in subquery_patterns:
         if re.search(pattern, sql_str, re.IGNORECASE | re.DOTALL):
