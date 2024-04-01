@@ -71,3 +71,73 @@ def ParseSql(sql, filepath=None, query_name=None):
     graph = _GetGraph(join_conds)
     join_conds = [_FormatJoinCond(c) for c in join_conds]
     return graph, join_conds
+
+
+def simple_encode_sql(sql_str):
+#     sql_str = """
+# SELECT
+#     l.l_shipmode,
+#     SUM(CASE
+#         WHEN o.o_orderpriority = '1-URGENT'
+#             OR o.o_orderpriority = '3-MEDIUM'
+#             THEN 1
+#         ELSE 0
+#     END) AS high_line_count,
+#     SUM(CASE
+#         WHEN o.o_orderpriority <> '1-URGENT'
+#             AND o.o_orderpriority <> '3-MEDIUM'
+#             THEN 1
+#         ELSE 0
+#     END) AS low_line_count
+# FROM
+#     orders AS o,
+#     lineitem AS l
+# WHERE
+#     o.o_orderkey = l.l_orderkey
+#     AND l.l_shipmode IN ('RAIL', 'AIR')
+#     AND l.l_commitdate < l.l_receiptdate
+#     AND l.l_shipdate < l.l_commitdate
+#     AND l.l_receiptdate >= DATE '1993-01-01'
+#     AND l.l_receiptdate < DATE '1993-01-01' + INTERVAL '3' YEAR
+# GROUP BY
+#     l.l_shipmode
+# ORDER BY
+#     l.l_shipmode;
+# """
+
+    # One-hot vector [GROUP BY, ORDER BY, Aggregate Function, Subquery]
+    features = [0, 0, 0, 0]
+
+    # Check for GROUP BY
+    if re.search(r"\bGROUP BY\b", sql_str, re.IGNORECASE):
+        features[0] = 1
+
+    # Check for ORDER BY
+    if re.search(r"\bORDER BY\b", sql_str, re.IGNORECASE):
+        features[1] = 1
+
+    # Check for aggregate functions
+    aggregate_functions = [
+    "SUM", "COUNT", "AVG", "MIN", "MAX"
+    ]
+    for func in aggregate_functions:
+        if re.search(r"\b" + func + r"\b", sql_str, re.IGNORECASE):
+            features[2] = 1
+            break
+
+    # Check for subqueries
+    subquery_patterns = [
+    r"\bSELECT\b.*\bFROM\b.*\bSELECT\b",  # Nested SELECT
+    r"\bEXISTS\b", r"\bIN\b", r"\bANY\b", r"\bSOME\b", r"\bALL\b"  # Keywords
+    ]
+    for pattern in subquery_patterns:
+        if re.search(pattern, sql_str, re.IGNORECASE | re.DOTALL):
+            features[3] = 1
+            break
+
+    print("Features: [GROUP BY, ORDER BY, Aggregate Function, Subquery]")
+    print("Vector: ", features)
+    return features
+    
+
+

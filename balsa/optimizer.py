@@ -22,7 +22,7 @@ from balsa import search
 from balsa.models import treeconv
 from balsa.util import dataset as ds
 from balsa.util import plans_lib
-
+from balsa.util import simple_sql_parser
 DEVICE = 'cuda' if torch.cuda.is_available() else 'cpu'
 
 
@@ -214,16 +214,7 @@ class Optimizer(object):
             # Expensive.  Caller should try to call only once.
             self.value_network.eval()
         with torch.no_grad():
-            # TODO pay attention to here, how it features the query(CONTEXT)!
-            # mark all the tables with 1, and transform the value 1.
-            # TODO according to query_enc, we decide which sub-modules to use
-            # DEBUG 
-            #print("query_node: ",query_node)
-            # <class 'balsa.util.plans_lib.Node'>
-            operators_env = []
-            self.add_nodetype_recursively(query_node,operators_env)
-            indexes_env = treeconv._make_indexes_environment(query_node)
-            
+
             query_enc = self.query_featurizer(query_node)
             all_query_vecs = [query_enc] * len(plans)
             all_plans = []
@@ -494,6 +485,25 @@ class Optimizer(object):
                 assert planner_config.search_space == 'bushy', planner_config
             else:
                 assert planner_config.search_space != 'bushy', planner_config
+                
+        # TODO pay attention to here, how it features the query(CONTEXT)!
+        # mark all the tables with 1, and transform the value 1.
+        # TODO according to query_enc, we decide which sub-modules to use
+        # DEBUG 
+        #print("query_node: ",query_node)
+        # <class 'balsa.util.plans_lib.Node'>
+        operators_env_matrix = []
+        self.add_nodetype_recursively(query_node,operators_env_matrix)
+        # operators_env_matrix, indexes_env_matrix and query_enc_matrix will be used together 
+        # to decide which sub-module combination to use.
+        indexes_env_matrix = treeconv._make_indexes_environment(query_node)
+        query_enc_matrix = self.query_featurizer(query_node)
+        sql_str = query_node.info['sql_str']
+        print("sql_str: ",sql_str)
+        # One-hot vector [GROUP BY, ORDER BY, Aggregate Function, Subquery]
+        sql_feature_encode = simple_sql_parser.simple_encode_sql(sql_str)
+        
+        
         planning_start_t = time.time()
         # Join graph.
         join_graph, _ = query_node.GetOrParseSql()

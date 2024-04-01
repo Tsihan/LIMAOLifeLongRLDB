@@ -470,7 +470,7 @@ class Balsa_JOBRandSplit_TPCH10(Rand52MinCardCostOnPolLrC):
         p.init_experience = 'data/TPCH/initial_policy_data.pkl'
         
         p.test_query_glob = RAND_52_TEST_QUERIES_TPCH
-        p.sim_checkpoint = 'checkpoints/TPCH/epoch=37.ckpt'
+        p.sim_checkpoint = 'checkpoints/TPCH/epoch=20.ckpt'
         p.query_dir = 'queries/sample_queries_tpch'
                 
         return p
