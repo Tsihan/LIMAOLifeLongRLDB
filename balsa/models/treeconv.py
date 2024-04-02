@@ -20,7 +20,17 @@ from balsa.util import plans_lib
 
 DEVICE = 'cuda' if torch.cuda.is_available() else 'cpu'
 
- 
+operators_env_matrix1 =  np.array([1 ,1 ,1, 1 ,1, 1 ,3 ,4, 4, 4, 4, 5 ,3])
+indexes_env_matrix1 = np.array([1, 2, 13, 2, 3, 12, 3, 4, 11, 4, 5, 10, 5, 6, 9, 6, 7, 8, 7, 0, 0, 8, 0, 0, 9, 0, 0, 10, 0, 0, 11, 0, 0, 12, 0, 0, 13, 0, 0])
+query_enc_matrix1= np.array([0.0000000e+00, 0.0000000e+00, 0.0000000e+00, 0.0000000e+00, 0.0000000e+00,
+2.7590511e-08, 1.0000000e+00, 0.0000000e+00, 0.0000000e+00, 3.6103013e-01,
+0.0000000e+00, 0.0000000e+00, 1.0000000e+00, 0.0000000e+00, 0.0000000e+00,
+0.0000000e+00, 0.0000000e+00, 0.0000000e+00, 0.0000000e+00, 0.0000000e+00,
+0.0000000e+00, 0.0000000e+00, 0.0000000e+00, 1.0000000e+00, 0.0000000e+00,
+0.0000000e+00, 0.0000000e+00, 0.0000000e+00, 0.0000000e+00, 0.0000000e+00,
+0.0000000e+00, 0.0000000e+00, 0.0000000e+00, 0.0000000e+00, 0.0000000e+00,
+0.0000000e+00, 1.0000000e+00, 6.9441271e-01, 0.0000000e+00, 0.0000000e+00])
+sql_feature_encode_matrix1= np.array([0, 0, 1, 0])
     
 class TreeConvolution(nn.Module):
     """Balsa's tree convolution neural net: (query, plan) -> value.
@@ -35,6 +45,11 @@ class TreeConvolution(nn.Module):
         self.attention_merger_3 = AttentionMerger(input_dim=128,input_num=3)
         # record it for later use
         self.plan_size = plan_size
+        
+        # Initialize dictionaries to store features for each module
+        self.other_features = {}
+        self.hash_join_features = {}
+        self.nested_loop_join_features = {}
 
         self.query_mlp = nn.Sequential(
             nn.Linear(feature_size, 128),
@@ -47,9 +62,9 @@ class TreeConvolution(nn.Module):
         )
         
                 # 初始化三个模块列表
-        self.conv_module_list_other = nn.ModuleList([self.create_conv_module(plan_size)])
-        self.conv_module_list_hash_join = nn.ModuleList([self.create_conv_module(plan_size)])
-        self.conv_module_list_nested_loop_join = nn.ModuleList([self.create_conv_module(plan_size)]) 
+        self.conv_module_list_other = nn.ModuleList([self.create_conv_module(plan_size,1)])
+        self.conv_module_list_hash_join = nn.ModuleList([self.create_conv_module(plan_size,2)])
+        self.conv_module_list_nested_loop_join = nn.ModuleList([self.create_conv_module(plan_size,3)]) 
         self.out_mlp = nn.Sequential(
             nn.Linear(128, 64),
             nn.LayerNorm(64),
@@ -60,8 +75,15 @@ class TreeConvolution(nn.Module):
             nn.Linear(32, label_size),
         )
         self.reset_weights()
-        
-    def create_conv_module(self, input_size):
+    # create a new submodule and initialize its four feature matrices
+    def create_conv_module(self, input_size, module_type,current_new_index = 0):
+        if module_type == 1:
+            self.other_features[current_new_index] = (operators_env_matrix1, indexes_env_matrix1, query_enc_matrix1, sql_feature_encode_matrix1)
+        elif module_type == 2:
+            self.hash_join_features[current_new_index] = (operators_env_matrix1, indexes_env_matrix1, query_enc_matrix1, sql_feature_encode_matrix1)
+        else:
+            self.nested_loop_join_features[current_new_index] = (operators_env_matrix1, indexes_env_matrix1, query_enc_matrix1, sql_feature_encode_matrix1)
+       
         return nn.Sequential(
             TreeConv1d(32 + input_size, 512),
             TreeStandardize(),
@@ -122,27 +144,27 @@ class TreeConvolution(nn.Module):
         concat_nested_loop_join = torch.cat((query_embs_nested_loop_join, nested_loop_join_feats), axis=1)
         
         if idx_other == -1:
-            new_module_other = self.create_conv_module(self.plan_size)
+            new_module_other = self.create_conv_module(self.plan_size,1,len(self.conv_module_list_other))
             new_module_other.to(query_feats.device)
             self.conv_module_list_other.append(new_module_other)
             idx_other = len(self.conv_module_list_other) - 1
-            print("created a new module for other")
+            print("created a new module and initialize the weights for other")
         out_other = self.conv_module_list_other[idx_other]((concat,indexes_pos_feats))
         
         if idx_hash_join == -1:
-            new_module_hash_join = self.create_conv_module(self.plan_size)
+            new_module_hash_join = self.create_conv_module(self.plan_size,2,len(self.conv_module_list_hash_join))
             new_module_hash_join.to(query_feats.device)
             self.conv_module_list_hash_join.append(new_module_hash_join)
             idx_hash_join = len(self.conv_module_list_hash_join) - 1
-            print("created a new module for hash join")
+            print("created a new module and initialize the weights for hash join")
         out_hash_join = self.conv_module_list_hash_join[idx_hash_join]((concat_hash_join,hash_join_pos_feats))
         
         if idx_nested_loop_join == -1:
-            new_module_nested_loop_join = self.create_conv_module(self.plan_size)
+            new_module_nested_loop_join = self.create_conv_module(self.plan_size,3,len(self.conv_module_list_nested_loop_join))
             new_module_nested_loop_join.to(query_feats.device)
             self.conv_module_list_nested_loop_join.append(new_module_nested_loop_join)
             idx_nested_loop_join = len(self.conv_module_list_nested_loop_join) - 1 
-            print("created a new module for nested loop join")  
+            print("created a new module and initialize the weights for nested loop join")  
         out_nested_loop_join = self.conv_module_list_nested_loop_join[idx_nested_loop_join]((concat_nested_loop_join,nested_loop_join_pos_feats))
         
         conv_outputs = [out_other, out_hash_join, out_nested_loop_join]

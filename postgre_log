@@ -1,6 +1,0 @@
-2024-03-01 03:51:19.024 UTC [29505] LOG:  starting PostgreSQL 12.5 on x86_64-pc-linux-gnu, compiled by gcc (Ubuntu 9.4.0-1ubuntu1~20.04.2) 9.4.0, 64-bit
-2024-03-01 03:51:19.025 UTC [29505] LOG:  listening on IPv4 address "0.0.0.0", port 5432
-2024-03-01 03:51:19.025 UTC [29505] LOG:  listening on IPv6 address "::", port 5432
-2024-03-01 03:51:19.027 UTC [29505] LOG:  listening on Unix socket "/tmp/.s.PGSQL.5432"
-2024-03-01 03:51:19.413 UTC [29509] LOG:  database system was shut down at 2024-03-01 03:51:04 UTC
-2024-03-01 03:51:19.421 UTC [29505] LOG:  database system is ready to accept connections

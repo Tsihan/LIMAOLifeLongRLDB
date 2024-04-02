@@ -4,6 +4,7 @@ __pycache__
 .vscode
 .DS_Store
 logfile
+postgre_log
 venv
 *egg-info
 save

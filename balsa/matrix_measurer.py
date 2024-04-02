@@ -75,6 +75,17 @@ indexes_env_matrices = [indexes_env_matrix1, indexes_env_matrix2, indexes_env_ma
 query_enc_matrices = [query_enc_matrix1, query_enc_matrix2, query_enc_matrix3, query_enc_matrix4, query_enc_matrix5, query_enc_matrix6, query_enc_matrix7]
 sql_feature_encode_matrices = [sql_feature_encode_matrix1, sql_feature_encode_matrix2, sql_feature_encode_matrix3, sql_feature_encode_matrix4, sql_feature_encode_matrix5, sql_feature_encode_matrix6, sql_feature_encode_matrix7]
 
+def compute_difference(operators_env_matrix_query, indexes_env_matrix_query, query_enc_matrix_query, sql_feature_encode_matrix_query,
+                       operators_env_matrix_feature, indexes_env_matrix_feature, query_enc_matrix_feature, sql_feature_encode_matrix_feature):
+    difference_operators = calculate_difference(operators_env_matrix_query, operators_env_matrix_feature)
+    difference_indexes = calculate_difference(indexes_env_matrix_query, indexes_env_matrix_feature)
+    difference_sql_feature = calculate_difference(sql_feature_encode_matrix_query, sql_feature_encode_matrix_feature)
+    l2_distance = np.linalg.norm(np.array(query_enc_matrix_query) - np.array(query_enc_matrix_feature))
+    return get_final_value(difference_operators, difference_indexes, difference_sql_feature, l2_distance)
+       
+  
+ 
+
 # 循环比较矩阵
 for i in range(len(operators_env_matrices)):
     for j in range(i + 1, len(operators_env_matrices)):

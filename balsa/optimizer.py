@@ -23,6 +23,7 @@ from balsa.models import treeconv
 from balsa.util import dataset as ds
 from balsa.util import plans_lib
 from balsa.util import simple_sql_parser
+from balsa.matrix_measurer import compute_difference
 DEVICE = 'cuda' if torch.cuda.is_available() else 'cpu'
 
 
@@ -500,10 +501,10 @@ class Optimizer(object):
         sql_feature_encode_matrix = np.array(simple_sql_parser.simple_encode_sql(sql_str))
         
         ############## test use ################
-        print("operators_env_matrix: ",operators_env_matrix)
-        print("indexes_env_matrix: ",indexes_env_matrix)
-        print("query_enc_matrix: ",query_enc_matrix)
-        print("sql_feature_encode_matrix: ",sql_feature_encode_matrix)
+        print("operators_env_matrix for this sql: ",operators_env_matrix)
+        print("indexes_env_matrix for this sql: ",indexes_env_matrix)
+        print("query_enc_matrix for this sql: ",query_enc_matrix)
+        print("sql_feature_encode_matrix for this sql: ",sql_feature_encode_matrix)
         
         
         
@@ -511,11 +512,75 @@ class Optimizer(object):
             length_of_other_modulelist = len(self.value_network.model.conv_module_list_other)
             length_of_hash_join_modulelist = len(self.value_network.model.conv_module_list_hash_join)
             length_of_nested_loop_join_modulelist = len(self.value_network.model.conv_module_list_nested_loop_join)
+            # print("BalsaModel operators_env_matrix for this other index: ",self.value_network.model.other_features[self.current_other_module_index][0])
+            # print("BalsaModel indexes_env_matrix for this other index: ",self.value_network.model.other_features[self.current_other_module_index][1])
+            # print("BalsaModel query_enc_matrix for this other  index: ",self.value_network.model.other_features[self.current_other_module_index][2])
+            # print("BalsaModel sql_feature_encode_matrix for this other index: ",self.value_network.model.other_features[self.current_other_module_index][3])
+            print("the difference value is: ",compute_difference(self.value_network.model.other_features[self.current_other_module_index][0],
+                                                                 self.value_network.model.other_features[self.current_other_module_index][1],
+                                                                 self.value_network.model.other_features[self.current_other_module_index][2],
+                                                                 self.value_network.model.other_features[self.current_other_module_index][3],
+                                                                 operators_env_matrix,
+                                                                 indexes_env_matrix,
+                                                                 query_enc_matrix,
+                                                                 sql_feature_encode_matrix))
+            
+            
+            # print("BalsaModel operators_env_matrix for this hash index: ",self.value_network.model.hash_join_features[self.current_hash_join_module_index][0])
+            # print("BalsaModel indexes_env_matrix for this hash index: ",self.value_network.model.hash_join_features[self.current_hash_join_module_index][1])
+            # print("BalsaModel query_enc_matrix for this hash  index: ",self.value_network.model.hash_join_features[self.current_hash_join_module_index][2])
+            # print("BalsaModel sql_feature_encode_matrix for this hash index: ",self.value_network.model.hash_join_features[self.current_hash_join_module_index][3])       
+            print("the difference value is: ",compute_difference(self.value_network.model.hash_join_features[self.current_other_module_index][0],
+                                                                 self.value_network.model.hash_join_features[self.current_other_module_index][1],
+                                                                 self.value_network.model.hash_join_features[self.current_other_module_index][2],
+                                                                 self.value_network.model.hash_join_features[self.current_other_module_index][3],
+                                                                 operators_env_matrix,
+                                                                 indexes_env_matrix,
+                                                                 query_enc_matrix,
+                                                                 sql_feature_encode_matrix))
+           
+           
+            # print("BalsaModel operators_env_matrix for this nested_loop index: ",self.value_network.model.nested_loop_join_features[self.current_nested_loop_join_module_index][0])
+            # print("BalsaModel indexes_env_matrix for this nested_loop index: ",self.value_network.model.nested_loop_join_features[self.current_nested_loop_join_module_index][1])
+            # print("BalsaModel query_enc_matrix for this nested_loop  index: ",self.value_network.model.nested_loop_join_features[self.current_nested_loop_join_module_index][2])
+            # print("BalsaModel sql_feature_encode_matrix for this nested_loop index: ",self.value_network.model.nested_loop_join_features[self.current_nested_loop_join_module_index][3])       
+            print("the difference value is: ",compute_difference(self.value_network.model.nested_loop_join_features[self.current_other_module_index][0],
+                                                                 self.value_network.model.nested_loop_join_features[self.current_other_module_index][1],
+                                                                 self.value_network.model.nested_loop_join_features[self.current_other_module_index][2],
+                                                                 self.value_network.model.nested_loop_join_features[self.current_other_module_index][3],
+                                                                 operators_env_matrix,
+                                                                 indexes_env_matrix,
+                                                                 query_enc_matrix,
+                                                                 sql_feature_encode_matrix))
+       
+       
+       
+       
         else:
             length_of_other_modulelist = len(self.value_network.tree_conv.conv_module_list_other)
             length_of_hash_join_modulelist = len(self.value_network.tree_conv.conv_module_list_hash_join)
             length_of_nested_loop_join_modulelist = len(self.value_network.tree_conv.conv_module_list_nested_loop_join)
-                    
+            print("non BalsaModel operators_env_matrix for this other index: ",self.value_network.tree_conv.other_features[self.current_other_module_index][0])
+            print("non BalsaModel indexes_env_matrix for this other index: ",self.value_network.tree_conv.other_features[self.current_other_module_index][1])
+            print("non BalsaModel query_enc_matrix for this other  index: ",self.value_network.tree_conv.other_features[self.current_other_module_index][2])
+            print("non BalsaModel sql_feature_encode_matrix for this other index: ",self.value_network.tree_conv.other_features[self.current_other_module_index][3])
+            
+            
+            
+            print("non BalsaModel operators_env_matrix for this hash index: ",self.value_network.tree_conv.hash_join_features[self.current_hash_join_module_index][0])
+            print("non BalsaModel indexes_env_matrix for this hash index: ",self.value_network.tree_conv.hash_join_features[self.current_hash_join_module_index][1])
+            print("non BalsaModel query_enc_matrix for this hash  index: ",self.value_network.tree_conv.hash_join_features[self.current_hash_join_module_index][2])
+            print("non BalsaModel sql_feature_encode_matrix for this hash index: ",self.value_network.tree_conv.hash_join_features[self.current_hash_join_module_index][3])       
+           
+           
+           
+            print("non BalsaModel operators_env_matrix for this nested_loop index: ",self.value_network.tree_conv.nested_loop_join_features[self.current_nested_loop_join_module_index][0])
+            print("non BalsaModel indexes_env_matrix for this nested_loop index: ",self.value_network.tree_conv.nested_loop_join_features[self.current_nested_loop_join_module_index][1])
+            print("non BalsaModel query_enc_matrix for this nested_loop  index: ",self.value_network.tree_conv.nested_loop_join_features[self.current_nested_loop_join_module_index][2])
+            print("non BalsaModel sql_feature_encode_matrix for this nested_loop index: ",self.value_network.tree_conv.nested_loop_join_features[self.current_nested_loop_join_module_index][3])       
+             
+             
+             
                     
         chosen_idx_other = self.current_other_module_index
         if length_of_other_modulelist < 2:
