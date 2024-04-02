@@ -353,7 +353,7 @@ def _make_indexes_environment(root):
     #    ...,
     #          [0]])
     vecs = np.asarray(vecs).reshape(-1, 1)
-    return vecs
+    return vecs.flatten()
 
 def _make_indexes(root):
     hash_join_set = set()

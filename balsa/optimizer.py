@@ -489,6 +489,7 @@ class Optimizer(object):
         # <class 'balsa.util.plans_lib.Node'>
         operators_env_matrix = []
         self.add_nodetype_recursively(query_node,operators_env_matrix)
+        operators_env_matrix = np.array(operators_env_matrix)
         # operators_env_matrix, indexes_env_matrix and query_enc_matrix will be used together 
         # to decide which sub-module combination to use.
         indexes_env_matrix = treeconv._make_indexes_environment(query_node)
@@ -496,7 +497,13 @@ class Optimizer(object):
         sql_str = query_node.info['sql_str']
         print("sql_str: ",sql_str)
         # One-hot vector [GROUP BY, ORDER BY, Aggregate Function, Subquery]
-        sql_feature_encode = simple_sql_parser.simple_encode_sql(sql_str)
+        sql_feature_encode_matrix = np.array(simple_sql_parser.simple_encode_sql(sql_str))
+        
+        ############## test use ################
+        print("operators_env_matrix: ",operators_env_matrix)
+        print("indexes_env_matrix: ",indexes_env_matrix)
+        print("query_enc_matrix: ",query_enc_matrix)
+        print("sql_feature_encode_matrix: ",sql_feature_encode_matrix)
         
         
         
