@@ -24,6 +24,20 @@ from balsa.util import dataset as ds
 from balsa.util import plans_lib
 from balsa.util import simple_sql_parser
 from balsa.matrix_measurer import compute_difference
+
+CONV_MODULE_OTHER_0 = 0
+CONV_MODULE_OTHER_1 = 0
+CONV_MODULE_OTHER_2 = 0
+CONV_MODULE_OTHER_3 = 0
+CONV_MODULE_HASH_JOIN_0 = 0
+CONV_MODULE_HASH_JOIN_1 = 0   
+CONV_MODULE_HASH_JOIN_2 = 0
+CONV_MODULE_HASH_JOIN_3 = 0
+CONV_MODULE_NESTED_LOOP_JOIN_0 = 0
+CONV_MODULE_NESTED_LOOP_JOIN_1 = 0
+CONV_MODULE_NESTED_LOOP_JOIN_2 = 0
+CONV_MODULE_NESTED_LOOP_JOIN_3 = 0
+
 DEVICE = 'cuda' if torch.cuda.is_available() else 'cpu'
 
 
@@ -691,17 +705,63 @@ class Optimizer(object):
                 planner_config=planner_config,
                 avoid_eq_filters=avoid_eq_filters)
             
-            depth_record = []
-            for i in range(len(possible_plans)):
-                depth_record.append(self.get_depth(possible_plans[i][0]))
+            # depth_record = []
+            # for i in range(len(possible_plans)):
+            #     depth_record.append(self.get_depth(possible_plans[i][0]))
 
             costs = self.infer(query_node,[join for join, _, _ in possible_plans],chosen_idx_other,chosen_idx_hash_join, chosen_idx_nested_loop_join)
             if chosen_idx_other == -1:
                 chosen_idx_other = length_of_other_modulelist
+            
+            
+            global CONV_MODULE_OTHER_0 
+            global CONV_MODULE_OTHER_1
+            global CONV_MODULE_OTHER_2
+            global CONV_MODULE_OTHER_3
+            global CONV_MODULE_HASH_JOIN_0 
+            global CONV_MODULE_HASH_JOIN_1 
+            global CONV_MODULE_HASH_JOIN_2 
+            global CONV_MODULE_HASH_JOIN_3 
+            global CONV_MODULE_NESTED_LOOP_JOIN_0 
+            global CONV_MODULE_NESTED_LOOP_JOIN_1 
+            global CONV_MODULE_NESTED_LOOP_JOIN_2 
+            global CONV_MODULE_NESTED_LOOP_JOIN_3 
+
+
+            if chosen_idx_other == 0:
+                 CONV_MODULE_OTHER_0 += 1  
+            elif chosen_idx_other == 1:
+                CONV_MODULE_OTHER_1 += 1
+            elif chosen_idx_other == 2:
+                CONV_MODULE_OTHER_2 += 1
+            elif chosen_idx_other == 3:
+                CONV_MODULE_OTHER_3 += 1
+                
+                
             if chosen_idx_hash_join == -1:
                 chosen_idx_hash_join = length_of_hash_join_modulelist
+            
+            if chosen_idx_hash_join == 0:
+                CONV_MODULE_HASH_JOIN_0 += 1
+            elif chosen_idx_hash_join == 1:
+                CONV_MODULE_HASH_JOIN_1 += 1
+            elif chosen_idx_hash_join == 2:
+                CONV_MODULE_HASH_JOIN_2 += 1
+            elif chosen_idx_hash_join == 3:
+                CONV_MODULE_HASH_JOIN_3 += 1
+                
+                
             if chosen_idx_nested_loop_join == -1:
                 chosen_idx_nested_loop_join = length_of_nested_loop_join_modulelist
+                
+            if chosen_idx_nested_loop_join == 0:
+                CONV_MODULE_NESTED_LOOP_JOIN_0 += 1
+            elif chosen_idx_nested_loop_join == 1:
+                CONV_MODULE_NESTED_LOOP_JOIN_1 += 1
+            elif chosen_idx_nested_loop_join == 2:
+                CONV_MODULE_NESTED_LOOP_JOIN_2 += 1
+            elif chosen_idx_nested_loop_join == 3:
+                CONV_MODULE_NESTED_LOOP_JOIN_3 += 1
                 
                 
             valid_costs, valid_new_states = self._make_new_states(
@@ -793,9 +853,9 @@ class Optimizer(object):
                                                           state,
                                                           join_graph,
                                                           bushy=bushy)
-                depth_record = []
-                for i in range(len(possible_plans)):
-                    depth_record.append(self.get_depth(possible_plans[i][0]))
+                # depth_record = []
+                # for i in range(len(possible_plans)):
+                #     depth_record.append(self.get_depth(possible_plans[i][0]))
                 
                 _, valid_new_states = self._make_new_states(
                     state, [0.0] * len(possible_plans), possible_plans)

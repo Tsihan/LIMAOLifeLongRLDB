@@ -58,6 +58,8 @@ from balsa.models.transformer import Transformer
 from balsa.models.transformer import TransformerV2
 from balsa.models.treeconv import TreeConvolution
 import balsa.optimizer as optim
+
+
 from balsa.util import dataset as ds
 from balsa.util import plans_lib
 from balsa.util import postgres
@@ -69,6 +71,10 @@ import train_utils
 import experiments  # noqa # pylint: disable=unused-import
 
 FLAGS = flags.FLAGS
+
+
+
+
 flags.DEFINE_string('run', 'Balsa_JOBRandSplit', 'Experiment config to run.')
 flags.DEFINE_boolean('local', False,
                      'Whether to use local engine for query execution.')
@@ -724,6 +730,20 @@ class BalsaAgent(object):
 
         # Optimizer state.
         self.prev_optimizer_state_dict = None
+        
+        # Qihan Zhang add 3*4 int to count in this iteration how many times we use each module
+        # self.conv_module_other_0 = 0
+        # self.conv_module_other_1 = 0
+        # self.conv_module_other_2 = 0
+        # self.conv_module_other_3 = 0
+        # self.conv_module_hash_join_0 = 0
+        # self.conv_module_hash_join_1 = 0
+        # self.conv_module_hash_join_2 = 0
+        # self.conv_module_hash_join_3 = 0
+        # self.conv_module_nested_loop_join_0 = 0
+        # self.conv_module_nested_loop_join_1 = 0
+        # self.conv_module_nested_loop_join_2 = 0
+        # self.conv_module_nested_loop_join_3 = 0
         # Ray.
         if p.use_local_execution:
             #print('Using local execution!!!!!')
@@ -1541,7 +1561,34 @@ class BalsaAgent(object):
                     min_p_latency = p_latency
                     min_pos = pos
             positions_of_min_predicted.append(min_pos)
+        # Qihan Zhang count in this iteration how many times each submodule is used
 
+        print('In this iteration, conv_module_other_0 is used {} times'.format(optim.CONV_MODULE_OTHER_0))
+        print('In this iteration, conv_module_other_1 is used {} times'.format(optim.CONV_MODULE_OTHER_1))
+        print('In this iteration, conv_module_other_2 is used {} times'.format(optim.CONV_MODULE_OTHER_2))
+        print('In this iteration, conv_module_other_3 is used {} times'.format(optim.CONV_MODULE_OTHER_3))
+        print('In this iteration, conv_module_hash_join_0 is used {} times'.format(optim.CONV_MODULE_HASH_JOIN_0))
+        print('In this iteration, conv_module_hash_join_1 is used {} times'.format(optim.CONV_MODULE_HASH_JOIN_1))
+        print('In this iteration, conv_module_hash_join_2 is used {} times'.format(optim.CONV_MODULE_HASH_JOIN_2))
+        print('In this iteration, conv_module_hash_join_3 is used {} times'.format(optim.CONV_MODULE_HASH_JOIN_3))
+        print('In this iteration, conv_module_nested_loop_join_0 is used {} times'.format(optim.CONV_MODULE_NESTED_LOOP_JOIN_0))
+        print('In this iteration, conv_module_nested_loop_join_1 is used {} times'.format(optim.CONV_MODULE_NESTED_LOOP_JOIN_1))
+        print('In this iteration, conv_module_nested_loop_join_2 is used {} times'.format(optim.CONV_MODULE_NESTED_LOOP_JOIN_2))
+        print('In this iteration, conv_module_nested_loop_join_3 is used {} times'.format(optim.CONV_MODULE_NESTED_LOOP_JOIN_3))
+        # reset to zero
+        optim.CONV_MODULE_OTHER_0 = 0
+        optim.CONV_MODULE_OTHER_1 = 0
+        optim.CONV_MODULE_OTHER_2 = 0
+        optim.CONV_MODULE_OTHER_3 = 0
+        optim.CONV_MODULE_HASH_JOIN_0 = 0
+        optim.CONV_MODULE_HASH_JOIN_1 = 0   
+        optim.CONV_MODULE_HASH_JOIN_2 = 0
+        optim.CONV_MODULE_HASH_JOIN_3 = 0
+        optim.CONV_MODULE_NESTED_LOOP_JOIN_0 = 0
+        optim.CONV_MODULE_NESTED_LOOP_JOIN_1 = 0
+        optim.CONV_MODULE_NESTED_LOOP_JOIN_2 = 0
+        optim.CONV_MODULE_NESTED_LOOP_JOIN_3 = 0
+        
         self.timer.Stop('plan_test_set' if is_test else 'plan')
         self.timer.Start('wait_for_executions_test_set'
                          if is_test else 'wait_for_executions')
