@@ -530,42 +530,51 @@ class Optimizer(object):
             # print("BalsaModel indexes_env_matrix for this other index: ",self.value_network.model.other_features[self.current_other_module_index][1])
             # print("BalsaModel query_enc_matrix for this other  index: ",self.value_network.model.other_features[self.current_other_module_index][2])
             # print("BalsaModel sql_feature_encode_matrix for this other index: ",self.value_network.model.other_features[self.current_other_module_index][3])
-            print("the difference value is: ",compute_difference(self.value_network.model.other_features[self.current_other_module_index][0],
+            diff_other = compute_difference(self.value_network.model.other_features[self.current_other_module_index][0],
                                                                  self.value_network.model.other_features[self.current_other_module_index][1],
                                                                  self.value_network.model.other_features[self.current_other_module_index][2],
                                                                  self.value_network.model.other_features[self.current_other_module_index][3],
                                                                  operators_env_matrix,
                                                                  indexes_env_matrix,
                                                                  query_enc_matrix,
-                                                                 sql_feature_encode_matrix))
+                                                                 sql_feature_encode_matrix)
+            print("the difference value is: ",diff_other)
+            if diff_other >= 100:
+                print("Other difference exceed the threshold, need to switch module.")
             
             
             # print("BalsaModel operators_env_matrix for this hash index: ",self.value_network.model.hash_join_features[self.current_hash_join_module_index][0])
             # print("BalsaModel indexes_env_matrix for this hash index: ",self.value_network.model.hash_join_features[self.current_hash_join_module_index][1])
             # print("BalsaModel query_enc_matrix for this hash  index: ",self.value_network.model.hash_join_features[self.current_hash_join_module_index][2])
             # print("BalsaModel sql_feature_encode_matrix for this hash index: ",self.value_network.model.hash_join_features[self.current_hash_join_module_index][3])       
-            print("the difference value is: ",compute_difference(self.value_network.model.hash_join_features[self.current_other_module_index][0],
+            diff_hash = compute_difference(self.value_network.model.hash_join_features[self.current_other_module_index][0],
                                                                  self.value_network.model.hash_join_features[self.current_other_module_index][1],
                                                                  self.value_network.model.hash_join_features[self.current_other_module_index][2],
                                                                  self.value_network.model.hash_join_features[self.current_other_module_index][3],
                                                                  operators_env_matrix,
                                                                  indexes_env_matrix,
                                                                  query_enc_matrix,
-                                                                 sql_feature_encode_matrix))
+                                                                 sql_feature_encode_matrix)
+            print("the difference value is: ",diff_hash)
+            if diff_hash >= 100:
+                print("Hash difference exceed the threshold, need to switch module.")
            
            
             # print("BalsaModel operators_env_matrix for this nested_loop index: ",self.value_network.model.nested_loop_join_features[self.current_nested_loop_join_module_index][0])
             # print("BalsaModel indexes_env_matrix for this nested_loop index: ",self.value_network.model.nested_loop_join_features[self.current_nested_loop_join_module_index][1])
             # print("BalsaModel query_enc_matrix for this nested_loop  index: ",self.value_network.model.nested_loop_join_features[self.current_nested_loop_join_module_index][2])
             # print("BalsaModel sql_feature_encode_matrix for this nested_loop index: ",self.value_network.model.nested_loop_join_features[self.current_nested_loop_join_module_index][3])       
-            print("the difference value is: ",compute_difference(self.value_network.model.nested_loop_join_features[self.current_other_module_index][0],
+            diff_nested_loop = compute_difference(self.value_network.model.nested_loop_join_features[self.current_other_module_index][0],
                                                                  self.value_network.model.nested_loop_join_features[self.current_other_module_index][1],
                                                                  self.value_network.model.nested_loop_join_features[self.current_other_module_index][2],
                                                                  self.value_network.model.nested_loop_join_features[self.current_other_module_index][3],
                                                                  operators_env_matrix,
                                                                  indexes_env_matrix,
                                                                  query_enc_matrix,
-                                                                 sql_feature_encode_matrix))
+                                                                 sql_feature_encode_matrix)
+            print("the difference value is: ",diff_nested_loop)
+            if diff_nested_loop >= 100:
+                print("Nested loop difference exceed the threshold, need to switch module.")
        
        
        
