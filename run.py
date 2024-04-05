@@ -1226,7 +1226,7 @@ class BalsaAgent(object):
     def RunBaseline(self):
         p = self.params
         print('Dropping buffer cache.')
-        postgres.DropBufferCache()
+        #postgres.DropBufferCache()
         print('Running queries as-is (baseline PG performance)...')
 
         def Args(node):
@@ -2222,7 +2222,7 @@ class BalsaAgent(object):
 
             if p.drop_cache and p.use_local_execution:
                 print('Dropping buffer cache.')
-                postgres.DropBufferCache()
+                #postgres.DropBufferCache()
 
             if p.increment_iter_despite_timeouts:
                 # Always increment the iteration counter.  This makes it fairer

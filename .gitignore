@@ -10,6 +10,7 @@ venv
 save
 runs
 profile_results
+output_matrix_job.txt
 
 results/*.pkl
 wandb
