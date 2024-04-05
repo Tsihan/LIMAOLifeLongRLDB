@@ -29,17 +29,11 @@ WHERE cct1.kind = 'crew'
   AND mc.note NOT LIKE '%(USA)%'
   AND mc.note LIKE '%(200%)%'
   AND mi.info IN ('Sweden',
-                  'Norway',
                   'Germany',
-                  'Denmark',
                   'Swedish',
-                  'Danish',
-                  'Norwegian',
-                  'German',
-                  'USA',
-                  'American')
-  AND mi_idx.info < '8.5'
-  AND t.production_year > 2000
+                  'German')
+  AND mi_idx.info > '6.5'
+  AND t.production_year > 2005
   AND kt.id = t.kind_id
   AND t.id = mi.movie_id
   AND t.id = mk.movie_id

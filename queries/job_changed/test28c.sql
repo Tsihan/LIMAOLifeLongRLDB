@@ -15,8 +15,8 @@ FROM complete_cast AS cc,
      movie_info_idx AS mi_idx,
      movie_keyword AS mk,
      title AS t
-WHERE cct1.kind = 'crew'
-  AND cct2.kind != 'complete+verified'
+WHERE cct1.kind = 'cast'
+  AND cct2.kind = 'complete'
   AND cn.country_code != '[us]'
   AND it1.info = 'countries'
   AND it2.info = 'rating'
@@ -39,7 +39,7 @@ WHERE cct1.kind = 'crew'
                   'USA',
                   'American')
   AND mi_idx.info < '8.5'
-  AND t.production_year > 2000
+  AND t.production_year > 2005
   AND kt.id = t.kind_id
   AND t.id = mi.movie_id
   AND t.id = mk.movie_id

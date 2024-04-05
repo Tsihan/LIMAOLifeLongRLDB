@@ -35,6 +35,9 @@ WHERE cct1.kind IN ('cast',
                   'Thriller')
   AND n.gender = 'm'
   AND t.production_year > 2000
+  AND (t.title LIKE '%Freddy%'
+       OR t.title LIKE '%Jason%'
+       OR t.title LIKE 'Saw%')
   AND t.id = mi.movie_id
   AND t.id = mi_idx.movie_id
   AND t.id = ci.movie_id

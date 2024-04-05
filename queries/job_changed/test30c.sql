@@ -14,8 +14,7 @@ FROM complete_cast AS cc,
      movie_keyword AS mk,
      name AS n,
      title AS t
-WHERE cct1.kind IN ('cast',
-                    'crew')
+WHERE cct1.kind = 'cast'
   AND cct2.kind ='complete+verified'
   AND ci.note IN ('(writer)',
                   '(head writer)',
@@ -32,9 +31,12 @@ WHERE cct1.kind IN ('cast',
                     'female-nudity',
                     'hospital')
   AND mi.info IN ('Horror',
-                  'Thriller')
+                  'Action',
+                  'Sci-Fi',
+                  'Thriller',
+                  'Crime',
+                  'War')
   AND n.gender = 'm'
-  AND t.production_year > 2000
   AND t.id = mi.movie_id
   AND t.id = mi_idx.movie_id
   AND t.id = ci.movie_id

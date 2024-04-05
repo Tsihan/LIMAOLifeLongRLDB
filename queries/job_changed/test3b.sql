@@ -8,7 +8,14 @@ FROM
     title AS t
 WHERE 
     t.id = mi.movie_id
-    AND mi.info IN ('Bulgaria')
+    AND mi.info IN ('Sweden',
+                  'Norway',
+                  'Germany',
+                  'Denmark',
+                  'Swedish',
+                  'Denish',
+                  'Norwegian',
+                  'German')
     AND t.id = mk.movie_id
     AND mk.movie_id = mi.movie_id
     
