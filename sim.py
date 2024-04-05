@@ -447,7 +447,9 @@ class Sim(object):
         p.Define('infer_search_until_n_complete_plans', 1,
                  'Search until how many complete plans?')
          # Workload.
-        p.Define('workload', envs.JoinOrderBenchmark.Params(),
+        # p.Define('workload', envs.JoinOrderBenchmark.Params(),
+        #          'Params of the Workload, i.e., a set of queries.')
+        p.Define('workload', envs.JoinOrderBenchmark_changed.Params(),
                  'Params of the Workload, i.e., a set of queries.')
         #Qihan Zhang Need a paprameter here to decide which workload to use
         # Workload.
@@ -663,8 +665,9 @@ class Sim(object):
 
     def _SimulationDataPath(self):
         p = self.params
-        hash_key = Sim.HashOfSimData(p)        
-        return 'data/JOB/sim-data-{}.pkl'.format(hash_key)
+        hash_key = Sim.HashOfSimData(p)
+        return 'data/JOB_changed/sim-data-{}.pkl'.format(hash_key)        
+        #return 'data/JOB/sim-data-{}.pkl'.format(hash_key)
         #return 'data/TPCH/sim-data-{}.pkl'.format(hash_key)
         #return 'data/IMDB_BAO/sim-data-{}.pkl'.format(hash_key)
         #return 'data/SO/sim-data-{}.pkl'.format(hash_key)
@@ -695,7 +698,8 @@ class Sim(object):
     def _FeaturizedDataPath(self):
         p = self.params
         hash_key = Sim.HashOfFeaturizedData(p)
-        return 'data/JOB/sim-featurized-{}.pkl'.format(hash_key)
+        #return 'data/JOB/sim-featurized-{}.pkl'.format(hash_key)
+        return 'data/JOB_changed/sim-featurized-{}.pkl'.format(hash_key)
         #return 'data/IMDB_BAO/sim-featurized-{}.pkl'.format(hash_key)
         #return 'data/SO/sim-featurized-{}.pkl'.format(hash_key)
         #return 'data/TPCH/sim-featurized-{}.pkl'.format(hash_key)

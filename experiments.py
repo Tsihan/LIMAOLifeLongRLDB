@@ -33,6 +33,10 @@ RAND_52_TEST_QUERIES = [
     '22b.sql', '17c.sql', '24b.sql', '10a.sql', '22c.sql'
 ]
 
+RAND_52_TEST_QUERIES_JOB_changed = ['test28a.sql', 'test16d.sql', 'test10c.sql', 'test6e.sql', 'test17b.sql', 'test27c.sql', 
+ 'test33c.sql', 'test24a.sql', 'test29a.sql', 'test3c.sql', 'test22c.sql', 'test3a.sql', 
+ 'test16c.sql', 'test30b.sql', 'test28c.sql', 'test22b.sql', 'test4c.sql', 'test6c.sql']
+
 
 RAND_52_TEST_QUERIES_IMDB_BAO = [
     '12b.sql', '3a.sql', '38b.sql', '31c.sql', '22c.sql', '21b.sql', '37b.sql', 
@@ -474,7 +478,23 @@ class Balsa_JOBRandSplit_TPCH10(Rand52MinCardCostOnPolLrC):
         p.query_dir = 'queries/sample_queries_tpch'
                 
         return p
-    
+
+
+@balsa.params_registry.Register  # keep
+class Balsa_JOBRandSplit_JOB_changed(Rand52MinCardCostOnPolLrC):
+
+    def Params(self):
+        p = super().Params()
+        p.increment_iter_despite_timeouts = True
+        p = p.Set(**LR_SCHEDULES['C10'])
+        p.db = 'imdbload'
+        p.init_experience = 'data/JOB_changed/initial_policy_data.pkl'
+        
+        p.test_query_glob = RAND_52_TEST_QUERIES_JOB_changed
+        p.sim_checkpoint = 'checkpoints/JOB_changed/epoch=20.ckpt'
+        p.query_dir = 'queries/job_changed'
+                
+        return p
 # Qihan Zhang define genral SO workload 
 @balsa.params_registry.Register  # keep
 class Balsa_JOBRandSplit_SO(Rand52MinCardCostOnPolLrC):
