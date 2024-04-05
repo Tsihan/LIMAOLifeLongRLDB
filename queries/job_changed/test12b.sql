@@ -28,4 +28,4 @@ AND ct.kind IS NOT NULL
   AND mc.movie_id = mi_idx.movie_id
   AND mi.movie_id = mi_idx.movie_id
 GROUP BY t.id
-ORDER BY drama_horror_movie;
+ORDER BY t.production_year;

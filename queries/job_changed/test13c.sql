@@ -29,4 +29,4 @@ WHERE cn.country_code ='[us]'
   AND mi.movie_id = miidx.movie_id
   AND miidx.movie_id = mc.movie_id
 GROUP BY t.id
-ORDER BY german_movie;
+ORDER BY movie_about_winning;

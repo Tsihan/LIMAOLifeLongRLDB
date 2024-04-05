@@ -30,4 +30,4 @@ WHERE ci.note IN ('(voice)',
   AND ci.person_id = an.person_id
   AND chn.id = ci.person_role_id
 GROUP BY t.id
-ORDER BY voiced_movie;
+ORDER BY jap_engl_voiced_movie;

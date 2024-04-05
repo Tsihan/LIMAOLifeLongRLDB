@@ -34,4 +34,4 @@ WHERE cn.country_code !='[pl]'
   AND mk.movie_id = mi.movie_id
   AND mc.movie_id = mi.movie_id
 GROUP BY t.id
-ORDER BY western_follow_up;
+ORDER BY german_follow_up;

@@ -16,4 +16,4 @@ WHERE cn.country_code ='[us]'
   AND ci.movie_id = mk.movie_id
   AND mc.movie_id = mk.movie_id
 GROUP BY n.id
-ORDER BY member_in_charnamed_american_movie;
+ORDER BY member_in_charnamed_movie;

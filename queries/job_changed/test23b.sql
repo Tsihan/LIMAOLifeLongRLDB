@@ -39,4 +39,4 @@ WHERE cct1.kind = 'complete+verified'
   
   AND cct1.id = cc.status_id
 GROUP BY t.id
-ORDER BY complete_us_internet_movie;
+ORDER BY complete_nerdy_internet_movie;

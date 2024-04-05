@@ -16,4 +16,4 @@ WHERE k.keyword ='character-name-in-title'
   AND ci.movie_id = mk.movie_id
   AND mc.movie_id = mk.movie_id
 GROUP BY n.id
-ORDER BY member_in_charnamed_american_movie;
+ORDER BY member_in_charnamed_movie;

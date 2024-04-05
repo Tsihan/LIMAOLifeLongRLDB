@@ -37,4 +37,4 @@ WHERE cct1.kind = 'cast'
   AND cct1.id = cc.subject_id
   AND cct2.id = cc.status_id
 GROUP BY t.id
-ORDER BY complete_downey_ironman_movie;
+ORDER BY complete_dynamic_hero_movie;

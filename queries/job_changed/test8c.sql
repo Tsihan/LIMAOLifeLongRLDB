@@ -16,4 +16,4 @@ WHERE cn.country_code ='[us]'
   AND an1.person_id = ci.person_id
   AND ci.movie_id = mc.movie_id
 GROUP BY n1.id
-ORDER BY actress_pseudonym;
+ORDER BY writer_pseudo_name;
