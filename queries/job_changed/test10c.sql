@@ -18,4 +18,4 @@ WHERE ci.note LIKE '%(producer)%'
   AND cn.id = mc.company_id
   AND ct.id = mc.company_type_id
 GROUP BY t.id
-ORDER BY russian_movie;
+ORDER BY movie_with_american_producer;
