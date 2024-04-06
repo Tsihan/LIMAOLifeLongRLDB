@@ -55,6 +55,6 @@ WHERE ci.note IN ('(writer)',
   AND it1.id = mi.info_type_id
   AND it2.id = mi_idx.info_type_id
   AND k.id = mk.keyword_id
-  
+  AND cn.id = mc.company_id
 GROUP BY t.id
 ORDER BY violent_liongate_movie;

@@ -22,6 +22,8 @@ WHERE an.name IS NOT NULL
            AND n.name LIKE 'A%'))
   AND pi.note IS NOT NULL
   AND t.production_year BETWEEN 1980 AND 2010
+  AND n.id = an.person_id
+  AND n.id = pi.person_id
   AND ci.person_id = n.id
   AND t.id = ci.movie_id
   AND ml.linked_movie_id = t.id
@@ -29,5 +31,6 @@ WHERE an.name IS NOT NULL
   AND it.id = pi.info_type_id
   AND pi.person_id = an.person_id
   AND pi.person_id = ci.person_id
+  AND an.person_id = ci.person_id
   AND ci.movie_id = ml.linked_movie_id
 GROUP BY n.id, t.id;

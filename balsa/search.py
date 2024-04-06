@@ -246,6 +246,7 @@ class DynamicProgramming(object):
     def _dp_bushy_search_space(self, original_node, join_graph, all_join_conds,
                                query_leaves, dp_tables):
         p = self.params
+        #DEBUG the method of geting num_rels is wrong
         num_rels = len(query_leaves)
 
         for level in range(2, num_rels + 1):

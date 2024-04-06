@@ -19,8 +19,10 @@ WHERE ci.note ='(voice: English version)'
   AND t.production_year BETWEEN 2006 AND 2007
   AND (t.title LIKE 'One Piece%'
        OR t.title LIKE 'Dragon Ball Z%')
+  AND an1.person_id = n1.id
   AND n1.id = ci.person_id
   AND ci.movie_id = t.id
+  AND t.id = mc.movie_id
   AND mc.company_id = cn.id
   AND ci.role_id = rt.id
   AND an1.person_id = ci.person_id

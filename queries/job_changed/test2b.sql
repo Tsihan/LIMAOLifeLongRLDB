@@ -12,8 +12,10 @@ WHERE
     cn.country_code = '[nl]'
     AND k.keyword = 'character-name-in-title'
     AND cn.id = mc.company_id
-    AND mc.movie_id = t.id
-    AND t.id = mk.movie_id
+  AND mc.movie_id = t.id
+  AND t.id = mk.movie_id
+  AND mk.keyword_id = k.id
+  AND mc.movie_id = mk.movie_id
 GROUP BY 
     cn.country_code, 
     k.keyword,

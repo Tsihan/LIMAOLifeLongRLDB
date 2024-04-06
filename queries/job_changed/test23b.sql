@@ -33,10 +33,10 @@ WHERE cct1.kind = 'complete+verified'
   AND mi.movie_id = mc.movie_id
   AND mi.movie_id = cc.movie_id
   AND mc.movie_id = cc.movie_id
-  
+  AND k.id = mk.keyword_id
   AND it1.id = mi.info_type_id
   AND cn.id = mc.company_id
-  
+  AND ct.id = mc.company_type_id
   AND cct1.id = cc.status_id
 GROUP BY t.id
 ORDER BY complete_nerdy_internet_movie;

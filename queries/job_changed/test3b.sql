@@ -7,8 +7,8 @@ FROM
     movie_keyword AS mk,
     title AS t
 WHERE 
-    t.id = mi.movie_id
-    AND mi.info IN ('Sweden',
+   
+     mi.info IN ('Sweden',
                   'Norway',
                   'Germany',
                   'Denmark',
@@ -16,8 +16,10 @@ WHERE
                   'Denish',
                   'Norwegian',
                   'German')
-    AND t.id = mk.movie_id
-    AND mk.movie_id = mi.movie_id
+    AND t.id = mi.movie_id
+  AND t.id = mk.movie_id
+  AND mk.movie_id = mi.movie_id
+ 
     
 GROUP BY 
     mi.info

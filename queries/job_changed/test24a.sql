@@ -40,12 +40,12 @@ WHERE ci.note IN ('(voice)',
   AND mi.movie_id = mk.movie_id
   AND ci.movie_id = mk.movie_id
   AND cn.id = mc.company_id
-  
+  AND it.id = mi.info_type_id
   AND n.id = ci.person_id
   AND rt.id = ci.role_id
   AND n.id = an.person_id
   AND ci.person_id = an.person_id
   AND chn.id = ci.person_role_id
-  
+  AND k.id = mk.keyword_id
 GROUP BY t.id
 ORDER BY voiced_action_movie_jap_eng;
