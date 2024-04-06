@@ -1,4 +1,4 @@
- SELECT
+SELECT
     MIN(mi.info) AS release_date,
     MIN(miidx.info) AS rating,
     MIN(t.title) AS german_movie

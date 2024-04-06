@@ -1,4 +1,4 @@
-explain SELECT
+SELECT
     MIN(t.title) AS movie_title
 FROM
     keyword AS k,

@@ -1,4 +1,4 @@
- SELECT
+SELECT
     MIN(cn.name) AS producing_company,
     MIN(miidx.info) AS rating,
     MIN(t.title) AS movie

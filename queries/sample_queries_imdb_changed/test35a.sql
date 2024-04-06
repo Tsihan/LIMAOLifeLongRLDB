@@ -1,4 +1,4 @@
- SELECT COUNT(*) FROM title as t,
+SELECT COUNT(*) FROM title as t,
 kind_type as kt,
 movie_info as mi1,
 info_type as it1,

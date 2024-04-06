@@ -1,4 +1,4 @@
-explain SELECT
+SELECT
     MIN(chn.name) AS character_name,
     MIN(mi_idx.info) AS rating,
     MIN(t.title) AS complete_hero_movie

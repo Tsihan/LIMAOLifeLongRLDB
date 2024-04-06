@@ -1,4 +1,4 @@
-explain SELECT
+SELECT
     MIN(an.name) AS cool_actor_pseudonym,
     MIN(t.title) AS series_named_after_char
 FROM
