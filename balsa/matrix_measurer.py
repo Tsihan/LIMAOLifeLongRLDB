@@ -75,6 +75,9 @@ def compute_difference(operators_env_matrix_query, indexes_env_matrix_query, que
     difference_operators = calculate_difference(operators_env_matrix_query, operators_env_matrix_feature)
     difference_indexes = calculate_difference(indexes_env_matrix_query, indexes_env_matrix_feature)
     difference_sql_feature = calculate_difference(sql_feature_encode_matrix_query, sql_feature_encode_matrix_feature)
+    min_length = min(len(query_enc_matrix_query), len(query_enc_matrix_feature))
+    query_enc_matrix_query = query_enc_matrix_query[:min_length]
+    query_enc_matrix_feature = query_enc_matrix_feature[:min_length]
     l2_distance = np.linalg.norm(np.array(query_enc_matrix_query) - np.array(query_enc_matrix_feature))
     return get_final_value(difference_operators, difference_indexes, difference_sql_feature, l2_distance)
        

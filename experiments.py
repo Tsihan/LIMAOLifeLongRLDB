@@ -43,6 +43,11 @@ RAND_52_TEST_QUERIES_IMDB_BAO = [
     '16c.sql', '18b.sql', '2b.sql', '40a.sql', '6c.sql', '7c.sql', '35a.sql', 
     '36b.sql', '8c.sql', '15c.sql', '19c.sql', '27c.sql', '1a.sql']
 
+RAND_52_TEST_QUERIES_IMDB_BAO_Changed = [
+    'test12b.sql', 'test3a.sql', 'test38b.sql', 'test31c.sql', 'test22c.sql', 'test21b.sql', 'test37b.sql', 
+    'test16c.sql', 'test18b.sql', 'test2b.sql', 'test40a.sql', 'test6c.sql', 'test7c.sql', 'test35a.sql', 
+    'test36b.sql', 'test8c.sql', 'test15c.sql', 'test19c.sql', 'test27c.sql', 'test1a.sql']
+
 RAND_52_TEST_QUERIES_TPCH = [
     '10a.sql', '10b.sql', '10c.sql', '10d.sql', '10e.sql', 
     '10f.sql', '10g.sql', '10h.sql', '10i.sql', '10j.sql']
@@ -457,7 +462,7 @@ class Balsa_JOBRandSplit_IMDB_BAO(Rand52MinCardCostOnPolLrC):
         p = p.Set(**LR_SCHEDULES['C10'])
         p.test_query_glob = RAND_52_TEST_QUERIES_IMDB_BAO
         p.init_experience = 'data/IMDB_BAO/initial_policy_data.pkl'
-        p.sim_checkpoint = 'checkpoints/IMDB_BAO/epoch=10.ckpt'
+        p.sim_checkpoint = 'checkpoints/IMDB_BAO/epoch=13.ckpt'
         p.query_dir = 'queries/sample_queries_imdb'
                 
         return p
@@ -491,10 +496,26 @@ class Balsa_JOBRandSplit_JOB_changed(Rand52MinCardCostOnPolLrC):
         p.init_experience = 'data/JOB_changed/initial_policy_data.pkl'
         
         p.test_query_glob = RAND_52_TEST_QUERIES_JOB_changed
-        p.sim_checkpoint = 'checkpoints/JOB_changed/epoch=20.ckpt'
+        p.sim_checkpoint = 'checkpoints/JOB_changed/epoch=8.ckpt'
         p.query_dir = 'queries/job_changed'
                 
         return p
+
+@balsa.params_registry.Register  # keep
+class Balsa_JOBRandSplit_IMDB_BAO_changed(Rand52MinCardCostOnPolLrC):
+
+    def Params(self):
+        p = super().Params()
+        p.increment_iter_despite_timeouts = True
+        p = p.Set(**LR_SCHEDULES['C10'])
+        p.db = 'imdbload'
+        p.init_experience = 'data/IMDB_BAO_changed/initial_policy_data.pkl'
+        p.test_query_glob = RAND_52_TEST_QUERIES_IMDB_BAO_Changed
+        p.sim_checkpoint = 'checkpoints/IMDB_BAO_changed/epoch=14.ckpt'
+        p.query_dir = 'queries/sample_queries_imdb_changed'
+                
+        return p
+    
 # Qihan Zhang define genral SO workload 
 @balsa.params_registry.Register  # keep
 class Balsa_JOBRandSplit_SO(Rand52MinCardCostOnPolLrC):

@@ -19,3 +19,4 @@ from .envs import IMDB_BAO
 from .envs import TPCH10
 from .envs import SO
 from .envs import JoinOrderBenchmark_changed
+from .envs import IMDB_BAO_changed
