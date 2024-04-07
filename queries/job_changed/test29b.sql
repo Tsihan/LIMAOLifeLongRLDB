@@ -63,5 +63,5 @@ WHERE cct1.kind ='cast'
   AND cct1.id = cc.subject_id
   AND cct2.id = cc.status_id
 GROUP BY ci.note
-ORDER BY t.production_year;
+ORDER BY voiced_animation;
 

@@ -28,4 +28,4 @@ WHERE ci.note IN ('(voice)',
   AND an.person_id = n.id
   AND an.person_id = ci.person_id
 GROUP BY n.id, t.id
-ORDER BY n.name, t.title;
+ORDER BY n.name;

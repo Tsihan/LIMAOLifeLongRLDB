@@ -388,8 +388,8 @@ def TrainSim(p, loggers=None):
     if p.sim_checkpoint is None:
         sim.CollectSimulationData()
     # FIXME Qihan Zhang temporary modify to retain simulator p.sim_checkpoint None
-    #sim.Train(load_from_checkpoint=None, loggers=loggers)
-    sim.Train(load_from_checkpoint=p.sim_checkpoint, loggers=loggers)
+    sim.Train(load_from_checkpoint=None, loggers=loggers)
+    #sim.Train(load_from_checkpoint=p.sim_checkpoint, loggers=loggers)
     sim.model.freeze()
     sim.EvaluateCost()
     sim.FreeData()
@@ -1277,9 +1277,9 @@ class BalsaAgent(object):
         # NOTE: if engine != pg, we're still saving PG plans but with target
         # engine's latencies.  This mainly affects debug strings.
         #Save(self.workload, './data/JOB/initial_policy_data.pkl')
-        #Save(self.workload, './data/JOB_changed/initial_policy_data.pkl')
+        Save(self.workload, './data/JOB_changed/initial_policy_data.pkl')
         #Save(self.workload, './data/IMDB_BAO/initial_policy_data.pkl')
-        Save(self.workload, './data/IMDB_BAO_changed/initial_policy_data.pkl')
+        #Save(self.workload, './data/IMDB_BAO_changed/initial_policy_data.pkl')
         #Save(self.workload, './data/SO/initial_policy_data.pkl')
         #Save(self.workload, './data/TPCH/initial_policy_data.pkl')
         self.LogExpertExperience(self.train_nodes, self.test_nodes)
@@ -1828,10 +1828,10 @@ class BalsaAgent(object):
         #     int(iter_total_latency / 1e3), self.curr_value_iter,
         #     self.wandb_logger.experiment.id)
         
-        # path = 'data/JOB_changed/replay-{}-{}execs-{}nodes-{}s-{}iters-{}.pkl'.format(
-        #     experiment, self.num_query_execs, len(self.exp.nodes),
-        #     int(iter_total_latency / 1e3), self.curr_value_iter,
-        #     self.wandb_logger.experiment.id)
+        path = 'data/JOB_changed/replay-{}-{}execs-{}nodes-{}s-{}iters-{}.pkl'.format(
+            experiment, self.num_query_execs, len(self.exp.nodes),
+            int(iter_total_latency / 1e3), self.curr_value_iter,
+            self.wandb_logger.experiment.id)
         
         # path = 'data/SO/replay-{}-{}execs-{}nodes-{}s-{}iters-{}.pkl'.format(
         #     experiment, self.num_query_execs, len(self.exp.nodes),
@@ -1848,10 +1848,10 @@ class BalsaAgent(object):
         #     int(iter_total_latency / 1e3), self.curr_value_iter,
         #     self.wandb_logger.experiment.id)
 
-        path = 'data/IMDB_BAO_changed/replay-{}-{}execs-{}nodes-{}s-{}iters-{}.pkl'.format(
-            experiment, self.num_query_execs, len(self.exp.nodes),
-            int(iter_total_latency / 1e3), self.curr_value_iter,
-            self.wandb_logger.experiment.id)
+        # path = 'data/IMDB_BAO_changed/replay-{}-{}execs-{}nodes-{}s-{}iters-{}.pkl'.format(
+        #     experiment, self.num_query_execs, len(self.exp.nodes),
+        #     int(iter_total_latency / 1e3), self.curr_value_iter,
+        #     self.wandb_logger.experiment.id)
         
         self.exp.Save(path)
         # Remove previous.

@@ -14,5 +14,6 @@ WHERE k.keyword = 'marvel-cinematic-universe'
   AND t.id = ci.movie_id
   AND ci.movie_id = mk.movie_id
   AND n.id = ci.person_id
+GROUP BY t.production_year
 ORDER BY t.production_year;
 

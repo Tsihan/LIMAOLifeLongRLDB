@@ -449,14 +449,14 @@ class Sim(object):
          # Workload.
         # p.Define('workload', envs.JoinOrderBenchmark.Params(),
         #          'Params of the Workload, i.e., a set of queries.')
-        # p.Define('workload', envs.JoinOrderBenchmark_changed.Params(),
-        #          'Params of the Workload, i.e., a set of queries.')
+        p.Define('workload', envs.JoinOrderBenchmark_changed.Params(),
+                 'Params of the Workload, i.e., a set of queries.')
         #Qihan Zhang Need a paprameter here to decide which workload to use
         # Workload.
         # p.Define('workload', envs.IMDB_BAO.Params(),
         #        'Params of the Workload, i.e., a set of queries.')
-        p.Define('workload', envs.IMDB_BAO_changed.Params(),
-               'Params of the Workload, i.e., a set of queries.')
+        # p.Define('workload', envs.IMDB_BAO_changed.Params(),
+        #        'Params of the Workload, i.e., a set of queries.')
         # p.Define('workload', envs.TPCH10.Params(),
         #          'Params of the Workload, i.e., a set of queries.')
         
@@ -667,11 +667,11 @@ class Sim(object):
     def _SimulationDataPath(self):
         p = self.params
         hash_key = Sim.HashOfSimData(p)
-        #return 'data/JOB_changed/sim-data-{}.pkl'.format(hash_key)        
+        return 'data/JOB_changed/sim-data-{}.pkl'.format(hash_key)        
         #return 'data/JOB/sim-data-{}.pkl'.format(hash_key)
         #return 'data/TPCH/sim-data-{}.pkl'.format(hash_key)
         #return 'data/IMDB_BAO/sim-data-{}.pkl'.format(hash_key)
-        return 'data/IMDB_BAO_changed/sim-data-{}.pkl'.format(hash_key)
+        #return 'data/IMDB_BAO_changed/sim-data-{}.pkl'.format(hash_key)
         #return 'data/SO/sim-data-{}.pkl'.format(hash_key)
     def _LoadSimulationData(self):
         path = self._SimulationDataPath()
@@ -701,9 +701,9 @@ class Sim(object):
         p = self.params
         hash_key = Sim.HashOfFeaturizedData(p)
         #return 'data/JOB/sim-featurized-{}.pkl'.format(hash_key)
-        #return 'data/JOB_changed/sim-featurized-{}.pkl'.format(hash_key)
+        return 'data/JOB_changed/sim-featurized-{}.pkl'.format(hash_key)
         
-        return 'data/IMDB_BAO_changed/sim-featurized-{}.pkl'.format(hash_key)
+        #return 'data/IMDB_BAO_changed/sim-featurized-{}.pkl'.format(hash_key)
         #return 'data/IMDB_BAO/sim-featurized-{}.pkl'.format(hash_key)
         #return 'data/SO/sim-featurized-{}.pkl'.format(hash_key)
         #return 'data/TPCH/sim-featurized-{}.pkl'.format(hash_key)

@@ -59,5 +59,5 @@ WHERE cct1.kind = 'cast'
   AND cct1.id = cc.subject_id
   AND cct2.id = cc.status_id
 GROUP BY t.production_year
-ORDER BY complete_gore_movie;
+ORDER BY complete_violent_movie;
 

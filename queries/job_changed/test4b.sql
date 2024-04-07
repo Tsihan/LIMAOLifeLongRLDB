@@ -1,5 +1,5 @@
 SELECT MIN(mi_idx.info) AS rating,
-       MIN(t.title) AS movie_title
+       t.title AS movie_title
 FROM info_type AS it,
      keyword AS k,
      movie_info_idx AS mi_idx,
@@ -14,4 +14,4 @@ WHERE it.info ='rating'
   AND mk.movie_id = mi_idx.movie_id
   AND k.id = mk.keyword_id
   AND it.id = mi_idx.info_type_id
-GROUP BY movie_title;
+GROUP BY t.title;
