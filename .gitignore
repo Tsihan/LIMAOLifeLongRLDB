@@ -11,6 +11,9 @@ save
 runs
 profile_results
 output_matrix_job.txt
+output_matrix_job_changed.txt
+output_matrix_bao.txt
+output_matrix_bao_changed.txt
 
 results/*.pkl
 wandb

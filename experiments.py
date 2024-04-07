@@ -496,7 +496,7 @@ class Balsa_JOBRandSplit_JOB_changed(Rand52MinCardCostOnPolLrC):
         p.init_experience = 'data/JOB_changed/initial_policy_data.pkl'
         
         p.test_query_glob = RAND_52_TEST_QUERIES_JOB_changed
-        p.sim_checkpoint = 'checkpoints/JOB_changed/epoch=8.ckpt'
+        p.sim_checkpoint = 'checkpoints/JOB_changed/epoch=16.ckpt'
         p.query_dir = 'queries/job_changed'
                 
         return p
