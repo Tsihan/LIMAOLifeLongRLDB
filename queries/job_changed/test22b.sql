@@ -29,7 +29,7 @@ WHERE cn.country_code != '[us]'
                   'American')
   AND mi_idx.info < '7.0'
   AND t.production_year > 2009
- AND kt.id = t.kind_id
+  AND kt.id = t.kind_id
   AND t.id = mi.movie_id
   AND t.id = mk.movie_id
   AND t.id = mi_idx.movie_id

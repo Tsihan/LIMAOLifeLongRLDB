@@ -17,5 +17,5 @@ WHERE ci.note LIKE '%(producer)%'
   AND rt.id = ci.role_id
   AND cn.id = mc.company_id
   AND ct.id = mc.company_type_id
-GROUP BY t.id
+GROUP BY t.production_year
 ORDER BY movie_with_american_producer;

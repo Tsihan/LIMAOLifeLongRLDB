@@ -22,10 +22,15 @@ WHERE cct1.kind = 'cast'
   AND k.keyword IN ('superhero',
                     'marvel-comics',
                     'based-on-comic',
-                    'fight')
+                    'tv-special',
+                    'fight',
+                    'violence',
+                    'magnet',
+                    'web',
+                    'claw',
+                    'laser')
   AND kt.kind = 'movie'
-  AND mi_idx.info > '8.0'
-  AND t.production_year > 2005
+  AND t.production_year > 2000
   AND kt.id = t.kind_id
   AND t.id = mk.movie_id
   AND t.id = ci.movie_id

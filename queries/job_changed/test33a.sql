@@ -47,5 +47,5 @@ WHERE cn1.country_code = '[us]'
   AND ml.linked_movie_id = mi_idx2.movie_id
   AND ml.linked_movie_id = mc2.movie_id
   AND mi_idx2.movie_id = mc2.movie_id
-GROUP BY t1.id, t2.id
+GROUP BY kt1.kind, lt.link
 ORDER BY first_movie, second_movie;

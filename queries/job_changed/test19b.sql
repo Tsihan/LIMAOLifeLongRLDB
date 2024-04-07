@@ -1,5 +1,5 @@
 SELECT MIN(n.name) AS voicing_actress,
-       MIN(t.title) AS voiced_movie
+       MIN(t.title) AS kung_fu_panda
 FROM aka_name AS an,
      char_name AS chn,
      cast_info AS ci,
@@ -38,4 +38,4 @@ WHERE ci.note = '(voice)'
   AND ci.person_id = an.person_id
   AND chn.id = ci.person_role_id
 GROUP BY t.id
-ORDER BY voiced_movie;
+ORDER BY kung_fu_panda;

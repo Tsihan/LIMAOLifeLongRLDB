@@ -1,6 +1,6 @@
 SELECT MIN(cn.name) AS from_company,
        MIN(lt.link) AS movie_link_type,
-       MIN(t.title) AS non_polish_sequel_movie
+       MIN(t.title) AS sequel_movie
 FROM company_name AS cn,
      company_type AS ct,
      keyword AS k,
@@ -14,7 +14,7 @@ WHERE cn.country_code !='[pl]'
        OR cn.name LIKE '%Warner%')
   AND ct.kind ='production companies'
   AND k.keyword ='sequel'
-  AND lt.link LIKE '%follow%'
+  AND lt.link LIKE '%follows%'
   AND mc.note IS NULL
   AND t.production_year = 1998
   AND t.title LIKE '%Money%'
@@ -28,5 +28,5 @@ WHERE cn.country_code !='[pl]'
   AND ml.movie_id = mk.movie_id
   AND ml.movie_id = mc.movie_id
   AND mk.movie_id = mc.movie_id
-GROUP BY t.id
-ORDER BY non_polish_sequel_movie;
+GROUP BY t.production_year
+ORDER BY sequel_movie;

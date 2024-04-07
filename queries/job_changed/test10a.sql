@@ -19,5 +19,5 @@ WHERE ci.note LIKE '%(voice)%'
   AND rt.id = ci.role_id
   AND cn.id = mc.company_id
   AND ct.id = mc.company_type_id
-GROUP BY t.id
+GROUP BY t.production_year
 ORDER BY russian_movie;

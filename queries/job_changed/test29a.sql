@@ -64,5 +64,5 @@ WHERE cct1.kind ='cast'
   AND k.id = mk.keyword_id
   AND cct1.id = cc.subject_id
   AND cct2.id = cc.status_id
-GROUP BY t.id
+GROUP BY ci.note
 ORDER BY voiced_animation;

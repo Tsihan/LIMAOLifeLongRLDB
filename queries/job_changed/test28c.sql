@@ -63,5 +63,6 @@ WHERE cct1.kind = 'cast'
   AND cn.id = mc.company_id
   AND cct1.id = cc.subject_id
   AND cct2.id = cc.status_id
-GROUP BY t.id
+GROUP BY mi.info
 ORDER BY complete_euro_dark_movie;
+

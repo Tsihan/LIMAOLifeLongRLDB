@@ -20,5 +20,6 @@ WHERE ct.kind = 'production companies'
   AND t.id = mc.movie_id
   AND mc.movie_id = mi.movie_id
   AND ct.id = mc.company_type_id
-  AND it.id = mi.info_type_id;
-
+  AND it.id = mi.info_type_id
+GROUP BY mi.info
+ORDER BY t.production_year DESC;

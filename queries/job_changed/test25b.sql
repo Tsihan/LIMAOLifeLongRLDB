@@ -27,7 +27,7 @@ WHERE ci.note IN ('(writer)',
   AND n.gender = 'm'
   AND t.production_year > 2010
   AND t.title LIKE 'Vampire%'
-AND t.id = mi.movie_id
+  AND t.id = mi.movie_id
   AND t.id = mi_idx.movie_id
   AND t.id = ci.movie_id
   AND t.id = mk.movie_id
@@ -41,6 +41,5 @@ AND t.id = mi.movie_id
   AND it1.id = mi.info_type_id
   AND it2.id = mi_idx.info_type_id
   AND k.id = mk.keyword_id
-  
 GROUP BY t.id
 ORDER BY violent_movie_title;

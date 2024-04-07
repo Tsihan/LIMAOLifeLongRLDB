@@ -1,6 +1,6 @@
 SELECT MIN(chn.name) AS voiced_char_name,
        MIN(n.name) AS voicing_actress_name,
-       MIN(t.title) AS kung_fu_panda
+       MIN(t.title) AS voiced_action_movie_jap_eng
 FROM aka_name AS an,
      char_name AS chn,
      cast_info AS ci,
@@ -18,12 +18,10 @@ WHERE ci.note IN ('(voice)',
                   '(voice) (uncredited)',
                   '(voice: English version)')
   AND cn.country_code ='[us]'
-  AND cn.name = 'DreamWorks Animation'
   AND it.info = 'release dates'
   AND k.keyword IN ('hero',
                     'martial-arts',
-                    'hand-to-hand-combat',
-                    'computer-animated-movie')
+                    'hand-to-hand-combat')
   AND mi.info IS NOT NULL
   AND (mi.info LIKE 'Japan:%201%'
        OR mi.info LIKE 'USA:%201%')
@@ -31,7 +29,6 @@ WHERE ci.note IN ('(voice)',
   AND n.name LIKE '%An%'
   AND rt.role ='actress'
   AND t.production_year > 2010
-  AND t.title LIKE 'Kung Fu Panda%'
   AND t.id = mi.movie_id
   AND t.id = mc.movie_id
   AND t.id = ci.movie_id
@@ -51,4 +48,4 @@ WHERE ci.note IN ('(voice)',
   AND chn.id = ci.person_role_id
   AND k.id = mk.keyword_id
 GROUP BY t.id
-ORDER BY kung_fu_panda;
+ORDER BY voiced_action_movie_jap_eng;

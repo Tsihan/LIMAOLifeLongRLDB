@@ -13,7 +13,8 @@ WHERE cn.country_code = '[us]'
   AND ct.kind = 'production companies'
   AND it1.info = 'genres'
   AND it2.info = 'rating'
-  AND mi.info IN ('Drama', 'Horror')
+  AND mi.info IN ('Drama',
+                  'Horror')
   AND mi_idx.info > '8.0'
   AND t.production_year BETWEEN 2005 AND 2008
   AND t.id = mi.movie_id

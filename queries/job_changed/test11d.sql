@@ -1,6 +1,6 @@
 SELECT MIN(cn.name) AS from_company,
-       MIN(lt.link) AS movie_link_type,
-       MIN(t.title) AS non_polish_sequel_movie
+       MIN(mc.note) AS production_note,
+       MIN(t.title) AS movie_based_on_book
 FROM company_name AS cn,
      company_type AS ct,
      keyword AS k,
@@ -15,7 +15,7 @@ WHERE cn.country_code !='[pl]'
   AND k.keyword IN ('sequel',
                     'revenge',
                     'based-on-novel')
-  AND mc.note IS NULL
+  AND mc.note IS NOT NULL
   AND t.production_year > 1950
   AND lt.id = ml.link_type_id
   AND ml.movie_id = t.id
@@ -27,5 +27,6 @@ WHERE cn.country_code !='[pl]'
   AND ml.movie_id = mk.movie_id
   AND ml.movie_id = mc.movie_id
   AND mk.movie_id = mc.movie_id
-GROUP BY t.id
-ORDER BY non_polish_sequel_movie;
+GROUP BY t.production_year
+ORDER BY movie_based_on_book;
+

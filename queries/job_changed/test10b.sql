@@ -1,5 +1,5 @@
-SELECT MIN(chn.name) AS uncredited_voiced_character,
-       MIN(t.title) AS russian_movie
+SELECT MIN(chn.name) AS character,
+       MIN(t.title) AS russian_mov_with_actor_producer
 FROM char_name AS chn,
      cast_info AS ci,
      company_name AS cn,
@@ -7,11 +7,10 @@ FROM char_name AS chn,
      movie_companies AS mc,
      role_type AS rt,
      title AS t
-WHERE ci.note LIKE '%(voice)%'
-  AND ci.note LIKE '%(uncredited)%'
+WHERE ci.note LIKE '%(producer)%'
   AND cn.country_code = '[ru]'
   AND rt.role = 'actor'
-  AND t.production_year > 2005
+  AND t.production_year > 2010
   AND t.id = mc.movie_id
   AND t.id = ci.movie_id
   AND ci.movie_id = mc.movie_id
@@ -19,5 +18,5 @@ WHERE ci.note LIKE '%(voice)%'
   AND rt.id = ci.role_id
   AND cn.id = mc.company_id
   AND ct.id = mc.company_type_id
-GROUP BY t.id
-ORDER BY russian_movie;
+GROUP BY t.production_year
+ORDER BY russian_mov_with_actor_producer;

@@ -1,7 +1,7 @@
 SELECT MIN(mi.info) AS movie_budget,
        MIN(mi_idx.info) AS movie_votes,
        MIN(n.name) AS writer,
-       MIN(t.title) AS complete_violent_movie
+       MIN(t.title) AS complete_gore_movie
 FROM complete_cast AS cc,
      comp_cast_type AS cct1,
      comp_cast_type AS cct2,
@@ -58,6 +58,6 @@ WHERE cct1.kind IN ('cast',
   AND it2.id = mi_idx.info_type_id
   AND k.id = mk.keyword_id
   AND cct1.id = cc.subject_id
-  AND cct2.id = cc.status_id
-GROUP BY t.id
-ORDER BY complete_violent_movie;
+  AND cct2.id = cc.status_id;
+GROUP BY t.production_year
+ORDER BY complete_gore_movie;

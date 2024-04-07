@@ -1,5 +1,5 @@
 SELECT MIN(mi_idx.info) AS rating,
-       MIN(t.title) AS northern_dark_movie
+       MIN(t.title) AS north_european_dark_production
 FROM info_type AS it1,
      info_type AS it2,
      keyword AS k,
@@ -22,7 +22,7 @@ WHERE it1.info = 'countries'
                   'Germany',
                   'Denmark',
                   'Swedish',
-                  'Denish',
+                  'Danish',
                   'Norwegian',
                   'German',
                   'USA',
@@ -40,4 +40,4 @@ WHERE it1.info = 'countries'
   AND it1.id = mi.info_type_id
   AND it2.id = mi_idx.info_type_id
 GROUP BY t.id
-ORDER BY northern_dark_movie;
+ORDER BY north_european_dark_production;

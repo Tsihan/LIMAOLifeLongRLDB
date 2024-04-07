@@ -1,4 +1,4 @@
- SELECT MIN(mi.info) AS movie_budget,
+SELECT MIN(mi.info) AS movie_budget,
        MIN(mi_idx.info) AS movie_votes,
        MIN(n.name) AS writer,
        MIN(t.title) AS violent_liongate_movie
@@ -51,5 +51,5 @@ WHERE ci.note IN ('(writer)',
   AND it2.id = mi_idx.info_type_id
   AND k.id = mk.keyword_id
   AND cn.id = mc.company_id
-GROUP BY t.id
+GROUP BY k.keyword
 ORDER BY violent_liongate_movie;

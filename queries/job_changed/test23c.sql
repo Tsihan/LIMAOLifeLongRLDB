@@ -14,7 +14,7 @@ FROM complete_cast AS cc,
 WHERE cct1.kind = 'complete+verified'
   AND cn.country_code = '[us]'
   AND it1.info = 'release dates'
-  AND k.keyword IN ('movie',
+  AND kt.kind IN ('movie',
                   'tv movie',
                   'video movie',
                   'video game')
