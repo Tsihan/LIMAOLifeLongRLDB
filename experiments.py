@@ -18,6 +18,12 @@ See README.md for the main configurations to run.
 import balsa
 from balsa import hyperparams
 
+RAND_52_TEST_QUERIES_IMDB_ASSORTED = [
+'32c_baochanged.sql', '12a_job.sql', '16a_bao.sql', '30c_baochanged.sql', '7a_bao.sql', 
+'4a_bao.sql', '26c_baochanged.sql', '10a_bao.sql', '19a_bao.sql', '15a_bao.sql', 
+'8b_job.sql', '5b_job.sql', '1a_bao.sql', '5a_bao.sql', '13b_job.sql', 
+'19c_jobchanged.sql', '9a_job.sql', '14a_bao.sql', '39c_baochanged.sql', '30a_bao.sql']
+
 # 19 most slow-running queries sorted by Postgres latency.
 SLOW_TEST_QUERIES = [
     '16b.sql', '17a.sql', '17e.sql', '17f.sql', '17b.sql', '19d.sql', '17d.sql',

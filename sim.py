@@ -44,18 +44,20 @@ import train_utils
 
 class SimModel(pl.LightningModule):
 
-    def __init__(self,
-                 use_tree_conv,
-                 query_feat_dims,
-                 plan_feat_dims,
-                 mlp_hiddens,
-                 tree_conv_version=None,
-                 loss_type=None,
-                 torch_invert_cost=None,
-                 query_featurizer=None,
-                 perturb_query_features=False):
+    def __init__(
+        self,
+        use_tree_conv,
+        query_feat_dims,
+        plan_feat_dims,
+        mlp_hiddens,
+        tree_conv_version=None,
+        loss_type=None,
+        torch_invert_cost=None,
+        query_featurizer=None,
+        perturb_query_features=False,
+    ):
         super().__init__()
-        assert loss_type in [None, 'mean_qerror'], loss_type
+        assert loss_type in [None, "mean_qerror"], loss_type
         self.save_hyperparameters()
         self.use_tree_conv = use_tree_conv
         if use_tree_conv:
@@ -63,27 +65,48 @@ class SimModel(pl.LightningModule):
                 feature_size=query_feat_dims,
                 plan_size=plan_feat_dims,
                 label_size=1,
-                version=tree_conv_version)
+                version=tree_conv_version,
+            )
         else:
-            self.mlp = balsa.models.MakeMlp(input_size=query_feat_dims +
-                                            plan_feat_dims,
-                                            num_outputs=1,
-                                            hiddens=mlp_hiddens,
-                                            activation='relu')
+            self.mlp = balsa.models.MakeMlp(
+                input_size=query_feat_dims + plan_feat_dims,
+                num_outputs=1,
+                hiddens=mlp_hiddens,
+                activation="relu",
+            )
         self.loss_type = loss_type
         self.torch_invert_cost = torch_invert_cost
         self.query_featurizer = query_featurizer
         self.perturb_query_features = perturb_query_features
+
     # called!
-    def forward(self,
-                idx_other_modulelist, idx_hash_join_modulelist, idx_nested_loop_join_modulelist
-                ,query_feats,join_feats,hash_join_feats,nested_loop_join_feats,
-                pos_feats=None,hash_join_pos_feats=None,nested_loop_join_pos_feats=None):
+    def forward(
+        self,
+        idx_other_modulelist,
+        idx_hash_join_modulelist,
+        idx_nested_loop_join_modulelist,
+        query_feats,
+        join_feats,
+        hash_join_feats,
+        nested_loop_join_feats,
+        pos_feats=None,
+        hash_join_pos_feats=None,
+        nested_loop_join_pos_feats=None,
+    ):
         if self.use_tree_conv:
             # FIXME MODIFY INPUT QIhan Zhang we always use first index for the three submodules
-            return self.tree_conv(idx_other_modulelist,idx_hash_join_modulelist,idx_nested_loop_join_modulelist,query_feats,join_feats,hash_join_feats,nested_loop_join_feats,pos_feats,
-                hash_join_pos_feats,nested_loop_join_pos_feats)
-        
+            return self.tree_conv(
+                idx_other_modulelist,
+                idx_hash_join_modulelist,
+                idx_nested_loop_join_modulelist,
+                query_feats,
+                join_feats,
+                hash_join_feats,
+                nested_loop_join_feats,
+                pos_feats,
+                hash_join_pos_feats,
+                nested_loop_join_pos_feats,
+            )
 
     def configure_optimizers(self):
         optimizer = torch.optim.Adam(self.parameters(), lr=3e-3)
@@ -92,55 +115,94 @@ class SimModel(pl.LightningModule):
     def training_step(self, batch, batch_idx):
         loss = self._ComputeLoss(batch)
         result = pl.TrainResult(minimize=loss)
-        result.log('train_loss', loss, prog_bar=True)
+        result.log("train_loss", loss, prog_bar=True)
         return result
 
     def validation_step(self, batch, batch_idx):
         val_loss = self._ComputeLoss(batch)
         result = pl.EvalResult(checkpoint_on=val_loss, early_stop_on=val_loss)
-        result.log('val_loss', val_loss, prog_bar=True)
+        result.log("val_loss", val_loss, prog_bar=True)
         return result
 
     def _ComputeLoss(self, batch):
-        query_feat,plans,plans_hash_join,plans_nested_loop_join,\
-       indexes,indexes_hash_join,indexes_nested_loop_join,cost = batch
+        (
+            query_feat,
+            plans,
+            plans_hash_join,
+            plans_nested_loop_join,
+            indexes,
+            indexes_hash_join,
+            indexes_nested_loop_join,
+            cost,
+        ) = batch
         target = cost
         if self.training and self.perturb_query_features is not None:
             # No-op for non-enabled featurizers.
             query_feat = self.query_featurizer.PerturbQueryFeatures(
-                query_feat, distribution=self.perturb_query_features)
+                query_feat, distribution=self.perturb_query_features
+            )
         if self.use_tree_conv:
-            #assert len(rest) == 2
+            # assert len(rest) == 2
             # use defalut mode
             # when we initialize model, we start from here
-            idx_other_modulelist, idx_hash_join_modulelist, idx_nested_loop_join_modulelist = 0,0,0
-            output = self.forward(idx_other_modulelist, idx_hash_join_modulelist, idx_nested_loop_join_modulelist,
-                                  query_feat,plans,plans_hash_join,plans_nested_loop_join,          
-                   indexes,indexes_hash_join,indexes_nested_loop_join)
+            (
+                idx_other_modulelist,
+                idx_hash_join_modulelist,
+                idx_nested_loop_join_modulelist,
+            ) = (0, 0, 0)
+            output = self.forward(
+                idx_other_modulelist,
+                idx_hash_join_modulelist,
+                idx_nested_loop_join_modulelist,
+                query_feat,
+                plans,
+                plans_hash_join,
+                plans_nested_loop_join,
+                indexes,
+                indexes_hash_join,
+                indexes_nested_loop_join,
+            )
         else:
-            #assert len(rest) == 1
+            # assert len(rest) == 1
             raise NotImplementedError("Cannot go this branch for now! Qihan Zhang")
-            
-        if self.loss_type == 'mean_qerror':
-            output_inverted = self.torch_invert_cost(output.reshape(-1,))
-            target_inverted = self.torch_invert_cost(target.reshape(-1,))
+
+        if self.loss_type == "mean_qerror":
+            output_inverted = self.torch_invert_cost(
+                output.reshape(
+                    -1,
+                )
+            )
+            target_inverted = self.torch_invert_cost(
+                target.reshape(
+                    -1,
+                )
+            )
             return train_utils.QErrorLoss(output_inverted, target_inverted)
-        #The size of tensor a (3072) must match the size of tensor b (1024) at non-singleton dimension 0
-        return F.mse_loss(output.reshape(-1,), target.reshape(-1,))
+        # The size of tensor a (3072) must match the size of tensor b (1024) at non-singleton dimension 0
+        return F.mse_loss(
+            output.reshape(
+                -1,
+            ),
+            target.reshape(
+                -1,
+            ),
+        )
 
     def on_after_backward(self):
         if self.global_step % 50 == 0:
             norm_dict = self.grad_norm(norm_type=2)
-            total_norm = norm_dict['grad_2.0_norm_total']
-            self.logger.log_metrics({'total_grad_norm': total_norm},
-                                    step=self.global_step)
+            total_norm = norm_dict["grad_2.0_norm_total"]
+            self.logger.log_metrics(
+                {"total_grad_norm": total_norm}, step=self.global_step
+            )
+
 
 # TODO this one is used to be a query_featurizer
 class SimQueryFeaturizer(plans_lib.Featurizer):
     """Implements the query featurizer.
 
-        Query node -> [ multi-hot of what tables are present ]
-                    * [ each-table's selectivities ]
+    Query node -> [ multi-hot of what tables are present ]
+                * [ each-table's selectivities ]
     """
 
     def __init__(self, workload_info):
@@ -157,26 +219,27 @@ class SimQueryFeaturizer(plans_lib.Featurizer):
             vec[idx] = 1.0
 
         # Filtered tables.
-        table_id_to_name = lambda table_id: table_id.split(' ')[0]  # Hack.
+        table_id_to_name = lambda table_id: table_id.split(" ")[0]  # Hack.
 
-        for rel_id, est_rows in node.info['all_filters_est_rows'].items():
+        for rel_id, est_rows in node.info["all_filters_est_rows"].items():
             if rel_id not in joined:
                 # Due to the way we copy Nodes and populate this info field,
                 # leaf_ids() might be a subset of info['all_filters_est_rows'].
                 continue
 
             idx = np.where(self.workload_info.rel_ids == rel_id)[0][0]
-            total_rows = self.workload_info.table_num_rows[table_id_to_name(
-                rel_id)]
+            total_rows = self.workload_info.table_num_rows[table_id_to_name(rel_id)]
 
             # NOTE: without ANALYZE, for some reason this predicate is
             # estimated to have 703 rows, whereas the table only has 4 rows:
             #   (kind IS NOT NULL) AND ((kind)::text <> 'production
             #   companies'::text)
             # With ANALYZE run, this assert passes.
-            assert est_rows >= 0 and est_rows <= total_rows, (node.info,
-                                                              est_rows,
-                                                              total_rows)
+            assert est_rows >= 0 and est_rows <= total_rows, (
+                node.info,
+                est_rows,
+                total_rows,
+            )
             vec[idx] = est_rows / total_rows
         return vec
 
@@ -200,14 +263,17 @@ class SimQueryFeaturizer(plans_lib.Featurizer):
         # "Default": chance = 0.25, unif = [0.5, 2].
         chance, unif = distribution
 
-        should_scale = torch.rand(selectivities.shape,
-                                  device=selectivities.device) < chance
+        should_scale = (
+            torch.rand(selectivities.shape, device=selectivities.device) < chance
+        )
         # The non-zero entries are joined tables.
-        should_scale *= (selectivities > 0)
+        should_scale *= selectivities > 0
         # Sample multipliers ~ Unif[l, r].
-        multipliers = torch.rand(
-            selectivities.shape,
-            device=selectivities.device) * (unif[1] - unif[0]) + unif[0]
+        multipliers = (
+            torch.rand(selectivities.shape, device=selectivities.device)
+            * (unif[1] - unif[0])
+            + unif[0]
+        )
         multipliers *= should_scale
         # Now, the 0 entries mean "should not scale", which needs to be
         # translated into using a multiplier of 1.
@@ -240,8 +306,7 @@ class SimQueryFeaturizerV2(SimQueryFeaturizer):
 
     @property
     def dims(self):
-        return len(self.workload_info.rel_ids) + len(
-            self.workload_info.all_attributes)
+        return len(self.workload_info.rel_ids) + len(self.workload_info.all_attributes)
 
 
 class SimQueryFeaturizerV3(SimQueryFeaturizer):
@@ -257,7 +322,7 @@ class SimQueryFeaturizerV3(SimQueryFeaturizer):
         num_tables = len(self.workload_info.rel_ids)
 
         # Filtered cols.
-        rel_id_to_est_rows = node.info['all_filters_est_rows']
+        rel_id_to_est_rows = node.info["all_filters_est_rows"]
         leaves = node.GetLeaves()
         for leaf in leaves:
             leaf_filters = leaf.GetFilters()
@@ -273,7 +338,10 @@ class SimQueryFeaturizerV3(SimQueryFeaturizer):
             table_name = leaf.get_table_id(with_alias=False)
             total_rows = self.workload_info.table_num_rows[table_name]
             assert expr_est_rows >= 0 and expr_est_rows <= total_rows, (
-                node.info, expr_est_rows, total_rows)
+                node.info,
+                expr_est_rows,
+                total_rows,
+            )
             table_expr_selectivity = expr_est_rows / total_rows
 
             # Assign this selectivity to all filtered columns in this expr.
@@ -287,8 +355,7 @@ class SimQueryFeaturizerV3(SimQueryFeaturizer):
 
     @property
     def dims(self):
-        return len(self.workload_info.rel_ids) + len(
-            self.workload_info.all_attributes)
+        return len(self.workload_info.rel_ids) + len(self.workload_info.all_attributes)
 
 
 class SimQueryFeaturizerV4(plans_lib.Featurizer):
@@ -326,13 +393,14 @@ class SimQueryFeaturizerV4(plans_lib.Featurizer):
         #
         # "Default": chance = 0.25, unif = [0.5, 2].
         chance, unif = distribution
-        should_scale = torch.rand(est_rows.shape,
-                                  device=est_rows.device) < chance
+        should_scale = torch.rand(est_rows.shape, device=est_rows.device) < chance
         # The non-zero entries are joined tables.
-        should_scale *= (est_rows > 0)
+        should_scale *= est_rows > 0
         # Sample multipliers ~ Unif[l, r].
-        multipliers = torch.rand(est_rows.shape, device=est_rows.device) * (
-            unif[1] - unif[0]) + unif[0]
+        multipliers = (
+            torch.rand(est_rows.shape, device=est_rows.device) * (unif[1] - unif[0])
+            + unif[0]
+        )
         multipliers *= should_scale
         # Now, the 0 entries mean "should not scale", which needs to be
         # translated into using a multiplier of 1.
@@ -347,34 +415,33 @@ class SimQueryFeaturizerV4(plans_lib.Featurizer):
 
     def _FeaturizePreScaling(self, node):
         vec = np.zeros(self.dims, dtype=np.float32)
-        table_id_to_name = lambda table_id: table_id.split(' ')[0]  # Hack.
+        table_id_to_name = lambda table_id: table_id.split(" ")[0]  # Hack.
         joined = node.leaf_ids()
         # Joined tables: [table: rows of table].
         for rel_id in joined:
             idx = np.where(self.workload_info.rel_ids == rel_id)[0][0]
-            total_rows = self.workload_info.table_num_rows[table_id_to_name(
-                rel_id)]
+            total_rows = self.workload_info.table_num_rows[table_id_to_name(rel_id)]
             vec[idx] = total_rows
         # Filtered tables: [table: estimated rows of table].
-        for rel_id, est_rows in node.info['all_filters_est_rows'].items():
+        for rel_id, est_rows in node.info["all_filters_est_rows"].items():
             if rel_id not in joined:
                 # Due to the way we copy Nodes and populate this info field,
                 # leaf_ids() might be a subset of info['all_filters_est_rows'].
                 continue
             idx = np.where(self.workload_info.rel_ids == rel_id)[0][0]
-            total_rows = self.workload_info.table_num_rows[table_id_to_name(
-                rel_id)]
-            assert est_rows >= 0 and est_rows <= total_rows, (node.info,
-                                                              est_rows,
-                                                              total_rows)
+            total_rows = self.workload_info.table_num_rows[table_id_to_name(rel_id)]
+            assert est_rows >= 0 and est_rows <= total_rows, (
+                node.info,
+                est_rows,
+                total_rows,
+            )
             vec[idx] = est_rows
         # log1p.
         return np.log(1.0 + vec)
 
     def Fit(self, nodes):
         assert self._min is None and self._max is None, (self._min, self._max)
-        pre_scaling = np.asarray(
-            [self._FeaturizePreScaling(node) for node in nodes])
+        pre_scaling = np.asarray([self._FeaturizePreScaling(node) for node in nodes])
         self._min = np.min(pre_scaling, 0)
         self._max = np.max(pre_scaling, 0)
         self._range = self._max - self._min
@@ -382,8 +449,7 @@ class SimQueryFeaturizerV4(plans_lib.Featurizer):
         self._min_torch = torch.from_numpy(self._min)
         self._max_torch = torch.from_numpy(self._max)
         self._range_torch = torch.from_numpy(self._range)
-        logging.info('log(1+est_rows): min {}\nmax {}'.format(
-            self._min, self._max))
+        logging.info("log(1+est_rows): min {}\nmax {}".format(self._min, self._max))
 
     @property
     def dims(self):
@@ -393,7 +459,7 @@ class SimQueryFeaturizerV4(plans_lib.Featurizer):
 class SimPlanFeaturizer(plans_lib.Featurizer):
     """Implements the plan featurizer.
 
-        plan node -> [ multi-hot of tables on LHS ] [ same for RHS ]
+    plan node -> [ multi-hot of tables on LHS ] [ same for RHS ]
     """
 
     def __init__(self, workload_info):
@@ -426,32 +492,52 @@ class Sim(object):
     def Params(cls):
         p = hyperparams.InstantiableParams(cls)
         # Train.
-        p.Define('epochs', 100, 'Maximum training epochs.  '\
-                 'Early-stopping may kick in.')
-        p.Define('gradient_clip_val', 0, 'Clip the gradient norm computed over'\
-                 ' all model parameters together. 0 means no clipping.')
-        p.Define('bs', 2048, 'Batch size.')
+        p.Define(
+            "epochs", 100, "Maximum training epochs.  " "Early-stopping may kick in."
+        )
+        p.Define(
+            "gradient_clip_val",
+            0,
+            "Clip the gradient norm computed over"
+            " all model parameters together. 0 means no clipping.",
+        )
+        p.Define("bs", 2048, "Batch size.")
         # Validation.
-        p.Define('validate_fraction', 0.1,
-                 'Sample this fraction of the dataset as the validation set.  '\
-                 '0 to disable validation.')
+        p.Define(
+            "validate_fraction",
+            0.1,
+            "Sample this fraction of the dataset as the validation set.  "
+            "0 to disable validation.",
+        )
         # Search, train-time.
-        p.Define('search', search.DynamicProgramming.Params(),
-                 'Params of the enumeration routine to use for training data.')
+        p.Define(
+            "search",
+            search.DynamicProgramming.Params(),
+            "Params of the enumeration routine to use for training data.",
+        )
         # Search space.
-        p.Define('plan_physical', False,
-                 'Learn and plan physical scans/joins, or just join orders?')
+        p.Define(
+            "plan_physical",
+            False,
+            "Learn and plan physical scans/joins, or just join orders?",
+        )
         # Infer, test-time.
-        p.Define('infer_search_method', 'beam_bk', 'Options: beam_bk.')
-        p.Define('infer_beam_size', 10, 'Beam size.')
-        p.Define('infer_search_until_n_complete_plans', 1,
-                 'Search until how many complete plans?')
-         # Workload.
-        # p.Define('workload', envs.JoinOrderBenchmark.Params(),
+        p.Define("infer_search_method", "beam_bk", "Options: beam_bk.")
+        p.Define("infer_beam_size", 10, "Beam size.")
+        p.Define(
+            "infer_search_until_n_complete_plans",
+            1,
+            "Search until how many complete plans?",
+        )
+        # Workload.
+        p.Define(
+            "workload",
+            envs.JoinOrderBenchmark.Params(),
+            "Params of the Workload, i.e., a set of queries.",
+        )
+        # p.Define('workload', envs.JoinOrderBenchmark_changed.Params(),
         #          'Params of the Workload, i.e., a set of queries.')
-        p.Define('workload', envs.JoinOrderBenchmark_changed.Params(),
-                 'Params of the Workload, i.e., a set of queries.')
-        #Qihan Zhang Need a paprameter here to decide which workload to use
+        # Qihan Zhang Need a paprameter here to decide which workload to use
         # Workload.
         # p.Define('workload', envs.IMDB_BAO.Params(),
         #        'Params of the Workload, i.e., a set of queries.')
@@ -459,35 +545,47 @@ class Sim(object):
         #        'Params of the Workload, i.e., a set of queries.')
         # p.Define('workload', envs.TPCH10.Params(),
         #          'Params of the Workload, i.e., a set of queries.')
-        
+
         # p.Define('workload', envs.SO.Params(),
         #          'Params of the Workload, i.e., a set of queries.')
         # Data collection.
-        p.Define('skip_data_collection_geq_num_rels', None,
-                 'If specified, do not collect data for queries with at '\
-                 'least this many number of relations.')
         p.Define(
-            'generic_ops_only_for_min_card_cost', False,
-            'If using MinCardCost, whether to enumerate generic ops only.')
-        p.Define('sim_data_collection_intermediate_goals', True,
-                 'For each query, also collect sim data with intermediate '\
-                 'query goals?')
+            "skip_data_collection_geq_num_rels",
+            None,
+            "If specified, do not collect data for queries with at "
+            "least this many number of relations.",
+        )
+        p.Define(
+            "generic_ops_only_for_min_card_cost",
+            False,
+            "If using MinCardCost, whether to enumerate generic ops only.",
+        )
+        p.Define(
+            "sim_data_collection_intermediate_goals",
+            True,
+            "For each query, also collect sim data with intermediate " "query goals?",
+        )
         # Featurizations.
-        p.Define('plan_featurizer_cls', SimPlanFeaturizer,
-                 'Featurizer to use for plans.')
-        p.Define('query_featurizer_cls', SimQueryFeaturizer,
-                 'Featurizer to use for queries.')
-        p.Define('label_transforms', ['log1p', 'standardize'],
-                 'Transforms for labels.')
-        p.Define('perturb_query_features', None, 'See experiments.')
+        p.Define(
+            "plan_featurizer_cls", SimPlanFeaturizer, "Featurizer to use for plans."
+        )
+        p.Define(
+            "query_featurizer_cls", SimQueryFeaturizer, "Featurizer to use for queries."
+        )
+        p.Define("label_transforms", ["log1p", "standardize"], "Transforms for labels.")
+        p.Define("perturb_query_features", None, "See experiments.")
         # Eval.
-        p.Define('eval_output_path', 'eval-cost.csv',
-                 'Path to write evaluation output into.')
-        p.Define('eval_latency_output_path', 'eval-latency.csv',
-                 'Path to write evaluation latency output into.')
+        p.Define(
+            "eval_output_path", "eval-cost.csv", "Path to write evaluation output into."
+        )
+        p.Define(
+            "eval_latency_output_path",
+            "eval-latency.csv",
+            "Path to write evaluation latency output into.",
+        )
         # Model/loss.
-        p.Define('tree_conv_version', None, 'Options: None, V2.')
-        p.Define('loss_type', None, 'Options: None (MSE), mean_qerror.')
+        p.Define("tree_conv_version", None, "Options: None, V2.")
+        p.Define("loss_type", None, "Options: None (MSE), mean_qerror.")
         return p
 
     @classmethod
@@ -499,22 +597,22 @@ class Sim(object):
         # NOTE: in theory, other stateful effects such as whether ANALYZE has
         # been called on a PG database also affects the collected costs.
         _RELEVANT_HPARAMS = [
-            'search',
-            'workload',
-            'skip_data_collection_geq_num_rels',
-            'generic_ops_only_for_min_card_cost',
-            'plan_physical',
+            "search",
+            "workload",
+            "skip_data_collection_geq_num_rels",
+            "generic_ops_only_for_min_card_cost",
+            "plan_physical",
         ]
         param_vals = [p.Get(hparam) for hparam in _RELEVANT_HPARAMS]
         param_vals = [
             v.ToText() if isinstance(v, hyperparams.Params) else str(v)
             for v in param_vals
         ]
-        spec = '\n'.join(param_vals)
+        spec = "\n".join(param_vals)
         if p.search.cost_model.cls is costing.PostgresCost:
             # Only PostgresCost would depend on PG configs.
             pg_configs = map(str, postgres.GetServerConfigs())
-            spec += '\n'.join(pg_configs)
+            spec += "\n".join(pg_configs)
         hash_sim = hashlib.sha1(spec.encode()).hexdigest()[:8]
         return hash_sim
 
@@ -531,11 +629,11 @@ class Sim(object):
         # they are just histograms.
         hash_sim = cls.HashOfSimData(p)
         _FEATURIZATION_HPARAMS = [
-            'plan_featurizer_cls',
-            'query_featurizer_cls',
+            "plan_featurizer_cls",
+            "query_featurizer_cls",
         ]
         param_vals = [str(p.Get(hparam)) for hparam in _FEATURIZATION_HPARAMS]
-        spec = str(hash_sim) + '\n'.join(param_vals)
+        spec = str(hash_sim) + "\n".join(param_vals)
         hash_feat = hashlib.sha1(spec.encode()).hexdigest()[:8]
         return hash_feat
 
@@ -553,18 +651,16 @@ class Sim(object):
         # Instantiate workload.
         self.workload = p.workload.cls(p.workload)
         wi = self.workload.workload_info
-        generic_join = np.array(['Join'])
-        generic_scan = np.array(['Scan'])
+        generic_join = np.array(["Join"])
+        generic_scan = np.array(["Scan"])
         if not p.plan_physical:
             # These are used in optimizer.py (for planning).
             wi.join_types = generic_join
             wi.scan_types = generic_scan
         else:
-            self.search.SetPhysicalOps(join_ops=wi.join_types,
-                                       scan_ops=wi.scan_types)
+            self.search.SetPhysicalOps(join_ops=wi.join_types, scan_ops=wi.scan_types)
         if self.IsPlanPhysicalButUseGenericOps():
-            self.search.SetPhysicalOps(join_ops=generic_join,
-                                       scan_ops=generic_scan)
+            self.search.SetPhysicalOps(join_ops=generic_join, scan_ops=generic_scan)
 
         # A list of SubplanGoalCost.
         self.simulation_data = []
@@ -572,15 +668,21 @@ class Sim(object):
         self.planner = None
         self.query_featurizer = None
 
-        self.all_nodes = self.workload.Queries(split='all')
-        self.train_nodes = self.workload.Queries(split='train')
-        self.test_nodes = self.workload.Queries(split='test')
-        logging.info('{} train queries: {}'.format(
-            len(self.train_nodes),
-            [node.info['query_name'] for node in self.train_nodes]))
-        logging.info('{} test queries: {}'.format(
-            len(self.test_nodes),
-            [node.info['query_name'] for node in self.test_nodes]))
+        self.all_nodes = self.workload.Queries(split="all")
+        self.train_nodes = self.workload.Queries(split="train")
+        self.test_nodes = self.workload.Queries(split="test")
+        logging.info(
+            "{} train queries: {}".format(
+                len(self.train_nodes),
+                [node.info["query_name"] for node in self.train_nodes],
+            )
+        )
+        logging.info(
+            "{} test queries: {}".format(
+                len(self.test_nodes),
+                [node.info["query_name"] for node in self.test_nodes],
+            )
+        )
 
         plans_lib.RewriteAsGenericJoinsScans(self.all_nodes)
 
@@ -591,16 +693,21 @@ class Sim(object):
     def IsPlanPhysicalButUseGenericOps(self):
         p = self.params
         # This is a logical-only cost model.  Let's only enumerate generic ops.
-        return (p.plan_physical and p.generic_ops_only_for_min_card_cost and
-                isinstance(self.search.cost_model, costing.MinCardCost))
+        return (
+            p.plan_physical
+            and p.generic_ops_only_for_min_card_cost
+            and isinstance(self.search.cost_model, costing.MinCardCost)
+        )
 
     def _MakeOnEnumeratedHook(self, accum, info_to_attach, num_rels):
         """Records all possible training points from a single trajectory."""
         p = self.params
 
         def Hook(plan, cost):
-            if (not p.sim_data_collection_intermediate_goals and
-                    len(plan.GetLeaves()) < num_rels):
+            if (
+                not p.sim_data_collection_intermediate_goals
+                and len(plan.GetLeaves()) < num_rels
+            ):
                 # Ablation: don't collect data on any plans/costs that have
                 # fewer than 'num_rels' (the original query) tables.
                 return
@@ -616,7 +723,8 @@ class Sim(object):
                             subplan=node,
                             goal=query_node,
                             cost=cost,
-                        ))
+                        )
+                    )
 
             plans_lib.MapNode(query_node, _Helper)
 
@@ -660,74 +768,85 @@ class Sim(object):
             if point.cost < best_cost[key]:
                 best_cost[key] = point.cost
                 ret[key] = point
-        logging.info('{} points before uniquifying, {} after'.format(
-            len(points), len(ret)))
+        logging.info(
+            "{} points before uniquifying, {} after".format(len(points), len(ret))
+        )
         return ret.values()
 
     def _SimulationDataPath(self):
         p = self.params
         hash_key = Sim.HashOfSimData(p)
-        return 'data/JOB_changed/sim-data-{}.pkl'.format(hash_key)        
-        #return 'data/JOB/sim-data-{}.pkl'.format(hash_key)
-        #return 'data/TPCH/sim-data-{}.pkl'.format(hash_key)
-        #return 'data/IMDB_BAO/sim-data-{}.pkl'.format(hash_key)
-        #return 'data/IMDB_BAO_changed/sim-data-{}.pkl'.format(hash_key)
-        #return 'data/SO/sim-data-{}.pkl'.format(hash_key)
+        # return 'data/JOB_changed/sim-data-{}.pkl'.format(hash_key)
+        return "data/JOB/sim-data-{}.pkl".format(hash_key)
+        # return 'data/TPCH/sim-data-{}.pkl'.format(hash_key)
+        # return 'data/IMDB_BAO/sim-data-{}.pkl'.format(hash_key)
+        # return 'data/IMDB_BAO_changed/sim-data-{}.pkl'.format(hash_key)
+        # return 'data/SO/sim-data-{}.pkl'.format(hash_key)
+
     def _LoadSimulationData(self):
         path = self._SimulationDataPath()
         try:
-            with open(path, 'rb') as f:
+            with open(path, "rb") as f:
                 self.simulation_data = pickle.load(f)
         except Exception as e:
             return False
-        logging.info('Loaded simulation data (len {}) from: {}'.format(
-            len(self.simulation_data), path))
-        logging.info('Training data (first 50, total {}):'.format(
-            len(self.simulation_data)))
-        logging.info('\n'.join(map(str, self.simulation_data[:50])))
+        logging.info(
+            "Loaded simulation data (len {}) from: {}".format(
+                len(self.simulation_data), path
+            )
+        )
+        logging.info(
+            "Training data (first 50, total {}):".format(len(self.simulation_data))
+        )
+        logging.info("\n".join(map(str, self.simulation_data[:50])))
         return True
 
     def _SaveSimulationData(self):
         path = self._SimulationDataPath()
         try:
-            with open(path, 'wb') as f:
+            with open(path, "wb") as f:
                 pickle.dump(self.simulation_data, f)
-            logging.info('Saved simulation data (len {}) to: {}'.format(
-                len(self.simulation_data), path))
+            logging.info(
+                "Saved simulation data (len {}) to: {}".format(
+                    len(self.simulation_data), path
+                )
+            )
         except Exception as e:
-            logging.warning('Failed saving sim data:\n{}'.format(e))
+            logging.warning("Failed saving sim data:\n{}".format(e))
 
     def _FeaturizedDataPath(self):
         p = self.params
         hash_key = Sim.HashOfFeaturizedData(p)
-        #return 'data/JOB/sim-featurized-{}.pkl'.format(hash_key)
-        return 'data/JOB_changed/sim-featurized-{}.pkl'.format(hash_key)
-        
-        #return 'data/IMDB_BAO_changed/sim-featurized-{}.pkl'.format(hash_key)
-        #return 'data/IMDB_BAO/sim-featurized-{}.pkl'.format(hash_key)
-        #return 'data/SO/sim-featurized-{}.pkl'.format(hash_key)
-        #return 'data/TPCH/sim-featurized-{}.pkl'.format(hash_key)
+        return "data/JOB/sim-featurized-{}.pkl".format(hash_key)
+        # return 'data/JOB_changed/sim-featurized-{}.pkl'.format(hash_key)
+
+        # return 'data/IMDB_BAO_changed/sim-featurized-{}.pkl'.format(hash_key)
+        # return 'data/IMDB_BAO/sim-featurized-{}.pkl'.format(hash_key)
+        # return 'data/SO/sim-featurized-{}.pkl'.format(hash_key)
+        # return 'data/TPCH/sim-featurized-{}.pkl'.format(hash_key)
 
     def _LoadFeaturizedData(self):
         path = self._FeaturizedDataPath()
         try:
-            with open(path, 'rb') as f:
+            with open(path, "rb") as f:
                 data = torch.load(f)
         except Exception as e:
             return False, None
-        logging.info('Loaded featurized data (len {}) from: {}'.format(
-            len(data[0]), path))
+        logging.info(
+            "Loaded featurized data (len {}) from: {}".format(len(data[0]), path)
+        )
         return True, data
 
     def _SaveFeaturizedData(self, data):
         path = self._FeaturizedDataPath()
         try:
-            with open(path, 'wb') as f:
+            with open(path, "wb") as f:
                 torch.save(data, f)
-            logging.info('Saved featurized data (len {}) to: {}'.format(
-                len(data[0]), path))
+            logging.info(
+                "Saved featurized data (len {}) to: {}".format(len(data[0]), path)
+            )
         except Exception as e:
-            logging.warning('Failed saving featurized data:\n{}'.format(e))
+            logging.warning("Failed saving featurized data:\n{}".format(e))
 
     def CollectSimulationData(self, try_load=True):
         p = self.params
@@ -741,9 +860,11 @@ class Sim(object):
         for query_node in self.train_nodes:
             # TODO: can parallelize this loop.  Take care of the hooks.
             num_rels = len(query_node.leaf_ids())
-            logging.info('query={} num_rels={}\n{}'.format(
-                query_node.info['query_name'], num_rels,
-                query_node.info['sql_str']))
+            logging.info(
+                "query={} num_rels={}\n{}".format(
+                    query_node.info["query_name"], num_rels, query_node.info["sql_str"]
+                )
+            )
             if p.skip_data_collection_geq_num_rels is not None:
                 if num_rels >= p.skip_data_collection_geq_num_rels:
                     continue
@@ -752,15 +873,16 @@ class Sim(object):
             # Accumulate data points from this query.
             accum = []
             info_to_attach = {
-                'overall_join_graph': query_node.info['parsed_join_graph'],
-                'overall_join_conds': query_node.info['parsed_join_conds'],
-                'path': query_node.info['path'],
+                "overall_join_graph": query_node.info["parsed_join_graph"],
+                "overall_join_conds": query_node.info["parsed_join_conds"],
+                "path": query_node.info["path"],
             }
             self.search.PushOnEnumeratedHook(
-                self._MakeOnEnumeratedHook(accum, info_to_attach, num_rels))
+                self._MakeOnEnumeratedHook(accum, info_to_attach, num_rels)
+            )
 
             # Enumerate plans.
-            self.search.Run(query_node, query_node.info['sql_str'])
+            self.search.Run(query_node, query_node.info["sql_str"])
 
             self.search.PopOnEnumeratedHook()
 
@@ -771,11 +893,16 @@ class Sim(object):
 
         simulation_time = time.time() - start
 
-        logging.info('Collection done, stats:')
-        logging.info('  num_queries={} num_collected_queries={} num_points={}'\
-                     ' latency_s={:.1f}'.format(
-            len(self.train_nodes), num_collected, len(self.simulation_data),
-            simulation_time))
+        logging.info("Collection done, stats:")
+        logging.info(
+            "  num_queries={} num_collected_queries={} num_points={}"
+            " latency_s={:.1f}".format(
+                len(self.train_nodes),
+                num_collected,
+                len(self.simulation_data),
+                simulation_time,
+            )
+        )
 
         if try_load:
             self._SaveSimulationData()
@@ -784,12 +911,17 @@ class Sim(object):
 
     def _MakeModel(self, query_feat_dims, plan_feat_dims):
         p = self.params
-        use_tree_conv = issubclass(p.plan_featurizer_cls,
-                                   plans_lib.TreeNodeFeaturizer)
-        logging.info('SIM query_feat_dims={} plan_feat_dims={}'.format(
-            query_feat_dims, plan_feat_dims))
-        logging.info('SIM query_feat={} plan_feat={}'.format(
-            p.query_featurizer_cls, p.plan_featurizer_cls))
+        use_tree_conv = issubclass(p.plan_featurizer_cls, plans_lib.TreeNodeFeaturizer)
+        logging.info(
+            "SIM query_feat_dims={} plan_feat_dims={}".format(
+                query_feat_dims, plan_feat_dims
+            )
+        )
+        logging.info(
+            "SIM query_feat={} plan_feat={}".format(
+                p.query_featurizer_cls, p.plan_featurizer_cls
+            )
+        )
         return SimModel(
             use_tree_conv=use_tree_conv,
             query_feat_dims=query_feat_dims,
@@ -802,7 +934,8 @@ class Sim(object):
             loss_type=p.loss_type,
             torch_invert_cost=self.train_dataset.dataset.TorchInvertCost,
             query_featurizer=self.query_featurizer,
-            perturb_query_features=p.perturb_query_features)
+            perturb_query_features=p.perturb_query_features,
+        )
 
     def _MakeDatasetAndLoader(self, data):
         p = self.params
@@ -810,18 +943,19 @@ class Sim(object):
         all_plans_operators_vecs = data[1]
         all_plans_hash_join_vecs = data[2]
         all_plans_nested_loop_join_vecs = data[3]
-        
-     
+
         all_costs = data[7]
         # 'use_positions' is True iff we want to use a TreeConv to process the
         # subplans.  If using a non-tree-aware featurization, it becomes
         # unused.
-        use_positions = data[4][0] is not None or data[5][0] is not None  or data[6][0] is not None
-     
+        use_positions = (
+            data[4][0] is not None or data[5][0] is not None or data[6][0] is not None
+        )
+
         all_pa_pos_operators_vecs = data[4]
         all_pa_pos_hash_join_vecs = data[5]
         all_pa_pos_nested_loop_join_vecs = data[6]
-        
+
         dataset = ds.PlansDataset(
             all_query_vecs,
             all_plans_operators_vecs,
@@ -841,7 +975,8 @@ class Sim(object):
         num_validation = len(dataset) - num_train
         assert num_train > 0 and num_validation >= 0, len(dataset)
         train_ds, val_ds = torch.utils.data.random_split(
-            dataset, [num_train, num_validation])
+            dataset, [num_train, num_validation]
+        )
         train_loader = torch.utils.data.DataLoader(
             train_ds,
             batch_size=p.bs,
@@ -852,18 +987,17 @@ class Sim(object):
             val_loader = torch.utils.data.DataLoader(val_ds, batch_size=1024)
         else:
             val_loader = None
-        logging.info('num_train={} num_validation={}'.format(
-            num_train, num_validation))
+        logging.info("num_train={} num_validation={}".format(num_train, num_validation))
         return train_ds, train_loader, val_ds, val_loader
 
     def _LogPostgresConfigs(self, wandb_logger):
         """Logs live Postgres server configs to a file and uploads to W&B."""
         wandb_run = wandb_logger.experiment
         df = postgres.GetServerConfigsAsDf()
-        path = os.path.join(wandb_run.dir, 'postgres-conf.txt')
+        path = os.path.join(wandb_run.dir, "postgres-conf.txt")
         df.to_csv(path, index=False, header=True)
-        
-    # FIXME 
+
+    # FIXME
     def _FeaturizeTrainingData(self, try_load=True):
         """Pre-processes/featurizes simulation data into tensors."""
         p = self.params
@@ -872,18 +1006,18 @@ class Sim(object):
             # This original WorkloadInfo has all physical ops, but during
             # learning the training data would only have all sort of scans plus
             # only logical Join nodes.  So we rewrite the vocab here.
-            wi.all_ops = np.asarray(['Join', 'Scan'])
+            wi.all_ops = np.asarray(["Join", "Scan"])
         elif self.IsPlanPhysicalButUseGenericOps():
-            wi.all_ops = np.sort(np.concatenate((wi.all_ops, ['Join', 'Scan'])))
-            wi.join_types = np.sort(np.concatenate((wi.join_types, ['Join'])))
-            wi.scan_types = np.sort(np.concatenate((wi.scan_types, ['Scan'])))
+            wi.all_ops = np.sort(np.concatenate((wi.all_ops, ["Join", "Scan"])))
+            wi.join_types = np.sort(np.concatenate((wi.join_types, ["Join"])))
+            wi.scan_types = np.sort(np.concatenate((wi.scan_types, ["Scan"])))
         wi.table_num_rows = postgres.GetAllTableNumRows(wi.rel_names)
         self.training_workload_info = wi
 
         # Instantiate query featurizer once with train nodes, since it may need
         # to calculate normalization statistics.
         self.query_featurizer = p.query_featurizer_cls(wi)
-        self.query_featurizer.Fit(self.workload.Queries(split='train'))
+        self.query_featurizer.Fit(self.workload.Queries(split="train"))
 
         if try_load:
             done, data = self._LoadFeaturizedData()
@@ -893,7 +1027,7 @@ class Sim(object):
         if not self.simulation_data:
             self.CollectSimulationData(try_load)
 
-        logging.info('Creating SimpleReplayBuffer')
+        logging.info("Creating SimpleReplayBuffer")
         # The constructor of SRB realy only needs goal/query Nodes for
         # instantiating workload info metadata and featurizers (e.g., grab all
         # table names).
@@ -907,10 +1041,11 @@ class Sim(object):
             # <Scan types>} only.
             keep_scans_joins_only=False,
         )
-        logging.info('featurize_with_subplans()')
+        logging.info("featurize_with_subplans()")
         data = exp.featurize_with_subplans(
             subplans=[p.subplan for p in self.simulation_data],
-            rewrite_generic=not p.plan_physical)
+            rewrite_generic=not p.plan_physical,
+        )
 
         if try_load:
             self._SaveFeaturizedData(data)
@@ -922,9 +1057,9 @@ class Sim(object):
         if loggers is None:
             is_inner_params = False
             loggers = [
-                pl_loggers.TensorBoardLogger(save_dir=os.getcwd(),
-                                             version=None,
-                                             name='lightning_logs'),
+                pl_loggers.TensorBoardLogger(
+                    save_dir=os.getcwd(), version=None, name="lightning_logs"
+                ),
                 pl_loggers.WandbLogger(save_dir=os.getcwd()),
             ]
         p_dict = balsa.utils.SanitizeToText(dict(p))
@@ -932,7 +1067,7 @@ class Sim(object):
             # If 'loggers' is passed, some outer experiment hparams has
             # specified a 'cls' field, so let's not let our cls: <class
             # 'sim.Sim'> overwrite that.
-            p_dict.pop('cls', None)
+            p_dict.pop("cls", None)
         for logger in loggers:
             logger.log_hyperparams(p_dict)
         assert isinstance(loggers[-1], pl_loggers.WandbLogger), loggers[-1]
@@ -945,10 +1080,10 @@ class Sim(object):
             # Do validation per this many train epochs.
             check_val_every_n_epoch=1,
             # Patience = # of validations with no improvements before stopping.
-            early_stop_callback=pl.callbacks.EarlyStopping(patience=5,
-                                                           mode='min',
-                                                           verbose=True),
-            weights_summary='full',
+            early_stop_callback=pl.callbacks.EarlyStopping(
+                patience=5, mode="min", verbose=True
+            ),
+            weights_summary="full",
             logger=loggers,
             gradient_clip_val=p.gradient_clip_val,
             num_sanity_val_steps=2 if p.validate_fraction > 0 else 0,
@@ -965,16 +1100,19 @@ class Sim(object):
                 # ops (no generic ops), but still being able to use
                 # query_featurizer/plan_featurizer that knows about both
                 # physical+generic ops.
-                wi_for_ops_to_enum.all_ops = np.asarray([
-                    op for op in wi_for_ops_to_enum.all_ops
-                    if op not in ['Join', 'Scan']
-                ])
-                wi_for_ops_to_enum.join_types = np.asarray([
-                    op for op in wi_for_ops_to_enum.join_types if op != 'Join'
-                ])
-                wi_for_ops_to_enum.scan_types = np.asarray([
-                    op for op in wi_for_ops_to_enum.scan_types if op != 'Scan'
-                ])
+                wi_for_ops_to_enum.all_ops = np.asarray(
+                    [
+                        op
+                        for op in wi_for_ops_to_enum.all_ops
+                        if op not in ["Join", "Scan"]
+                    ]
+                )
+                wi_for_ops_to_enum.join_types = np.asarray(
+                    [op for op in wi_for_ops_to_enum.join_types if op != "Join"]
+                )
+                wi_for_ops_to_enum.scan_types = np.asarray(
+                    [op for op in wi_for_ops_to_enum.scan_types if op != "Scan"]
+                )
             self.planner = balsa_opt.Optimizer(
                 wi_for_ops_to_enum,
                 p.plan_featurizer_cls(wi),
@@ -984,9 +1122,9 @@ class Sim(object):
                 self.model,
                 tree_conv=self.model.use_tree_conv,
                 beam_size=p.infer_beam_size,
-                search_until_n_complete_plans=p.
-                infer_search_until_n_complete_plans,
-                plan_physical=p.plan_physical)
+                search_until_n_complete_plans=p.infer_search_until_n_complete_plans,
+                plan_physical=p.plan_physical,
+            )
         else:
             # Otherwise, 'self.model' might have been updated since the planner
             # is created.  Update it.
@@ -1001,12 +1139,12 @@ class Sim(object):
             data = self._FeaturizeTrainingData()
 
         # Make the DataLoader.
-        logging.info('_MakeDatasetAndLoader()')
-        self.train_dataset, self.train_loader, _, self.val_loader = \
+        logging.info("_MakeDatasetAndLoader()")
+        self.train_dataset, self.train_loader, _, self.val_loader = (
             self._MakeDatasetAndLoader(data)
+        )
         batch = next(iter(self.train_loader))
-        logging.info(
-            'Example batch (query,plan,indexes,cost):\n{}'.format(batch))
+        logging.info("Example batch (query,plan,indexes,cost):\n{}".format(batch))
 
         # Initialize model.
         _, query_feat_dims = batch[0].shape
@@ -1014,12 +1152,15 @@ class Sim(object):
             # make_and_featurize_trees() tranposes the latter 2 dims.
             unused_bs, plan_feat_dims, unused_max_tree_nodes = batch[1].shape
             logging.info(
-                'unused_bs, plan_feat_dims, unused_max_tree_nodes {}'.format(
-                    (unused_bs, plan_feat_dims, unused_max_tree_nodes)))
+                "unused_bs, plan_feat_dims, unused_max_tree_nodes {}".format(
+                    (unused_bs, plan_feat_dims, unused_max_tree_nodes)
+                )
+            )
         else:
             unused_bs, plan_feat_dims = batch[1].shape
-        self.model = self._MakeModel(query_feat_dims=query_feat_dims,
-                                     plan_feat_dims=plan_feat_dims)
+        self.model = self._MakeModel(
+            query_feat_dims=query_feat_dims, plan_feat_dims=plan_feat_dims
+        )
         balsa.models.ReportModel(self.model)
 
         # Train or load.
@@ -1027,7 +1168,8 @@ class Sim(object):
         if load_from_checkpoint:
             self.model = SimModel.load_from_checkpoint(load_from_checkpoint)
             logging.info(
-                'Loaded pretrained checkpoint: {}'.format(load_from_checkpoint))
+                "Loaded pretrained checkpoint: {}".format(load_from_checkpoint)
+            )
         else:
             self.trainer.fit(self.model, self.train_loader, self.val_loader)
         return data
@@ -1049,24 +1191,26 @@ class Sim(object):
         planner = self._GetPlanner()
         bushy = True
         if planner_config is not None:
-            bushy = planner_config.search_space == 'bushy'
-        time, plan, cost = planner.plan(node,
-                                        search_method=p.infer_search_method,
-                                        bushy=bushy,
-                                        planner_config=planner_config)
+            bushy = planner_config.search_space == "bushy"
+        time, plan, cost = planner.plan(
+            node,
+            search_method=p.infer_search_method,
+            bushy=bushy,
+            planner_config=planner_config,
+        )
         return plan, cost
 
     def Predict(self, query_node, nodes):
         """Runs forward pass on 'nodes' to predict their costs."""
         # default use upper version Qihan Zhang
         # TODO debug mssing args!
-        return self._GetPlanner().infer(query_node, nodes,0,0,0)
+        return self._GetPlanner().infer(query_node, nodes, 0, 0, 0)
 
     def _LoadBestCheckpointForEval(self):
         """Loads the checkpoint with the best validation loss."""
         train_utils.LoadBestCheckpointForEval(self.model, self.trainer)
 
-    def EvaluateCost(self, planner_config=None, split='all'):
+    def EvaluateCost(self, planner_config=None, split="all"):
         """Reports cost sub-optimalities w.r.t. Postgres."""
         p = self.params
         metrics = []
@@ -1079,19 +1223,20 @@ class Sim(object):
             return
 
         for query_node in self.workload.Queries(split=split):
-            qnames.append(query_node.info['query_name'])
+            qnames.append(query_node.info["query_name"])
             num_rels.append(len(query_node.leaf_ids()))
 
             # Call FilterScanOrJoins so that things like Aggregate/Hash are
             # removed and don't add parentheses in the hint string.
             pg_plan_str = plans_lib.FilterScansOrJoins(query_node).hint_str()
-            logging.info('query={} num_rels={}'.format(qnames[-1],
-                                                       num_rels[-1]))
-            logging.info('postgres_plan={} postgres_cost={}'.format(
-                pg_plan_str, query_node.cost))
+            logging.info("query={} num_rels={}".format(qnames[-1], num_rels[-1]))
+            logging.info(
+                "postgres_plan={} postgres_cost={}".format(pg_plan_str, query_node.cost)
+            )
 
             found_plan, predicted_cost = self.Infer(
-                query_node, planner_config=planner_config)
+                query_node, planner_config=planner_config
+            )
 
             if isinstance(self.search.cost_model, costing.PostgresCost):
                 # Score via PG.
@@ -1101,7 +1246,8 @@ class Sim(object):
                 # hint_str().  Doing this makes sure suboptimality is at best 1.0x
                 # for non-GEQO plans.
                 actual_cost = self.search.cost_model.ScoreWithSql(
-                    found_plan, query_node.info['sql_str'])
+                    found_plan, query_node.info["sql_str"]
+                )
                 found_plan_str = found_plan.hint_str()
 
                 suboptimality = actual_cost / query_node.cost
@@ -1109,8 +1255,10 @@ class Sim(object):
                 # Sanity checks.
                 try:
                     if suboptimality > 1:
-                        assert pg_plan_str != found_plan_str, (pg_plan_str,
-                                                               found_plan_str)
+                        assert pg_plan_str != found_plan_str, (
+                            pg_plan_str,
+                            found_plan_str,
+                        )
                     elif suboptimality < 0.99:
                         # Check that we can only do better than PG plan under the
                         # cost model if GEQO is enabled.  Otherwise PG uses
@@ -1129,78 +1277,80 @@ class Sim(object):
 
             # Logging.
             metrics.append(suboptimality)
-            logging.info('  predicted_cost={:.1f}'.format(predicted_cost))
-            logging.info('  actual_cost={:.1f}'.format(actual_cost))
-            logging.info('  suboptimality={:.1f}'.format(suboptimality))
+            logging.info("  predicted_cost={:.1f}".format(predicted_cost))
+            logging.info("  actual_cost={:.1f}".format(actual_cost))
+            logging.info("  suboptimality={:.1f}".format(suboptimality))
 
-        df = pd.DataFrame({
-            'query': qnames,
-            'num_rel': num_rels,
-            'suboptimality': metrics
-        })
+        df = pd.DataFrame(
+            {"query": qnames, "num_rel": num_rels, "suboptimality": metrics}
+        )
         df.to_csv(p.eval_output_path)
-        self.trainer.logger.log_metrics({
-            'subopt_mean': np.mean(metrics),
-            'subopt_max': np.asarray(metrics).max()
-        })
-        logging.info('suboptimalities:\n{}'.format(
-            df['suboptimality'].describe()))
+        self.trainer.logger.log_metrics(
+            {"subopt_mean": np.mean(metrics), "subopt_max": np.asarray(metrics).max()}
+        )
+        logging.info("suboptimalities:\n{}".format(df["suboptimality"].describe()))
 
-    def EvaluateLatency(self, planner_config=None, split='all'):
+    def EvaluateLatency(self, planner_config=None, split="all"):
         p = self.params
         metrics = []
         qnames = []
         num_rels = []
 
         for query_node in self.workload.Queries(split=split):
-            qnames.append(query_node.info['query_name'])
+            qnames.append(query_node.info["query_name"])
             num_rels.append(len(query_node.leaf_ids()))
 
             # Call FilterScanOrJoins so that things like Aggregate/Hash are
             # removed and don't add parentheses in the hint string.
             pg_plan_str = plans_lib.FilterScansOrJoins(query_node).hint_str()
-            logging.info('query={} num_rels={}'.format(qnames[-1],
-                                                       num_rels[-1]))
-            logging.info('postgres_plan={} postgres_cost={}'.format(
-                pg_plan_str, query_node.cost))
+            logging.info("query={} num_rels={}".format(qnames[-1], num_rels[-1]))
+            logging.info(
+                "postgres_plan={} postgres_cost={}".format(pg_plan_str, query_node.cost)
+            )
 
             found_plan, predicted_cost = self.Infer(
-                query_node, planner_config=planner_config)
+                query_node, planner_config=planner_config
+            )
             actual_cost = postgres.GetLatencyFromPg(
-                query_node.info['sql_str'],
-                found_plan.hint_str(p.plan_physical))
+                query_node.info["sql_str"], found_plan.hint_str(p.plan_physical)
+            )
 
             # Logging.
             metrics.append(actual_cost)
-            logging.info('  predicted_cost={:.1f}'.format(predicted_cost))
-            logging.info('  actual_latency_ms={:.1f}'.format(actual_cost))
+            logging.info("  predicted_cost={:.1f}".format(predicted_cost))
+            logging.info("  actual_latency_ms={:.1f}".format(actual_cost))
 
-        df = pd.DataFrame({
-            'query': qnames,
-            'num_rel': num_rels,
-            'latency': metrics,
-        })
+        df = pd.DataFrame(
+            {
+                "query": qnames,
+                "num_rel": num_rels,
+                "latency": metrics,
+            }
+        )
         df.to_csv(p.eval_latency_output_path)
-        self.trainer.logger.log_metrics({
-            'latency_sum_s': np.sum(metrics) / 1e3,
-        })
-        logging.info('Latencies:\n{}'.format(df['latency'].describe()))
+        self.trainer.logger.log_metrics(
+            {
+                "latency_sum_s": np.sum(metrics) / 1e3,
+            }
+        )
+        logging.info("Latencies:\n{}".format(df["latency"].describe()))
 
 
 def MakeTestQuery():
-    a_join_b = plans_lib.Node('Join')
+    a_join_b = plans_lib.Node("Join")
     a_join_b.children = [
-        plans_lib.Node('Scan', table_name='A').with_alias('a'),
-        plans_lib.Node('Scan', table_name='B').with_alias('b'),
+        plans_lib.Node("Scan", table_name="A").with_alias("a"),
+        plans_lib.Node("Scan", table_name="B").with_alias("b"),
     ]
-    query_node = plans_lib.Node('Join')
+    query_node = plans_lib.Node("Join")
     query_node.children = [
         a_join_b,
-        plans_lib.Node('Scan', table_name='C').with_alias('c')
+        plans_lib.Node("Scan", table_name="C").with_alias("c"),
     ]
-    query_node.info['query_name'] = 'test'
-    query_node.info[
-        'sql_str'] = 'SELECT * FROM a, b, c WHERE a.id = b.id AND a.id = c.id;'
+    query_node.info["query_name"] = "test"
+    query_node.info["sql_str"] = (
+        "SELECT * FROM a, b, c WHERE a.id = b.id AND a.id = c.id;"
+    )
 
     # Simple check: Copy() deep-copies the children nodes.
     copied = query_node.Copy()
@@ -1217,7 +1367,7 @@ def Main(argv):
 
     p = Sim.Params()
 
-    p.workload.query_glob = '*.sql'
+    p.workload.query_glob = "*.sql"
     p.workload.query_glob = None
     p.generic_ops_only_for_min_card_cost = True
 
@@ -1244,11 +1394,11 @@ def Main(argv):
     train_data = None
     for i in range(5):
         train_data = sim.Train(train_data, load_from_checkpoint=sim_ckpt)
-        sim.params.eval_output_path = 'eval-cost-{}.csv'.format(i)
-        sim.params.eval_latency_output_path = 'eval-latency-{}.csv'.format(i)
+        sim.params.eval_output_path = "eval-cost-{}.csv".format(i)
+        sim.params.eval_latency_output_path = "eval-latency-{}.csv".format(i)
         sim.EvaluateCost()
         sim.EvaluateLatency()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     app.run(Main)
