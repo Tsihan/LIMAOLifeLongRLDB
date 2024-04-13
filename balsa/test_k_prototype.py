@@ -269,11 +269,13 @@ class Kproto_DataProcessor:
             np.array([test_data_point_1_other]), categorical=self.categorical_indices)
 
         # 打印预测结果
-        print('Test Data Point 1 - Hash Join Cluster:',
+        print('Data Point - Hash Join Cluster:',
               predicted_label_1_hashjoin)
-        print('Test Data Point 1 - Nested Loop Cluster:',
+        print('Data Point - Nested Loop Cluster:',
               predicted_label_1_nestedloop)
-        print('Test Data Point 1 - other Cluster:', predicted_label_1_other)
+        print('Data Point - other Cluster:', predicted_label_1_other)
+
+        return predicted_label_1_hashjoin, predicted_label_1_nestedloop, predicted_label_1_other
 
 
 
@@ -287,18 +289,13 @@ processor = Kproto_DataProcessor(
     matrix_size=46
 )
 # 获取当前执行预测所用时间
-import time
-start = time.time()
+
 processor.predict_datapoint([test_data_1_f1, test_data_1_f2, test_data_1_f3, test_data_1_f4])
-end = time.time()
-print("Time taken for prediction:", end - start)
 
-start = time.time()
+
 processor.predict_datapoint([test_data_2_f1, test_data_2_f2, test_data_2_f3, test_data_2_f4])
-end = time.time()
-print("Time taken for prediction:", end - start)
 
-start = time.time()
+
+
 processor.predict_datapoint([test_data_3_f1, test_data_3_f2, test_data_3_f3, test_data_3_f4])
-end = time.time()
-print("Time taken for prediction:", end - start)
+

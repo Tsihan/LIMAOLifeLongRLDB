@@ -23,20 +23,19 @@ from balsa.models import treeconv
 from balsa.util import dataset as ds
 from balsa.util import plans_lib
 from balsa.util import simple_sql_parser
-from balsa.matrix_measurer import compute_difference
-
+from test_k_prototype import Kproto_DataProcessor
 CONV_MODULE_OTHER_0 = 0
 CONV_MODULE_OTHER_1 = 0
 CONV_MODULE_OTHER_2 = 0
-CONV_MODULE_OTHER_3 = 0
+
 CONV_MODULE_HASH_JOIN_0 = 0
 CONV_MODULE_HASH_JOIN_1 = 0   
 CONV_MODULE_HASH_JOIN_2 = 0
-CONV_MODULE_HASH_JOIN_3 = 0
+
 CONV_MODULE_NESTED_LOOP_JOIN_0 = 0
 CONV_MODULE_NESTED_LOOP_JOIN_1 = 0
 CONV_MODULE_NESTED_LOOP_JOIN_2 = 0
-CONV_MODULE_NESTED_LOOP_JOIN_3 = 0
+
 
 DEVICE = 'cuda' if torch.cuda.is_available() else 'cpu'
 
@@ -134,6 +133,7 @@ class Optimizer(object):
         plan_physical=False,
         use_label_cache=True,
         use_plan_restrictions=True,
+        k_prototype = None
     ):
         self.workload_info = workload_info
         self.plan_featurizer = plan_featurizer
@@ -144,9 +144,9 @@ class Optimizer(object):
         self.use_plan_restrictions = use_plan_restrictions
         
         #Qihan Zhang, add current_other_module_index, current_hash_join_module_index, current_nested_loop_join_module_index
-        self.current_other_module_index = 0
-        self.current_hash_join_module_index = 0
-        self.current_nested_loop_join_module_index = 0
+        # self.current_other_module_index = 0
+        # self.current_hash_join_module_index = 0
+        # self.current_nested_loop_join_module_index = 0
         # Plan search params default don't go
         if not plan_physical:
             jts = workload_info.join_types
@@ -163,6 +163,14 @@ class Optimizer(object):
         self.total_joins = 0
         self.total_random_triggers = 0
         self.num_queries_with_random = 0
+
+        self.k_prototype = Kproto_DataProcessor(
+    index_path='/home/qihan/balsaLifeLongRLDB/balsa/deal_assorted_text/indexes_env_matrix.txt',
+    operator_path='/home/qihan/balsaLifeLongRLDB/balsa/deal_assorted_text/operators_env_matrix.txt',
+    sql_path='/home/qihan/balsaLifeLongRLDB/balsa/deal_assorted_text/sql_feature_encode_matrix.txt',
+    query_path='/home/qihan/balsaLifeLongRLDB/balsa/deal_assorted_text/query_enc_matrix.txt',
+    matrix_size=46
+)
 
     def SetModel(self, model):
         self.value_network = model.to(DEVICE)
@@ -276,17 +284,6 @@ class Optimizer(object):
                 nested_loop_join_pos_feat = torch.from_numpy(np.asarray(nested_loop_join)).to(
                     DEVICE, non_blocking=True)
                 # Based on the debugging situation, only one BalsaModel and one SimModel will be used
-                # if self.value_network.__class__.__name__ == 'BalsaModel':
-                #     length_of_other_modulelist = len(self.value_network.model.conv_module_list_other)
-                #     length_of_hash_join_modulelist = len(self.value_network.model.conv_module_list_hash_join)
-                #     length_of_nested_loop_join_modulelist = len(self.value_network.model.conv_module_list_nested_loop_join)
-                # else:
-                #     length_of_other_modulelist = len(self.value_network.tree_conv.conv_module_list_other)
-                #     length_of_hash_join_modulelist = len(self.value_network.tree_conv.conv_module_list_hash_join)
-                #     length_of_nested_loop_join_modulelist = len(self.value_network.tree_conv.conv_module_list_nested_loop_join)
-                    
-                    
-               
 
                 cost = self.value_network(chosen_idx_other,chosen_idx_hash_join,chosen_idx_nested_loop_join,
                                           query_feat,plan_feat,hash_join_feat,nested_loop_join_feat,pos_feat,
@@ -496,15 +493,9 @@ class Optimizer(object):
             else:
                 assert planner_config.search_space != 'bushy', planner_config
                 
-        # TODO pay attention to here, how it features the query(CONTEXT)!
-        # mark all the tables with 1, and transform the value 1.
-        # TODO according to query_enc, we decide which sub-modules to use
-        # DEBUG 
-        #print("query_node: ",query_node)
-        # <class 'balsa.util.plans_lib.Node'>
         operators_env_matrix = []
         self.add_nodetype_recursively(query_node,operators_env_matrix)
-        operators_env_matrix = np.array(operators_env_matrix)
+        
         # operators_env_matrix, indexes_env_matrix and query_enc_matrix will be used together 
         # to decide which sub-module combination to use.
         indexes_env_matrix = treeconv._make_indexes_environment(query_node)
@@ -512,7 +503,7 @@ class Optimizer(object):
         sql_str = query_node.info['sql_str']
         print("sql_str: ",sql_str)
         # One-hot vector [GROUP BY, ORDER BY, Aggregate Function, Subquery]
-        sql_feature_encode_matrix = np.array(simple_sql_parser.simple_encode_sql(sql_str))
+        sql_feature_encode_matrix = simple_sql_parser.simple_encode_sql(sql_str)
         
         ############## test use ################
         print("operators_env_matrix for this sql: ",operators_env_matrix)
@@ -521,123 +512,15 @@ class Optimizer(object):
         print("sql_feature_encode_matrix for this sql: ",sql_feature_encode_matrix)
         
         
-        
-        if self.value_network.__class__.__name__ == 'BalsaModel':
-            length_of_other_modulelist = len(self.value_network.model.conv_module_list_other)
-            length_of_hash_join_modulelist = len(self.value_network.model.conv_module_list_hash_join)
-            length_of_nested_loop_join_modulelist = len(self.value_network.model.conv_module_list_nested_loop_join)
-            # print("BalsaModel operators_env_matrix for this other index: ",self.value_network.model.other_features[self.current_other_module_index][0])
-            # print("BalsaModel indexes_env_matrix for this other index: ",self.value_network.model.other_features[self.current_other_module_index][1])
-            # print("BalsaModel query_enc_matrix for this other  index: ",self.value_network.model.other_features[self.current_other_module_index][2])
-            # print("BalsaModel sql_feature_encode_matrix for this other index: ",self.value_network.model.other_features[self.current_other_module_index][3])
-            diff_other = compute_difference(self.value_network.model.other_features[self.current_other_module_index][0],
-                                                                 self.value_network.model.other_features[self.current_other_module_index][1],
-                                                                 self.value_network.model.other_features[self.current_other_module_index][2],
-                                                                 self.value_network.model.other_features[self.current_other_module_index][3],
-                                                                 operators_env_matrix,
-                                                                 indexes_env_matrix,
-                                                                 query_enc_matrix,
-                                                                 sql_feature_encode_matrix)
-            print("the difference value is: ",diff_other)
-            if diff_other >= 100:
-                print("Other difference exceed the threshold, need to switch module.")
-            
-            
-            # print("BalsaModel operators_env_matrix for this hash index: ",self.value_network.model.hash_join_features[self.current_hash_join_module_index][0])
-            # print("BalsaModel indexes_env_matrix for this hash index: ",self.value_network.model.hash_join_features[self.current_hash_join_module_index][1])
-            # print("BalsaModel query_enc_matrix for this hash  index: ",self.value_network.model.hash_join_features[self.current_hash_join_module_index][2])
-            # print("BalsaModel sql_feature_encode_matrix for this hash index: ",self.value_network.model.hash_join_features[self.current_hash_join_module_index][3])       
-            diff_hash = compute_difference(self.value_network.model.hash_join_features[self.current_other_module_index][0],
-                                                                 self.value_network.model.hash_join_features[self.current_other_module_index][1],
-                                                                 self.value_network.model.hash_join_features[self.current_other_module_index][2],
-                                                                 self.value_network.model.hash_join_features[self.current_other_module_index][3],
-                                                                 operators_env_matrix,
-                                                                 indexes_env_matrix,
-                                                                 query_enc_matrix,
-                                                                 sql_feature_encode_matrix)
-            print("the difference value is: ",diff_hash)
-            if diff_hash >= 100:
-                print("Hash difference exceed the threshold, need to switch module.")
-           
-           
-            # print("BalsaModel operators_env_matrix for this nested_loop index: ",self.value_network.model.nested_loop_join_features[self.current_nested_loop_join_module_index][0])
-            # print("BalsaModel indexes_env_matrix for this nested_loop index: ",self.value_network.model.nested_loop_join_features[self.current_nested_loop_join_module_index][1])
-            # print("BalsaModel query_enc_matrix for this nested_loop  index: ",self.value_network.model.nested_loop_join_features[self.current_nested_loop_join_module_index][2])
-            # print("BalsaModel sql_feature_encode_matrix for this nested_loop index: ",self.value_network.model.nested_loop_join_features[self.current_nested_loop_join_module_index][3])       
-            diff_nested_loop = compute_difference(self.value_network.model.nested_loop_join_features[self.current_other_module_index][0],
-                                                                 self.value_network.model.nested_loop_join_features[self.current_other_module_index][1],
-                                                                 self.value_network.model.nested_loop_join_features[self.current_other_module_index][2],
-                                                                 self.value_network.model.nested_loop_join_features[self.current_other_module_index][3],
-                                                                 operators_env_matrix,
-                                                                 indexes_env_matrix,
-                                                                 query_enc_matrix,
-                                                                 sql_feature_encode_matrix)
-            print("the difference value is: ",diff_nested_loop)
-            if diff_nested_loop >= 100:
-                print("Nested loop difference exceed the threshold, need to switch module.")
-       
-       
-       
-       
-        else:
-            length_of_other_modulelist = len(self.value_network.tree_conv.conv_module_list_other)
-            length_of_hash_join_modulelist = len(self.value_network.tree_conv.conv_module_list_hash_join)
-            length_of_nested_loop_join_modulelist = len(self.value_network.tree_conv.conv_module_list_nested_loop_join)
-            print("non BalsaModel operators_env_matrix for this other index: ",self.value_network.tree_conv.other_features[self.current_other_module_index][0])
-            print("non BalsaModel indexes_env_matrix for this other index: ",self.value_network.tree_conv.other_features[self.current_other_module_index][1])
-            print("non BalsaModel query_enc_matrix for this other  index: ",self.value_network.tree_conv.other_features[self.current_other_module_index][2])
-            print("non BalsaModel sql_feature_encode_matrix for this other index: ",self.value_network.tree_conv.other_features[self.current_other_module_index][3])
-            
-            
-            
-            print("non BalsaModel operators_env_matrix for this hash index: ",self.value_network.tree_conv.hash_join_features[self.current_hash_join_module_index][0])
-            print("non BalsaModel indexes_env_matrix for this hash index: ",self.value_network.tree_conv.hash_join_features[self.current_hash_join_module_index][1])
-            print("non BalsaModel query_enc_matrix for this hash  index: ",self.value_network.tree_conv.hash_join_features[self.current_hash_join_module_index][2])
-            print("non BalsaModel sql_feature_encode_matrix for this hash index: ",self.value_network.tree_conv.hash_join_features[self.current_hash_join_module_index][3])       
-           
-           
-           
-            print("non BalsaModel operators_env_matrix for this nested_loop index: ",self.value_network.tree_conv.nested_loop_join_features[self.current_nested_loop_join_module_index][0])
-            print("non BalsaModel indexes_env_matrix for this nested_loop index: ",self.value_network.tree_conv.nested_loop_join_features[self.current_nested_loop_join_module_index][1])
-            print("non BalsaModel query_enc_matrix for this nested_loop  index: ",self.value_network.tree_conv.nested_loop_join_features[self.current_nested_loop_join_module_index][2])
-            print("non BalsaModel sql_feature_encode_matrix for this nested_loop index: ",self.value_network.tree_conv.nested_loop_join_features[self.current_nested_loop_join_module_index][3])       
-             
-             
-             
                     
-        chosen_idx_other = self.current_other_module_index
-        if length_of_other_modulelist < 2:
-            chosen_idx_other = -1
-            self.current_other_module_index = length_of_other_modulelist 
-        
-        ### only for test use
-        if chosen_idx_other == 0:
-            self.current_other_module_index = 1
-        elif chosen_idx_other == 1:
-            self.current_other_module_index = 0
-                
-        chosen_idx_hash_join = self.current_hash_join_module_index
-        if length_of_hash_join_modulelist < 2:
-            chosen_idx_hash_join = -1
-            self.current_hash_join_module_index = length_of_hash_join_modulelist 
-        
-        ### only for test use
-        if chosen_idx_hash_join == 0:
-            self.current_hash_join_module_index = 1
-        elif chosen_idx_hash_join == 1:
-            self.current_hash_join_module_index = 0
-        
-        chosen_idx_nested_loop_join = self.current_nested_loop_join_module_index
-        if length_of_nested_loop_join_modulelist < 2:
-            chosen_idx_nested_loop_join = -1
-            self.current_nested_loop_join_module_index = length_of_nested_loop_join_modulelist 
+        chosen_idx_hash_join,chosen_idx_nested_loop_join,chosen_idx_other  = \
+        self.k_prototype.predict_datapoint([indexes_env_matrix,operators_env_matrix,sql_feature_encode_matrix,query_enc_matrix])
 
-        ### only for test use
-        if chosen_idx_nested_loop_join == 0:
-            self.current_nested_loop_join_module_index = 1
-        elif chosen_idx_nested_loop_join == 1:
-            self.current_nested_loop_join_module_index = 0
-            
+        
+
+       
+
+
             
         planning_start_t = time.time()
         # Join graph.
@@ -719,22 +602,19 @@ class Optimizer(object):
             #     depth_record.append(self.get_depth(possible_plans[i][0]))
 
             costs = self.infer(query_node,[join for join, _, _ in possible_plans],chosen_idx_other,chosen_idx_hash_join, chosen_idx_nested_loop_join)
-            if chosen_idx_other == -1:
-                chosen_idx_other = length_of_other_modulelist
-            
-            
+
             global CONV_MODULE_OTHER_0 
             global CONV_MODULE_OTHER_1
             global CONV_MODULE_OTHER_2
-            global CONV_MODULE_OTHER_3
+        
             global CONV_MODULE_HASH_JOIN_0 
             global CONV_MODULE_HASH_JOIN_1 
             global CONV_MODULE_HASH_JOIN_2 
-            global CONV_MODULE_HASH_JOIN_3 
+      
             global CONV_MODULE_NESTED_LOOP_JOIN_0 
             global CONV_MODULE_NESTED_LOOP_JOIN_1 
             global CONV_MODULE_NESTED_LOOP_JOIN_2 
-            global CONV_MODULE_NESTED_LOOP_JOIN_3 
+ 
 
 
             if chosen_idx_other == 0:
@@ -743,25 +623,17 @@ class Optimizer(object):
                 CONV_MODULE_OTHER_1 += 1
             elif chosen_idx_other == 2:
                 CONV_MODULE_OTHER_2 += 1
-            elif chosen_idx_other == 3:
-                CONV_MODULE_OTHER_3 += 1
-                
-                
-            if chosen_idx_hash_join == -1:
-                chosen_idx_hash_join = length_of_hash_join_modulelist
-            
+
+                       
+
             if chosen_idx_hash_join == 0:
                 CONV_MODULE_HASH_JOIN_0 += 1
             elif chosen_idx_hash_join == 1:
                 CONV_MODULE_HASH_JOIN_1 += 1
             elif chosen_idx_hash_join == 2:
                 CONV_MODULE_HASH_JOIN_2 += 1
-            elif chosen_idx_hash_join == 3:
-                CONV_MODULE_HASH_JOIN_3 += 1
+
                 
-                
-            if chosen_idx_nested_loop_join == -1:
-                chosen_idx_nested_loop_join = length_of_nested_loop_join_modulelist
                 
             if chosen_idx_nested_loop_join == 0:
                 CONV_MODULE_NESTED_LOOP_JOIN_0 += 1
@@ -769,8 +641,7 @@ class Optimizer(object):
                 CONV_MODULE_NESTED_LOOP_JOIN_1 += 1
             elif chosen_idx_nested_loop_join == 2:
                 CONV_MODULE_NESTED_LOOP_JOIN_2 += 1
-            elif chosen_idx_nested_loop_join == 3:
-                CONV_MODULE_NESTED_LOOP_JOIN_3 += 1
+
                 
                 
             valid_costs, valid_new_states = self._make_new_states(

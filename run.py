@@ -701,11 +701,8 @@ class BalsaModel(pl.LightningModule):
         def fake_three_indexes():
             return 0, 0, 0
 
-        (
-            idx_other_module_list,
-            idx_hash_join_module_list,
-            idx_nested_loop_join_module_list,
-        ) = fake_three_indexes()
+        
+        idx_other_module_list,idx_hash_join_module_list,idx_nested_loop_join_module_list = fake_three_indexes()
 
         output = self.forward(
             idx_other_module_list,
@@ -819,19 +816,7 @@ class BalsaAgent(object):
         # Optimizer state.
         self.prev_optimizer_state_dict = None
 
-        # Qihan Zhang add 3*4 int to count in this iteration how many times we use each module
-        # self.conv_module_other_0 = 0
-        # self.conv_module_other_1 = 0
-        # self.conv_module_other_2 = 0
-        # self.conv_module_other_3 = 0
-        # self.conv_module_hash_join_0 = 0
-        # self.conv_module_hash_join_1 = 0
-        # self.conv_module_hash_join_2 = 0
-        # self.conv_module_hash_join_3 = 0
-        # self.conv_module_nested_loop_join_0 = 0
-        # self.conv_module_nested_loop_join_1 = 0
-        # self.conv_module_nested_loop_join_2 = 0
-        # self.conv_module_nested_loop_join_3 = 0
+
         # Ray.
         if p.use_local_execution:
             # print('Using local execution!!!!!')
@@ -1804,11 +1789,7 @@ class BalsaAgent(object):
                 optim.CONV_MODULE_OTHER_2
             )
         )
-        print(
-            "In this iteration, conv_module_other_3 is used {} times".format(
-                optim.CONV_MODULE_OTHER_3
-            )
-        )
+
         print(
             "In this iteration, conv_module_hash_join_0 is used {} times".format(
                 optim.CONV_MODULE_HASH_JOIN_0
@@ -1824,11 +1805,7 @@ class BalsaAgent(object):
                 optim.CONV_MODULE_HASH_JOIN_2
             )
         )
-        print(
-            "In this iteration, conv_module_hash_join_3 is used {} times".format(
-                optim.CONV_MODULE_HASH_JOIN_3
-            )
-        )
+
         print(
             "In this iteration, conv_module_nested_loop_join_0 is used {} times".format(
                 optim.CONV_MODULE_NESTED_LOOP_JOIN_0
@@ -1844,24 +1821,20 @@ class BalsaAgent(object):
                 optim.CONV_MODULE_NESTED_LOOP_JOIN_2
             )
         )
-        print(
-            "In this iteration, conv_module_nested_loop_join_3 is used {} times".format(
-                optim.CONV_MODULE_NESTED_LOOP_JOIN_3
-            )
-        )
+
         # reset to zero
         optim.CONV_MODULE_OTHER_0 = 0
         optim.CONV_MODULE_OTHER_1 = 0
         optim.CONV_MODULE_OTHER_2 = 0
-        optim.CONV_MODULE_OTHER_3 = 0
+        
         optim.CONV_MODULE_HASH_JOIN_0 = 0
         optim.CONV_MODULE_HASH_JOIN_1 = 0
         optim.CONV_MODULE_HASH_JOIN_2 = 0
-        optim.CONV_MODULE_HASH_JOIN_3 = 0
+     
         optim.CONV_MODULE_NESTED_LOOP_JOIN_0 = 0
         optim.CONV_MODULE_NESTED_LOOP_JOIN_1 = 0
         optim.CONV_MODULE_NESTED_LOOP_JOIN_2 = 0
-        optim.CONV_MODULE_NESTED_LOOP_JOIN_3 = 0
+     
 
         self.timer.Stop("plan_test_set" if is_test else "plan")
         self.timer.Start(
