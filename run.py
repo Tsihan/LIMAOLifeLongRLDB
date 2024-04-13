@@ -64,6 +64,8 @@ from balsa.util import dataset as ds
 from balsa.util import plans_lib
 from balsa.util import postgres
 
+from balsa.test_k_prototype import Kproto_DataProcessor
+
 import sim as sim_lib
 import pg_executor
 from pg_executor import dbmsx_executor
@@ -578,7 +580,7 @@ class BalsaModel(pl.LightningModule):
         """Useful for prepending value iteration numbers."""
         self.logging_prefix = prefix
 
-    # FIXME QIHANZHANG
+    
     def forward(
         self,
         idx_other_modulelist,
@@ -815,6 +817,9 @@ class BalsaAgent(object):
 
         # Optimizer state.
         self.prev_optimizer_state_dict = None
+
+
+
 
 
         # Ray.
@@ -2596,9 +2601,11 @@ class BalsaAgent(object):
                     if self.adaptive_lr_schedule is not None:
                         self.adaptive_lr_schedule.Step()
 
+   
+
 
 def Main(argv):
-
+    
     del argv  # Unused.
     name = FLAGS.run
     print("Looking up params by name:", name)
@@ -2618,5 +2625,6 @@ def Main(argv):
 
 
 if __name__ == "__main__":
+
 
     app.run(Main)

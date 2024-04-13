@@ -42,6 +42,7 @@ from balsa.util import postgres
 import train_utils
 
 
+
 class SimModel(pl.LightningModule):
 
     def __init__(
@@ -1211,7 +1212,11 @@ class Sim(object):
         """Runs forward pass on 'nodes' to predict their costs."""
         # default use upper version Qihan Zhang
         # TODO debug mssing args!
-        return self._GetPlanner().infer(query_node, nodes, 0, 0, 0)
+        from balsa.optimizer import CURRENT_OTHER_MODULE_INDEX
+        from balsa.optimizer import CURRENT_HASH_JOIN_MODULE_INDEX
+        from balsa.optimizer import CURRENT_NESTED_LOOP_JOIN_MODULE_INDEX
+        return self._GetPlanner().infer(query_node, nodes, CURRENT_OTHER_MODULE_INDEX, 
+                                        CURRENT_HASH_JOIN_MODULE_INDEX, CURRENT_NESTED_LOOP_JOIN_MODULE_INDEX)
 
     def _LoadBestCheckpointForEval(self):
         """Loads the checkpoint with the best validation loss."""

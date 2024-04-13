@@ -15,6 +15,7 @@
 import collections
 import time
 
+
 import numpy as np
 import torch
 
@@ -23,7 +24,9 @@ from balsa.models import treeconv
 from balsa.util import dataset as ds
 from balsa.util import plans_lib
 from balsa.util import simple_sql_parser
-from test_k_prototype import Kproto_DataProcessor
+from balsa.test_k_prototype import Kproto_DataProcessor
+
+
 CONV_MODULE_OTHER_0 = 0
 CONV_MODULE_OTHER_1 = 0
 CONV_MODULE_OTHER_2 = 0
@@ -35,6 +38,8 @@ CONV_MODULE_HASH_JOIN_2 = 0
 CONV_MODULE_NESTED_LOOP_JOIN_0 = 0
 CONV_MODULE_NESTED_LOOP_JOIN_1 = 0
 CONV_MODULE_NESTED_LOOP_JOIN_2 = 0
+
+# Qihan: this is used for global variable, to correctly use the module index in sim.py
 
 
 DEVICE = 'cuda' if torch.cuda.is_available() else 'cpu'
@@ -132,8 +137,7 @@ class Optimizer(object):
         search_until_n_complete_plans=1,
         plan_physical=False,
         use_label_cache=True,
-        use_plan_restrictions=True,
-        k_prototype = None
+        use_plan_restrictions=True
     ):
         self.workload_info = workload_info
         self.plan_featurizer = plan_featurizer
@@ -164,13 +168,16 @@ class Optimizer(object):
         self.total_random_triggers = 0
         self.num_queries_with_random = 0
 
+        self.current_other_module_index = 4
+        self.current_hash_join_module_index = 4
+        self.current_nested_loop_join_module_index = 4
+
         self.k_prototype = Kproto_DataProcessor(
     index_path='/home/qihan/balsaLifeLongRLDB/balsa/deal_assorted_text/indexes_env_matrix.txt',
     operator_path='/home/qihan/balsaLifeLongRLDB/balsa/deal_assorted_text/operators_env_matrix.txt',
     sql_path='/home/qihan/balsaLifeLongRLDB/balsa/deal_assorted_text/sql_feature_encode_matrix.txt',
     query_path='/home/qihan/balsaLifeLongRLDB/balsa/deal_assorted_text/query_enc_matrix.txt',
-    matrix_size=46
-)
+    matrix_size=46)
 
     def SetModel(self, model):
         self.value_network = model.to(DEVICE)
@@ -506,20 +513,28 @@ class Optimizer(object):
         sql_feature_encode_matrix = simple_sql_parser.simple_encode_sql(sql_str)
         
         ############## test use ################
-        print("operators_env_matrix for this sql: ",operators_env_matrix)
         print("indexes_env_matrix for this sql: ",indexes_env_matrix)
-        print("query_enc_matrix for this sql: ",query_enc_matrix)
+        print("operators_env_matrix for this sql: ",operators_env_matrix)
         print("sql_feature_encode_matrix for this sql: ",sql_feature_encode_matrix)
+        print("query_enc_matrix for this sql: ",query_enc_matrix)
+        
         
         
                     
         chosen_idx_hash_join,chosen_idx_nested_loop_join,chosen_idx_other  = \
-        self.k_prototype.predict_datapoint([indexes_env_matrix,operators_env_matrix,sql_feature_encode_matrix,query_enc_matrix])
+        self.k_prototype.predict_datapoint([indexes_env_matrix.tolist(),operators_env_matrix,sql_feature_encode_matrix,query_enc_matrix.tolist()])
 
         
-
+        self.current_other_module_index = chosen_idx_other
+        self.current_hash_join_module_index = chosen_idx_hash_join
+        self.current_nested_loop_join_module_index = chosen_idx_nested_loop_join
        
-
+        global CURRENT_OTHER_MODULE_INDEX
+        CURRENT_OTHER_MODULE_INDEX = self.current_other_module_index
+        global CURRENT_HASH_JOIN_MODULE_INDEX
+        CURRENT_HASH_JOIN_MODULE_INDEX = self.current_hash_join_module_index
+        global CURRENT_NESTED_LOOP_JOIN_MODULE_INDEX
+        CURRENT_NESTED_LOOP_JOIN_MODULE_INDEX = self.current_nested_loop_join_module_index
 
             
         planning_start_t = time.time()

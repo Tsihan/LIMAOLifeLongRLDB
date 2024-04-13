@@ -2,36 +2,36 @@ import numpy as np
 from kmodes.kprototypes import KPrototypes
 from itertools import chain
 
-test_data_1_f1 = [1, 2, 21, 2, 3, 20, 3, 4, 19, 4, 5, 18, 5, 6, 17, 6, 7, 16, 7, 8, 15, 8, 9, 14, 9, 10, 13, 10, 11,
-                  12, 11, 0, 0, 12, 0, 0, 13, 0, 0, 14, 0, 0, 15, 0, 0, 16, 0, 0, 17, 0, 0, 18, 0, 0, 19, 0, 0, 20, 0, 0, 21, 0, 0]
+# test_data_1_f1 = [1, 2, 21, 2, 3, 20, 3, 4, 19, 4, 5, 18, 5, 6, 17, 6, 7, 16, 7, 8, 15, 8, 9, 14, 9, 10, 13, 10, 11,
+#                   12, 11, 0, 0, 12, 0, 0, 13, 0, 0, 14, 0, 0, 15, 0, 0, 16, 0, 0, 17, 0, 0, 18, 0, 0, 19, 0, 0, 20, 0, 0, 21, 0, 0]
 
-test_data_1_f2 = [1, 1, 1, 1, 1, 1, 1, 0,
-                  1, 1, 4, 4, 4, 3, 4, 4, 4, 3, 3, 4, 4]
+# test_data_1_f2 = [1, 1, 1, 1, 1, 1, 1, 0,
+#                   1, 1, 4, 4, 4, 3, 4, 4, 4, 3, 3, 4, 4]
 
-test_data_1_f3 = [0, 0, 1, 0]
+# test_data_1_f3 = [0, 0, 1, 0]
 
-test_data_1_f4 = [0.00000000e+00, 1.00000000e+00, 0.00000000e+00, 0.00000000e+00, 0.00000000e+00, 0.00000000e+00, 0.00000000e+00, 0.00000000e+00, 0.00000000e+00, 8.84955749e-03, 8.84955749e-03, 0.00000000e+00, 0.00000000e+00, 0.00000000e+00, 1.04345236e-04, 4.28571433e-01,
-                  0.00000000e+00, 0.00000000e+00, 0.00000000e+00, 8.93923570e-04, 7.48666062e-04, 0.00000000e+00, 0.00000000e+00, 0.00000000e+00, 0.00000000e+00, 1.00000000e+00, 0.00000000e+00, 3.48630399e-01, 0.00000000e+00, 1.66666672e-01, 1.81086034e-01, 0.00000000e+00, 0.00000000e+00]
+# test_data_1_f4 = [0.00000000e+00, 1.00000000e+00, 0.00000000e+00, 0.00000000e+00, 0.00000000e+00, 0.00000000e+00, 0.00000000e+00, 0.00000000e+00, 0.00000000e+00, 8.84955749e-03, 8.84955749e-03, 0.00000000e+00, 0.00000000e+00, 0.00000000e+00, 1.04345236e-04, 4.28571433e-01,
+#                   0.00000000e+00, 0.00000000e+00, 0.00000000e+00, 8.93923570e-04, 7.48666062e-04, 0.00000000e+00, 0.00000000e+00, 0.00000000e+00, 0.00000000e+00, 1.00000000e+00, 0.00000000e+00, 3.48630399e-01, 0.00000000e+00, 1.66666672e-01, 1.81086034e-01, 0.00000000e+00, 0.00000000e+00]
 
-test_data_2_f1 = [1, 2, 13, 2, 3, 12, 3, 4, 11, 4, 5, 10, 5, 6, 9, 6, 7,
-                  8, 7, 0, 0, 8, 0, 0, 9, 0, 0, 10, 0, 0, 11, 0, 0, 12, 0, 0, 13, 0, 0]
+# test_data_2_f1 = [1, 2, 13, 2, 3, 12, 3, 4, 11, 4, 5, 10, 5, 6, 9, 6, 7,
+#                   8, 7, 0, 0, 8, 0, 0, 9, 0, 0, 10, 0, 0, 11, 0, 0, 12, 0, 0, 13, 0, 0]
 
-test_data_2_f2 = [1, 1, 1, 1, 1, 1, 3, 4, 5, 4, 4, 4, 4]
+# test_data_2_f2 = [1, 1, 1, 1, 1, 1, 3, 4, 5, 4, 4, 4, 4]
 
-test_data_2_f3 = [0, 0, 1, 0]
+# test_data_2_f3 = [0, 0, 1, 0]
 
-test_data_2_f4 = [0.0000000e+00, 1.0000000e+00, 0.0000000e+00, 0.0000000e+00, 0.0000000e+00, 3.6416635e-01, 0.0000000e+00, 0.0000000e+00, 0.0000000e+00, 0.0000000e+00, 0.0000000e+00, 0.0000000e+00, 0.0000000e+00, 0.0000000e+00, 7.4532309e-06, 0.0000000e+00,
-                  0.0000000e+00, 1.0000000e+00, 0.0000000e+00, 0.0000000e+00, 0.0000000e+00, 0.0000000e+00, 0.0000000e+00, 0.0000000e+00, 0.0000000e+00, 1.0000000e+00, 0.0000000e+00, 1.0000000e+00, 0.0000000e+00, 0.0000000e+00, 1.0000000e+00, 0.0000000e+00, 0.0000000e+00]
+# test_data_2_f4 = [0.0000000e+00, 1.0000000e+00, 0.0000000e+00, 0.0000000e+00, 0.0000000e+00, 3.6416635e-01, 0.0000000e+00, 0.0000000e+00, 0.0000000e+00, 0.0000000e+00, 0.0000000e+00, 0.0000000e+00, 0.0000000e+00, 0.0000000e+00, 7.4532309e-06, 0.0000000e+00,
+#                   0.0000000e+00, 1.0000000e+00, 0.0000000e+00, 0.0000000e+00, 0.0000000e+00, 0.0000000e+00, 0.0000000e+00, 0.0000000e+00, 0.0000000e+00, 1.0000000e+00, 0.0000000e+00, 1.0000000e+00, 0.0000000e+00, 0.0000000e+00, 1.0000000e+00, 0.0000000e+00, 0.0000000e+00]
 
-test_data_3_f1 = [1, 2, 13, 2, 3, 12, 3, 4, 11, 4, 5, 10, 5, 6, 9, 6, 7,
-                  8, 7, 0, 0, 8, 0, 0, 9, 0, 0, 10, 0, 0, 11, 0, 0, 12, 0, 0, 13, 0, 0]
+# test_data_3_f1 = [1, 2, 13, 2, 3, 12, 3, 4, 11, 4, 5, 10, 5, 6, 9, 6, 7,
+#                   8, 7, 0, 0, 8, 0, 0, 9, 0, 0, 10, 0, 0, 11, 0, 0, 12, 0, 0, 13, 0, 0]
 
-test_data_3_f2 = [1, 1, 1, 1, 1, 1, 3, 4, 5, 4, 4, 4, 4]
+# test_data_3_f2 = [1, 1, 1, 1, 1, 1, 3, 4, 5, 4, 4, 4, 4]
 
-test_data_3_f3 = [0, 0, 1, 0]
+# test_data_3_f3 = [0, 0, 1, 0]
 
-test_data_3_f4 = [0.0000000e+00, 1.0000000e+00, 0.0000000e+00, 0.0000000e+00, 0.0000000e+00, 3.6416635e-01, 0.0000000e+00, 0.0000000e+00, 0.0000000e+00, 0.0000000e+00, 0.0000000e+00, 0.0000000e+00, 0.0000000e+00, 0.0000000e+00, 7.4532309e-06, 0.0000000e+00,
-                  0.0000000e+00, 1.0000000e+00, 0.0000000e+00, 0.0000000e+00, 0.0000000e+00, 0.0000000e+00, 0.0000000e+00, 0.0000000e+00, 0.0000000e+00, 1.0000000e+00, 0.0000000e+00, 1.0000000e+00, 0.0000000e+00, 0.0000000e+00, 1.0000000e+00, 0.0000000e+00, 0.0000000e+00]
+# test_data_3_f4 = [0.0000000e+00, 1.0000000e+00, 0.0000000e+00, 0.0000000e+00, 0.0000000e+00, 3.6416635e-01, 0.0000000e+00, 0.0000000e+00, 0.0000000e+00, 0.0000000e+00, 0.0000000e+00, 0.0000000e+00, 0.0000000e+00, 0.0000000e+00, 7.4532309e-06, 0.0000000e+00,
+#                   0.0000000e+00, 1.0000000e+00, 0.0000000e+00, 0.0000000e+00, 0.0000000e+00, 0.0000000e+00, 0.0000000e+00, 0.0000000e+00, 0.0000000e+00, 1.0000000e+00, 0.0000000e+00, 1.0000000e+00, 0.0000000e+00, 0.0000000e+00, 1.0000000e+00, 0.0000000e+00, 0.0000000e+00]
 
 
 
@@ -44,11 +44,11 @@ class Kproto_DataProcessor:
         self.query_path = query_path
         self.matrix_size = matrix_size
         self.kproto_hashjoin = KPrototypes(
-            n_clusters=4, init='Huang', random_state=42)
+            n_clusters=3, init='Huang', random_state=42)
         self.kproto_nestedloop = KPrototypes(
-            n_clusters=4, init='Huang', random_state=42)
+            n_clusters=3, init='Huang', random_state=42)
         self.kproto_other = KPrototypes(
-            n_clusters=4, init='Huang', random_state=42)
+            n_clusters=3, init='Huang', random_state=42)
         self.max_lengths = [0, 0, 0, 0]
         self.categorical_indices = []
         self.load_data()
@@ -198,13 +198,7 @@ class Kproto_DataProcessor:
             data_point))) for data_point in data_points_nestedloop])
         data_other = np.array([np.array(list(chain.from_iterable(
             data_point))) for data_point in data_points_other])
-        # 创建 KPrototypes 实例，设置聚类数为4，使用'Huang'初始化方法
-        self.kproto_hashjoin = KPrototypes(
-            n_clusters=4, init='Huang', random_state=42)
-        self.kproto_nestedloop = KPrototypes(
-            n_clusters=4, init='Huang', random_state=42)
-        self.kproto_other = KPrototypes(
-            n_clusters=4, init='Huang', random_state=42)
+
 
         # 对数据进行聚类，分类特征的索引为前三个特征的索引
         self.categorical_indices = list(range(sum(self.max_lengths[:3])))
@@ -259,14 +253,13 @@ class Kproto_DataProcessor:
             [data_point[0], test_data_1_f2_other, data_point[2], data_point[3]]
         )
 
-
-# 使用transformed数据点进行预测
+        # 使用transformed数据点进行预测
         predicted_label_1_hashjoin = self.kproto_hashjoin.predict(
-            np.array([test_data_point_1_hashjoin]), categorical=self.categorical_indices)
+            np.array([test_data_point_1_hashjoin]), categorical=self.categorical_indices)[0]
         predicted_label_1_nestedloop = self.kproto_nestedloop.predict(
-            np.array([test_data_point_1_nestedloop]), categorical=self.categorical_indices)
+            np.array([test_data_point_1_nestedloop]), categorical=self.categorical_indices)[0]
         predicted_label_1_other = self.kproto_other.predict(
-            np.array([test_data_point_1_other]), categorical=self.categorical_indices)
+            np.array([test_data_point_1_other]), categorical=self.categorical_indices)[0]
 
         # 打印预测结果
         print('Data Point - Hash Join Cluster:',
@@ -275,27 +268,27 @@ class Kproto_DataProcessor:
               predicted_label_1_nestedloop)
         print('Data Point - other Cluster:', predicted_label_1_other)
 
-        return predicted_label_1_hashjoin, predicted_label_1_nestedloop, predicted_label_1_other
+        return int(predicted_label_1_hashjoin), int(predicted_label_1_nestedloop), int(predicted_label_1_other)
 
 
 
 
 # Example usage:
-processor = Kproto_DataProcessor(
-    index_path='/home/qihan/balsaLifeLongRLDB/balsa/deal_assorted_text/indexes_env_matrix.txt',
-    operator_path='/home/qihan/balsaLifeLongRLDB/balsa/deal_assorted_text/operators_env_matrix.txt',
-    sql_path='/home/qihan/balsaLifeLongRLDB/balsa/deal_assorted_text/sql_feature_encode_matrix.txt',
-    query_path='/home/qihan/balsaLifeLongRLDB/balsa/deal_assorted_text/query_enc_matrix.txt',
-    matrix_size=46
-)
+# processor = Kproto_DataProcessor(
+#     index_path='/home/qihan/balsaLifeLongRLDB/balsa/deal_assorted_text/indexes_env_matrix.txt',
+#     operator_path='/home/qihan/balsaLifeLongRLDB/balsa/deal_assorted_text/operators_env_matrix.txt',
+#     sql_path='/home/qihan/balsaLifeLongRLDB/balsa/deal_assorted_text/sql_feature_encode_matrix.txt',
+#     query_path='/home/qihan/balsaLifeLongRLDB/balsa/deal_assorted_text/query_enc_matrix.txt',
+#     matrix_size=46
+# )
 # 获取当前执行预测所用时间
 
-processor.predict_datapoint([test_data_1_f1, test_data_1_f2, test_data_1_f3, test_data_1_f4])
+# processor.predict_datapoint([test_data_1_f1, test_data_1_f2, test_data_1_f3, test_data_1_f4])
 
 
-processor.predict_datapoint([test_data_2_f1, test_data_2_f2, test_data_2_f3, test_data_2_f4])
+# processor.predict_datapoint([test_data_2_f1, test_data_2_f2, test_data_2_f3, test_data_2_f4])
 
 
 
-processor.predict_datapoint([test_data_3_f1, test_data_3_f2, test_data_3_f3, test_data_3_f4])
+# processor.predict_datapoint([test_data_3_f1, test_data_3_f2, test_data_3_f3, test_data_3_f4])
 
