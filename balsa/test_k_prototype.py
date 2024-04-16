@@ -240,7 +240,7 @@ class Kproto_DataProcessor:
         test_data_1_f2_other = self.transform_matrix(data_point[1], {0, 1})
 
 
-# 准备新的数据点
+        # 准备新的数据点
         test_data_point_1_hashjoin = self.prepare_data_point(
             [data_point[0], test_data_1_f2_hashjoin,
                 data_point[2], data_point[3]]

@@ -594,7 +594,7 @@ class Optimizer(object):
 
         terminal_states = []
         # the number of states and costs are shrinking during this while loop
-       
+        first_iteration = True
         while len(terminal_states) < self.search_until_n_complete_plans and fringe:
 
             state_cost, state = fringe.pop(0)
@@ -632,30 +632,39 @@ class Optimizer(object):
  
 
 
-            if chosen_idx_other == 0:
-                 CONV_MODULE_OTHER_0 += 1  
-            elif chosen_idx_other == 1:
+            if first_iteration and chosen_idx_other == 0:
+                 CONV_MODULE_OTHER_0 += 1
+                  
+            elif first_iteration and chosen_idx_other == 1:
                 CONV_MODULE_OTHER_1 += 1
-            elif chosen_idx_other == 2:
+               
+            elif first_iteration and chosen_idx_other == 2:
                 CONV_MODULE_OTHER_2 += 1
+                
 
                        
 
-            if chosen_idx_hash_join == 0:
+            if first_iteration and chosen_idx_hash_join == 0:
                 CONV_MODULE_HASH_JOIN_0 += 1
-            elif chosen_idx_hash_join == 1:
+                
+            elif first_iteration and chosen_idx_hash_join == 1:
                 CONV_MODULE_HASH_JOIN_1 += 1
-            elif chosen_idx_hash_join == 2:
+                
+            elif first_iteration and chosen_idx_hash_join == 2:
                 CONV_MODULE_HASH_JOIN_2 += 1
+               
 
                 
                 
-            if chosen_idx_nested_loop_join == 0:
+            if first_iteration and chosen_idx_nested_loop_join == 0:
                 CONV_MODULE_NESTED_LOOP_JOIN_0 += 1
-            elif chosen_idx_nested_loop_join == 1:
+                first_iteration = False 
+            elif first_iteration and chosen_idx_nested_loop_join == 1:
                 CONV_MODULE_NESTED_LOOP_JOIN_1 += 1
-            elif chosen_idx_nested_loop_join == 2:
+                first_iteration = False 
+            elif first_iteration and chosen_idx_nested_loop_join == 2:
                 CONV_MODULE_NESTED_LOOP_JOIN_2 += 1
+                first_iteration = False 
 
                 
                 
