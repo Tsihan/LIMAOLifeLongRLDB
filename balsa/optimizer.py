@@ -39,6 +39,10 @@ CONV_MODULE_NESTED_LOOP_JOIN_0 = 0
 CONV_MODULE_NESTED_LOOP_JOIN_1 = 0
 CONV_MODULE_NESTED_LOOP_JOIN_2 = 0
 
+SQL_DICT_OTHER = {}
+SQL_DICT_HASH_JOIN = {}
+SQL_DICT_NESTED_LOOP_JOIN = {}
+
 # Qihan: this is used for global variable, to correctly use the module index in sim.py
 
 
@@ -633,37 +637,43 @@ class Optimizer(object):
 
 
             if first_iteration and chosen_idx_other == 0:
-                 CONV_MODULE_OTHER_0 += 1
-                  
+                CONV_MODULE_OTHER_0 += 1
+                SQL_DICT_OTHER[query_node.info['query_name']] = 0
             elif first_iteration and chosen_idx_other == 1:
                 CONV_MODULE_OTHER_1 += 1
-               
+                SQL_DICT_OTHER[query_node.info['query_name']] = 1
             elif first_iteration and chosen_idx_other == 2:
                 CONV_MODULE_OTHER_2 += 1
-                
+                SQL_DICT_OTHER[query_node.info['query_name']] = 2    
 
                        
 
             if first_iteration and chosen_idx_hash_join == 0:
                 CONV_MODULE_HASH_JOIN_0 += 1
+                SQL_DICT_HASH_JOIN[query_node.info['query_name']] = 0
                 
             elif first_iteration and chosen_idx_hash_join == 1:
                 CONV_MODULE_HASH_JOIN_1 += 1
+                SQL_DICT_HASH_JOIN[query_node.info['query_name']] = 1
                 
             elif first_iteration and chosen_idx_hash_join == 2:
                 CONV_MODULE_HASH_JOIN_2 += 1
+                SQL_DICT_HASH_JOIN[query_node.info['query_name']] = 2
                
 
                 
                 
             if first_iteration and chosen_idx_nested_loop_join == 0:
                 CONV_MODULE_NESTED_LOOP_JOIN_0 += 1
+                SQL_DICT_NESTED_LOOP_JOIN[query_node.info['query_name']] = 0
                 first_iteration = False 
             elif first_iteration and chosen_idx_nested_loop_join == 1:
                 CONV_MODULE_NESTED_LOOP_JOIN_1 += 1
+                SQL_DICT_NESTED_LOOP_JOIN[query_node.info['query_name']] = 1
                 first_iteration = False 
             elif first_iteration and chosen_idx_nested_loop_join == 2:
                 CONV_MODULE_NESTED_LOOP_JOIN_2 += 1
+                SQL_DICT_NESTED_LOOP_JOIN[query_node.info['query_name']] = 2
                 first_iteration = False 
 
                 

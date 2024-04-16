@@ -688,6 +688,7 @@ class BalsaModel(pl.LightningModule):
             hash_join_pos_feat,
             nested_loop_join_pos_feat,
             target,
+            names,
         ) = (
             query_feat.to(dev),
             batch.plans.to(dev),
@@ -697,15 +698,31 @@ class BalsaModel(pl.LightningModule):
             batch.indexes_hash_join.to(dev),
             batch.indexes_nested_loop_join.to(dev),
             batch.costs.to(dev),
+            batch.names
         )
 
         # FIXME QIHANZHANG here we need to make it like LIfelong Modular RL
         # Qihan: when we want to train the real model, we need get the correct indexes!
-        def fake_three_indexes():
-            return 0, 0, 0
 
         
-        idx_other_module_list,idx_hash_join_module_list,idx_nested_loop_join_module_list = fake_three_indexes()
+        def get_three_indexes(names):
+            list_other = []
+            list_hash_join = []
+            list_nested_loop_join = []
+            for name in names:
+                idx_other = optim.SQL_DICT_OTHER[name]
+                list_other.append(idx_other)
+                idx_hash_join = optim.SQL_DICT_HASH_JOIN[name]
+                list_hash_join.append(idx_hash_join)
+                idx_nested_loop_join = optim.SQL_DICT_NESTED_LOOP_JOIN[name]
+                list_nested_loop_join.append(idx_nested_loop_join)
+
+
+            return list_other, list_hash_join, list_nested_loop_join
+
+
+        
+        idx_other_module_list,idx_hash_join_module_list,idx_nested_loop_join_module_list = get_three_indexes(names)
 
         output = self.forward(
             idx_other_module_list,

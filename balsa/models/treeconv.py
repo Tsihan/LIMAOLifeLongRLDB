@@ -109,8 +109,70 @@ class TreeConvolution(nn.Module):
                 # Layer norm weight.
                 # assert 'norm' in name and 'weight' in name, name
                 nn.init.ones_(p)
-
     def forward(self, idx_other, idx_hash_join, idx_nested_loop_join,
+            query_feats, trees_feats, hash_join_feats, nested_loop_join_feats, indexes_pos_feats,
+            hash_join_pos_feats, nested_loop_join_pos_feats):
+        """Dynamic forward pass that adapts based on input types.
+
+            If idx_* are lists, assumes dynamic indexing for each batch element.
+            If idx_* are integers, assumes static indexing for the entire batch.
+        """
+
+        if isinstance(idx_other, list):
+        # Handle as dynamic indexing (new method)
+            return self.forward_dynamic(idx_other, idx_hash_join, idx_nested_loop_join,
+                                    query_feats, trees_feats, hash_join_feats, nested_loop_join_feats, indexes_pos_feats,
+                                    hash_join_pos_feats, nested_loop_join_pos_feats)
+        else:
+        # Handle as static indexing (original method)
+            return self.forward_static(idx_other, idx_hash_join, idx_nested_loop_join,
+                                   query_feats, trees_feats, hash_join_feats, nested_loop_join_feats, indexes_pos_feats,
+                                   hash_join_pos_feats, nested_loop_join_pos_feats)
+        
+    def forward_dynamic(self, idx_other, idx_hash_join, idx_nested_loop_join,
+            query_feats, trees_feats, hash_join_feats, nested_loop_join_feats, indexes_pos_feats,
+            hash_join_pos_feats, nested_loop_join_pos_feats):
+        """Forward pass with dynamic indexing for each batch element.
+
+        Args:
+            idx_other: List of indices for conv_module_list_other for each batch element.
+            idx_hash_join: List of indices for conv_module_list_hash_join for each batch element.
+            idx_nested_loop_join: List of indices for conv_module_list_nested_loop_join for each batch element.
+            Other args: Feature tensors for query, trees, hash joins, and nested loop joins.
+
+        Returns:
+            Predicted costs: Tensor of float, sized [batch size, 1].
+        """
+
+        query_embs = self.query_mlp(query_feats.unsqueeze(1)).transpose(1, 2)
+
+        # Expand embeddings to match the size of the tree features for each join type
+        max_subtrees = [trees_feats.shape[-1], hash_join_feats.shape[-1], nested_loop_join_feats.shape[-1]]
+        query_embs_expanded = [query_embs.expand(query_embs.shape[0], query_embs.shape[1], max_size) for max_size in max_subtrees]
+
+        # Concatenate query embeddings with corresponding tree features
+        concat_features = [torch.cat((emb, feat), axis=1) for emb, feat in zip(query_embs_expanded, [trees_feats, hash_join_feats, nested_loop_join_feats])]
+        pos_feats = [indexes_pos_feats, hash_join_pos_feats, nested_loop_join_pos_feats]
+        module_lists = [self.conv_module_list_other, self.conv_module_list_hash_join, self.conv_module_list_nested_loop_join]
+        indices = [idx_other, idx_hash_join, idx_nested_loop_join]
+
+        # Process each batch element with the corresponding module based on its index
+        conv_outputs = []
+        for i in range(query_feats.shape[0]):  # Assuming batch size is the first dimension of query_feats
+            outputs = []
+            for j, (module_list, idx_list, concat_feat, pos_feat) in enumerate(zip(module_lists, indices, concat_features, pos_feats)):
+                selected_module = module_list[idx_list[i]]
+                output = selected_module((concat_feat[i:i+1], pos_feat[i:i+1]))
+                outputs.append(output)
+            # Merge outputs from different module lists for each batch element
+            conv_outputs.append(self.attention_merger_3(outputs))
+
+        # Combine all batch outputs and pass through the final MLP for prediction
+        out_combined = torch.cat(conv_outputs, dim=0)
+        out = self.out_mlp(out_combined)
+        return out
+
+    def forward_static(self, idx_other, idx_hash_join, idx_nested_loop_join,
                 query_feats, trees_feats, hash_join_feats, nested_loop_join_feats, indexes_pos_feats,
                 hash_join_pos_feats, nested_loop_join_pos_feats
                 ):
