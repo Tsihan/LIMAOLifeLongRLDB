@@ -146,6 +146,7 @@ class SimModel(pl.LightningModule):
             # assert len(rest) == 2
             # use defalut mode
             # when we initialize model, we start from here
+            # TODO Qihan find correct idx here!
             (
                 idx_other_modulelist,
                 idx_hash_join_modulelist,
@@ -970,7 +971,7 @@ class Sim(object):
         all_pa_pos_operators_vecs = data[4]
         all_pa_pos_hash_join_vecs = data[5]
         all_pa_pos_nested_loop_join_vecs = data[6]
-
+        # in sim data, we don't input query names
         dataset = ds.PlansDataset(
             all_query_vecs,
             all_plans_operators_vecs,
@@ -980,6 +981,7 @@ class Sim(object):
             all_pa_pos_hash_join_vecs,
             all_pa_pos_nested_loop_join_vecs,
             all_costs,
+            None,
             transform_cost=p.label_transforms,
             cross_entropy=False,
             return_indexes=use_positions,

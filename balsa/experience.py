@@ -338,6 +338,9 @@ class Experience(object):
         
         all_costs = []
         all_subtrees = []
+        # Qihan: these three lists are used to assign the correct submodule to use in compute loss
+        query_names = []
+
         # Logging.
         # Num subtrees in the whole buffer (after skip_first_n).
         num_total_subtrees = 0
@@ -398,6 +401,11 @@ class Experience(object):
                 #     all_pos_vecs.append(self.pos_featurizer(best_subplan))
             else:
                 for best_cost, best_subplan in to_featurize:
+                    # TODO Qihan here we extend three new lists
+
+                    query_names.append(self.nodes[i + skip_first_n].info['query_name'])
+     
+
                     all_costs.append(best_cost)
                     all_subtrees.append(best_subplan)
 
@@ -427,7 +435,7 @@ class Experience(object):
             
         return (all_query_vecs,all_feat_vecs,all_hash_join_trees_vecs,all_nested_loop_join_trees_vecs,\
                 all_pos_vecs,all_hash_join_pos_indexes_vecs,all_nested_loop_join_pos_indexes_vecs, all_costs,\
-                num_new_datapoints)
+                query_names,num_new_datapoints)
 
     def _featurize_hindsight_relabeling(self,
                                         rewrite_generic=False,

@@ -419,8 +419,8 @@ def TrainSim(p, loggers=None):
     if p.sim_checkpoint is None:
         sim.CollectSimulationData()
     # FIXME Qihan Zhang temporary modify to retain simulator p.sim_checkpoint None
-    sim.Train(load_from_checkpoint=None, loggers=loggers)
-    #sim.Train(load_from_checkpoint=p.sim_checkpoint, loggers=loggers)
+    #sim.Train(load_from_checkpoint=None, loggers=loggers)
+    sim.Train(load_from_checkpoint=p.sim_checkpoint, loggers=loggers)
     sim.model.freeze()
     sim.EvaluateCost()
     sim.FreeData()
@@ -700,6 +700,7 @@ class BalsaModel(pl.LightningModule):
         )
 
         # FIXME QIHANZHANG here we need to make it like LIfelong Modular RL
+        # Qihan: when we want to train the real model, we need get the correct indexes!
         def fake_three_indexes():
             return 0, 0, 0
 
@@ -1035,8 +1036,7 @@ class BalsaAgent(object):
             use_new_data_only=p.use_new_data_only,
             skip_training_on_timeouts=p.skip_training_on_timeouts,
         )
-        # [np.ndarray], torch.Tensor, torch.Tensor, [float].
-        # all_query_vecs, all_feat_vecs, all_pos_vecs, all_costs = tup[:4]
+
         (
             all_query_vecs,
             all_trees_vecs,
@@ -1046,9 +1046,10 @@ class BalsaAgent(object):
             all_hash_join_pos_indexes_vecs,
             all_nested_loop_join_pos_indexes_vecs,
             all_costs,
-        ) = tup[:8]
+            all_names
+        ) = tup[:9]
         num_new_datapoints = None
-        if len(tup) == 5:
+        if len(tup) == 10:
             num_new_datapoints = tup[-1]
 
         if p.label_transform_running_stats and skip_first_n > 0:
@@ -1081,6 +1082,7 @@ class BalsaAgent(object):
             all_hash_join_pos_indexes_vecs,
             all_nested_loop_join_pos_indexes_vecs,
             all_costs,
+            all_names,
             tree_conv=p.tree_conv,
             transform_cost=p.label_transforms,
             label_mean=self.label_mean,
@@ -1126,19 +1128,25 @@ class BalsaAgent(object):
             )
             (
                 all_query_vecs_val,
+                all_trees_vecs_val,
                 all_hash_join_trees_vecs_val,
                 all_nested_loop_join_trees_vecs_val,
+                all_pos_indexes_vecs_val,
                 all_hash_join_pos_indexes_vecs_val,
                 all_nested_loop_join_pos_indexes_vecs_val,
                 all_costs_val,
-            ) = tup[:6]
+                all_names_val
+            ) = tup[:9]
             dataset_val = ds.PlansDataset(
                 all_query_vecs_val,
+                all_trees_vecs_val,
                 all_hash_join_trees_vecs_val,
                 all_nested_loop_join_trees_vecs_val,
+                all_pos_indexes_vecs_val,
                 all_hash_join_pos_indexes_vecs_val,
                 all_nested_loop_join_pos_indexes_vecs_val,
                 all_costs_val,
+                all_names_val,
                 tree_conv=p.tree_conv,
                 transform_cost=p.label_transforms,
                 label_mean=self.label_mean,
@@ -1369,10 +1377,28 @@ class BalsaAgent(object):
             )
         )
 
+    def copy_module_parameters(self, source_module, target_module):
+        for target_param, source_param in zip(target_module.parameters(), source_module.parameters()):
+            target_param.data.copy_(source_param.data)
+
     def GetOrTrainSim(self):
         p = self.params
         if self.sim is None:
             self.sim = TrainSim(p, self.loggers)
+        # Qihan here we copy the parameters from the first module in each modulelist
+        # 获取模型中的所有模块列表
+        module_lists = [
+        self.sim.model.tree_conv.conv_module_list_hash_join,
+        self.sim.model.tree_conv.conv_module_list_nested_loop_join,
+        self.sim.model.tree_conv.conv_module_list_other]
+
+
+        # 对每个模块列表，将第一个模块的参数复制到其他所有模块
+        for module_list in module_lists:
+            source_module = module_list[0]
+            for target_module in module_list[1:]:  # 从第二个模块开始复制
+                self.copy_module_parameters(source_module, target_module)
+
         return self.sim
 
     def RunBaseline(self):
