@@ -17,9 +17,9 @@ See README.md for the main configurations to run.
 """
 import balsa
 from balsa import hyperparams
-# this one is used for quickly correctness check
-RAND_52_TEST_QUERIES_IMDB_ASSORTED_SMALL = ['2a_job.sql', '1a_job.sql']
-
+# this one is used for quickly correctness check 
+RAND_52_TEST_QUERIES_IMDB_ASSORTED_SMALL = ['29a_job.sql', '28c_baochanged.sql']
+RAND_52_TEST_QUERIES_IMDB_ASSORTED_SMALL_2 = ['28a_bao.sql', '23b_jobchanged.sql']
 RAND_52_TEST_QUERIES_IMDB_ASSORTED = [
 '32c_baochanged.sql', '12a_job.sql', '16a_bao.sql', '30c_baochanged.sql', '7a_bao.sql', 
 '4a_bao.sql', '26c_baochanged.sql', '10a_bao.sql', '19a_bao.sql', '15a_bao.sql', 
@@ -519,7 +519,7 @@ class Balsa_JOBRandSplit_IMDB_assorted(Rand52MinCardCostOnPolLrC):
         p.init_experience = 'data/IMDB_assorted/initial_policy_data.pkl'
         
         p.test_query_glob = RAND_52_TEST_QUERIES_JOB_changed
-        p.sim_checkpoint = 'checkpoints/IMDB_assorted/epoch=25.ckpt'
+        p.sim_checkpoint = 'checkpoints/IMDB_assorted/epoch=24.ckpt'
         p.query_dir = 'queries/imdb_assorted'
                 
         return p
@@ -534,12 +534,30 @@ class Balsa_JOBRandSplit_IMDB_assorted_small(Rand52MinCardCostOnPolLrC):
         p.db = 'imdbload'
         p.init_experience = 'data/IMDB_assorted_small/initial_policy_data.pkl'
         
-        p.test_query_glob = RAND_52_TEST_QUERIES_JOB_changed
-        p.sim_checkpoint = 'checkpoints/IMDB_assorted_small/epoch=39.ckpt'
+        p.test_query_glob = RAND_52_TEST_QUERIES_IMDB_ASSORTED_SMALL
+        p.sim_checkpoint = 'checkpoints/IMDB_assorted_small/epoch=4.ckpt'
         p.query_dir = 'queries/imdb_assorted_small'
                 
         return p
     
+@balsa.params_registry.Register  
+class Balsa_JOBRandSplit_IMDB_assorted_small_2(Rand52MinCardCostOnPolLrC):
+
+    def Params(self):
+        p = super().Params()
+        p.increment_iter_despite_timeouts = True
+        p = p.Set(**LR_SCHEDULES['C10'])
+        p.db = 'imdbload'
+        # qihan change this
+        p.init_experience = 'data/IMDB_assorted_small_2/initial_policy_data.pkl'
+        
+        p.test_query_glob = RAND_52_TEST_QUERIES_IMDB_ASSORTED_SMALL_2
+        p.sim_checkpoint = 'checkpoints/IMDB_assorted_small_2/epoch=13.ckpt'
+        p.query_dir = 'queries/imdb_assorted_small_2'
+                
+        return p
+    
+
 
 @balsa.params_registry.Register  # keep
 class Balsa_JOBRandSplit_IMDB_BAO_changed(Rand52MinCardCostOnPolLrC):

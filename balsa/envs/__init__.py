@@ -22,3 +22,4 @@ from .envs import JoinOrderBenchmark_changed
 from .envs import IMDB_BAO_changed
 from .envs import IMDB_assorted
 from .envs import IMDB_assorted_small
+from .envs import IMDB_assorted_small_2

@@ -1,8 +1,5 @@
 ALTER TABLE title ADD FOREIGN KEY (kind_id) REFERENCES kind_type;
 ALTER TABLE aka_name ADD FOREIGN KEY (id) REFERENCES name;
--- psql:add_fks.sql:3: ERROR:  insert or update on table "cast_info" violates foreign key constraint "cast_info_person_id_fkey"
---   DETAIL:  Key (person_id)=(901344) is not present in table "aka_name".
--- ALTER TABLE cast_info ADD FOREIGN KEY (person_id) REFERENCES aka_name;
 ALTER TABLE cast_info ADD FOREIGN KEY (movie_id) REFERENCES title;
 ALTER TABLE cast_info ADD FOREIGN KEY (person_role_id) REFERENCES char_name;
 ALTER TABLE cast_info ADD FOREIGN KEY (role_id) REFERENCES role_type;
