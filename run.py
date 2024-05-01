@@ -956,10 +956,10 @@ class BalsaAgent(object):
         # qihan: here we change the workload on the fly
         else:
             if is_origin:
-                with open(p.init_experience, "rb") as f:
+                with open('data/IMDB_assorted_small/initial_policy_data.pkl', "rb") as f:
                     workload = pickle.load(f)
             # Filter queries based on the current query_glob.
-                workload.FilterQueries(p.query_dir, p.query_glob, p.test_query_glob)
+                workload.FilterQueries('queries/imdb_assorted_small', ['*.sql'], ['29a_job.sql', '28c_baochanged.sql'])
             else:
                 with open('data/IMDB_assorted_small_2/initial_policy_data.pkl', "rb") as f:
                     workload = pickle.load(f)
@@ -1423,17 +1423,17 @@ class BalsaAgent(object):
         if self.sim is None:
             self.sim = TrainSim(p, self.loggers)
         # Qihan here we copy the parameters from the first module in each modulelist
-        # 获取模型中的所有模块列表
+        # get all module lists from the model
         module_lists = [
         self.sim.model.tree_conv.conv_module_list_hash_join,
         self.sim.model.tree_conv.conv_module_list_nested_loop_join,
         self.sim.model.tree_conv.conv_module_list_other]
 
 
-        # 对每个模块列表，将第一个模块的参数复制到其他所有模块
+        # do the parameter copy
         for module_list in module_lists:
             source_module = module_list[0]
-            for target_module in module_list[1:]:  # 从第二个模块开始复制
+            for target_module in module_list[1:]:  # start from the second module
                 self.copy_module_parameters(source_module, target_module)
 
         return self.sim
@@ -1701,8 +1701,11 @@ class BalsaAgent(object):
         if not self.is_origin_workload:
             p.init_experience = 'data/IMDB_assorted_small_2/initial_policy_data.pkl'
             p.test_query_glob = ['28a_bao.sql', '23b_jobchanged.sql']
-            p.sim_checkpoint = 'checkpoints/IMDB_assorted_small_2/epoch=55.ckpt'
             p.query_dir = 'queries/imdb_assorted_small_2'
+        else:
+            p.init_experience = 'data/IMDB_assorted_small/initial_policy_data.pkl'
+            p.test_query_glob = ['29a_job.sql', '28c_baochanged.sql']
+            p.query_dir = 'queries/imdb_assorted_small'
 
         model.eval()
         to_execute = []
@@ -2661,7 +2664,7 @@ class BalsaAgent(object):
         
         while self.curr_value_iter < p.val_iters:
             #qihan: switch the workload here
-            if self.curr_value_iter % 2 == 0 and self.curr_value_iter != 0:
+            if self.curr_value_iter % 5 == 0 and self.curr_value_iter != 0:
                 print("Switching workload ... ...")
                 self.is_origin_workload = not self.is_origin_workload
                 self.workload = self._MakeWorkload(self.is_origin_workload)
