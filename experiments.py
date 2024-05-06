@@ -274,6 +274,12 @@ class BalsaParams(object):
             'prev_replay_buffers_glob_val', None,
             'If specified, load previous replay buffers and merge them as validation purpose.'
         )
+        #qihan add this one to refresh the model from the previous replay buffer
+        p.Define(
+            'prev_replay_buffers_glob_refresh', None,
+            'If specified, load previous replay buffers and merge them as training purpose tp prevent forgetting.'
+        )
+
         p.Define(
             'agent_checkpoint', None,
             'Path to a pretrained agent checkpoint.  Load it instead '
@@ -362,6 +368,8 @@ class BalsaParams(object):
                  ' cluster?  Non-execution EXPLAINs are always issued to'\
                  ' local.')
         p.Define('use_cache', True, 'Skip executing seen plans?')
+        p.Define('have_dynaic_workload_switch_back', False,
+                 'If true, use dynamic workload and now return to the old ones. Then we need to replay buffer to avoid forgetting.')
         return p
 
 
@@ -523,6 +531,9 @@ class Balsa_JOBRandSplit_IMDB_assorted(Rand52MinCardCostOnPolLrC):
         p.query_dir = 'queries/imdb_assorted'
                 
         return p
+    
+
+
 
 @balsa.params_registry.Register  
 class Balsa_JOBRandSplit_IMDB_assorted_small(Rand52MinCardCostOnPolLrC):
@@ -539,7 +550,18 @@ class Balsa_JOBRandSplit_IMDB_assorted_small(Rand52MinCardCostOnPolLrC):
         p.query_dir = 'queries/imdb_assorted_small'
                 
         return p
-    
+
+
+@balsa.params_registry.Register
+class Balsa_JOBRandSplit_IMDB_assorted_small_Replay(Balsa_JOBRandSplit_IMDB_assorted_small):  # keep
+
+    def Params(self):
+        p = super().Params()
+        # Change path to point to the desired buffers:
+        p.prev_replay_buffers_glob_refresh = './data/IMDB_assorted_small/replay-Balsa_JOBRandSplit*'
+        return p
+
+
 @balsa.params_registry.Register  
 class Balsa_JOBRandSplit_IMDB_assorted_small_2(Rand52MinCardCostOnPolLrC):
 

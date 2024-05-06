@@ -709,6 +709,7 @@ class BalsaModel(pl.LightningModule):
             list_other = []
             list_hash_join = []
             list_nested_loop_join = []
+            # name will not contain the directory, just the name of the sql file
             for name in names:
                 idx_other = optim.SQL_DICT_OTHER[name]
                 list_other.append(idx_other)
@@ -910,7 +911,6 @@ class BalsaAgent(object):
         self._InitLogging()
         self.timer = train_utils.Timer()
         # Experience (replay) buffer.
-        # TODO QIHANZHANG this takes time!!!!!!
         self.exp, self.exp_val = self._MakeExperienceBuffer()
         self._latest_replay_buffer_path = None
 
@@ -961,6 +961,7 @@ class BalsaAgent(object):
             # Filter queries based on the current query_glob.
                 workload.FilterQueries('queries/imdb_assorted_small', ['*.sql'], ['29a_job.sql', '28c_baochanged.sql'])
             else:
+
                 with open('data/IMDB_assorted_small_2/initial_policy_data.pkl', "rb") as f:
                     workload = pickle.load(f)
             # Filter queries based on the current query_glob.
@@ -1017,6 +1018,7 @@ class BalsaAgent(object):
             query_featurizer_cls=query_featurizer_cls,
             plan_featurizer_cls=plan_feat_cls,
         )
+        # qihan: add a second condition, if there is dynamic workload, don't load the previous experience in iter0
         if p.prev_replay_buffers_glob is not None:
             exp.Load(p.prev_replay_buffers_glob, p.prev_replay_keep_last_fraction)
             pa = plan_analysis.PlanAnalysis.Build(exp.nodes[exp.initial_size :])
@@ -1042,7 +1044,7 @@ class BalsaAgent(object):
     def _MakeDatasetAndLoader(self, log=True):
         p = self.params
         do_replay_training = (
-            p.prev_replay_buffers_glob is not None and p.agent_checkpoint is None
+            p.prev_replay_buffers_glob is not None and p.agent_checkpoint is None 
         )
         if do_replay_training or (
             p.skip_training_on_expert and self.curr_value_iter > 0
@@ -1536,7 +1538,7 @@ class BalsaAgent(object):
             self.curr_value_iter == 0
             and p.skip_training_on_expert
             and (p.prev_replay_buffers_glob is None or p.agent_checkpoint is not None)
-        ):
+        ) :
             # This condition only affects the first ever call to Train().
             # Iteration 0 doesn't have a timeout limit, so during the second
             # call to Train() we would always have self.curr_value_iter == 1.
@@ -2422,7 +2424,7 @@ class BalsaAgent(object):
                 )
             self.LogScalars(to_log)
         self.SaveBestPlans()
-        if (self.curr_value_iter + 1) % 5 == 0:
+        if (self.curr_value_iter + 1) % 2 == 0:
             self.SaveAgent(model, iter_total_latency)
         # Run and log test queries.
         # TODO QIHANZHANG This takes time too!!!!!! value_iter=0
@@ -2667,6 +2669,13 @@ class BalsaAgent(object):
             if self.curr_value_iter % 5 == 0 and self.curr_value_iter != 0:
                 print("Switching workload ... ...")
                 self.is_origin_workload = not self.is_origin_workload
+                if self.is_origin_workload is True:
+                    self.have_dynaic_workload_switch_back = True
+                else:
+                    self.have_dynaic_workload_switch_back = False
+
+                # TODO now we need to retrain the model using buffer to refresh the model
+
                 self.workload = self._MakeWorkload(self.is_origin_workload)
                 self.all_nodes = self.workload.Queries(split="all")
                 self.train_nodes = self.workload.Queries(split="train")
