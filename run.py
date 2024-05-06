@@ -1018,7 +1018,7 @@ class BalsaAgent(object):
             query_featurizer_cls=query_featurizer_cls,
             plan_featurizer_cls=plan_feat_cls,
         )
-        # qihan: add a second condition, if there is dynamic workload, don't load the previous experience in iter0
+       
         if p.prev_replay_buffers_glob is not None:
             exp.Load(p.prev_replay_buffers_glob, p.prev_replay_keep_last_fraction)
             pa = plan_analysis.PlanAnalysis.Build(exp.nodes[exp.initial_size :])
@@ -2424,7 +2424,7 @@ class BalsaAgent(object):
                 )
             self.LogScalars(to_log)
         self.SaveBestPlans()
-        if (self.curr_value_iter + 1) % 2 == 0:
+        if (self.curr_value_iter + 1) % 5 == 0:
             self.SaveAgent(model, iter_total_latency)
         # Run and log test queries.
         # TODO QIHANZHANG This takes time too!!!!!! value_iter=0
@@ -2666,7 +2666,7 @@ class BalsaAgent(object):
         
         while self.curr_value_iter < p.val_iters:
             #qihan: switch the workload here
-            if self.curr_value_iter % 5 == 0 and self.curr_value_iter != 0:
+            if self.curr_value_iter % 2 == 0 and self.curr_value_iter != 0:
                 print("Switching workload ... ...")
                 self.is_origin_workload = not self.is_origin_workload
                 if self.is_origin_workload is True:
@@ -2675,6 +2675,11 @@ class BalsaAgent(object):
                     self.have_dynaic_workload_switch_back = False
 
                 # TODO now we need to retrain the model using buffer to refresh the model
+                if self.have_dynaic_workload_switch_back :
+                    self.exp.Load(p.prev_replay_buffers_glob_refresh, p.prev_replay_keep_last_fraction)
+                    pa = plan_analysis.PlanAnalysis.Build(self.exp.nodes[self.exp.initial_size :])
+                    pa.Print()
+
 
                 self.workload = self._MakeWorkload(self.is_origin_workload)
                 self.all_nodes = self.workload.Queries(split="all")

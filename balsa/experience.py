@@ -173,6 +173,7 @@ class Experience(object):
             query_name = nodes[i].info['query_name']
             hint_set = unique_plans[query_name]
             for j, node in enumerate(nodes[i::num_templates]):
+                # TODO qihan here will encounter assert error
                 assert node.info['query_name'] == query_name, (
                     node.info['query_name'], query_name)
                 hint = node.hint_str(with_physical_hints=True)
