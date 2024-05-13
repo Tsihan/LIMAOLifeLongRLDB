@@ -481,6 +481,10 @@ def InitializeModel(
             new_state_dict[new_key] = value
         return new_state_dict
 
+    #如果model在CPU 移动到GPU
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    model = model.to(device)
+    
     sim_weights = sim.model.state_dict()
     sim_weights_renamed = copy.deepcopy(Rename(sim_weights))
     model_weights = model.state_dict()
@@ -1252,11 +1256,12 @@ class BalsaAgent(object):
             # 'p.skip_sim_init_iter_1p', which explicitly says we want a fresh
             # model on iters >= 1.
             print("MakeModel afresh")
+            # model is class of tree_conv
             model = MakeModel(p, self.exp, dataset)
         else:
             # Some training was performed before.  Weights would be
             # re-initialized by InitializeModel() below.
-            model = self.model
+            model = self.model  
         print("InitializeModel curr_value_iter={}".format(self.curr_value_iter))
         if p.sim:
             should_skip = p.skip_sim_init_iter_1p and hasattr(self, "model")
@@ -1507,6 +1512,13 @@ class BalsaAgent(object):
 
     def Train(self, train_from_scratch=False):
         p = self.params
+
+        # Qihan use the copy to recover
+        
+        if  hasattr(self, "model_copy") and self.model_copy is not None:
+            self.model = self.model_copy
+
+
         self.timer.Start("train")
         train_ds, train_loader, _, val_loader = self._MakeDatasetAndLoader(
             log=not train_from_scratch
@@ -1524,6 +1536,7 @@ class BalsaAgent(object):
             if isinstance(train_ds, torch.utils.data.Subset)
             else train_ds
         )
+        # Qihan now we use the copy to revocer the model first
         model = self._MakeModel(plans_dataset, train_from_scratch)
         if train_from_scratch:
             model.SetLoggingPrefix(
@@ -1551,6 +1564,10 @@ class BalsaAgent(object):
         # Load best ckpt.
         self._LoadBestCheckpointForEval(model, trainer)
         self.timer.Stop("train")
+
+        #Qihan add a copy of the model, the class is BalsaModel
+        print("make a copy of the model, and use the copy to generate exp in the futrue")
+        self.model_copy = copy.deepcopy(model.model)
         return model, plans_dataset
 
     def _SampleInternalNode(self, node):
@@ -2380,7 +2397,7 @@ class BalsaAgent(object):
         # Replay buffer reset (if enabled).
         if self.curr_value_iter == p.replay_buffer_reset_at_iter:
             self.exp.DropAgentExperience()
-
+        
         planner = self._MakePlanner(model, dataset)
         # Use the model to plan the workload.  Execute the plans and get
         # latencies.
