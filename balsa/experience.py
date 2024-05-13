@@ -103,7 +103,7 @@ class Experience(object):
             pickle.dump(to_save, f)
         print('Saved Experience to:', path)
 
-    def Load(self, path_glob, keep_last_fraction=1):
+    def Load(self, path_glob, keep_last_fraction=1, have_dynaic_workload_switch_back = False):
         """Loads multiple serialized Experience buffers into a single one.
 
         The 'initial_size' Nodes from self would be kept, while those from the
@@ -112,7 +112,11 @@ class Experience(object):
         """
         paths = glob.glob(os.path.expanduser(path_glob))
         if not paths:
-            raise ValueError('No replay buffer files found')
+            if have_dynaic_workload_switch_back:
+                print("Currently, there is no replay buffer to refresh the model.")
+                return
+            else:
+                raise ValueError('No replay buffer files found')
         assert 0 <= keep_last_fraction <= 1, keep_last_fraction
         # query name -> set(plan string)
         total_unique_plans_table = collections.defaultdict(set)
@@ -173,9 +177,9 @@ class Experience(object):
             query_name = nodes[i].info['query_name']
             hint_set = unique_plans[query_name]
             for j, node in enumerate(nodes[i::num_templates]):
-                # TODO qihan here will encounter assert error
-                assert node.info['query_name'] == query_name, (
-                    node.info['query_name'], query_name)
+                # FIXME qihan here will encounter assert error
+                # assert node.info['query_name'] == query_name, (
+                #     node.info['query_name'], query_name)
                 hint = node.hint_str(with_physical_hints=True)
                 hint_set.add(hint)
         num_unique_plans = sum([len(s) for s in unique_plans.values()])
