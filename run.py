@@ -1712,7 +1712,7 @@ class BalsaAgent(object):
                     )
 
         return predicted_latency, found_plan
-
+    # planner is the class of optimizer
     def PlanAndExecute(self, model, planner, is_test=False, max_retries=3):
 
         p = self.params
@@ -2401,7 +2401,7 @@ class BalsaAgent(object):
         planner = self._MakePlanner(model, dataset)
         # Use the model to plan the workload.  Execute the plans and get
         # latencies.
-        # TODO QIHANZHANG This takes time too!!!!!!HUge!!!!!! Waiting on Ray tasks...value_iter=xxx
+        # TODO QIHANZHANG This takes time too!!!!!!Huge!!!!!! Waiting on Ray tasks...value_iter=xxx
         to_execute, execution_results = self.PlanAndExecute(
             model, planner, is_test=False
         )
@@ -2441,6 +2441,8 @@ class BalsaAgent(object):
                 )
             self.LogScalars(to_log)
         self.SaveBestPlans()
+        #Qihan in the next iteration, we will switch the workload, so the buffer will be reset
+        #before that we will save it
         if (self.curr_value_iter + 1) % 5 == 0:
             self.SaveAgent(model, iter_total_latency)
         # Run and log test queries.
@@ -2683,7 +2685,7 @@ class BalsaAgent(object):
         
         while self.curr_value_iter < p.val_iters:
             #qihan: switch the workload here
-            if self.curr_value_iter % 2 == 0 and self.curr_value_iter != 0:
+            if self.curr_value_iter % 5 == 0 and self.curr_value_iter != 0:
                 print("Switching workload ... ...")
                 self.is_origin_workload = not self.is_origin_workload
                 if self.is_origin_workload is True:
@@ -2697,13 +2699,21 @@ class BalsaAgent(object):
                     pa = plan_analysis.PlanAnalysis.Build(self.exp.nodes[self.exp.initial_size :])
                     pa.Print()
 
-
+                # Qihan Reset the experience buffer.
                 self.workload = self._MakeWorkload(self.is_origin_workload)
                 self.all_nodes = self.workload.Queries(split="all")
                 self.train_nodes = self.workload.Queries(split="train")
                 self.test_nodes = self.workload.Queries(split="test")
                 self.train_nodes = plans_lib.FilterScansOrJoins(self.train_nodes)
                 self.test_nodes = plans_lib.FilterScansOrJoins(self.test_nodes)
+
+                # Qihan Reset the experience buffer.
+                self.exp.ClearBuffer()
+                self.exp.workload_info = self.workload.GetWorkloadInfo()
+                self.exp.nodes = self.train_nodes
+                self.exp.initial_size = len(self.exp.nodes)
+
+                
                 print("Switching workload done")
 
             has_timeouts = self.RunOneIter()

@@ -90,6 +90,14 @@ class Experience(object):
         # TODO: check that first N nodes don't change.
         postgres.EstimateFilterRows(self.nodes)
 
+    # Qihan add a new mothod to clear data and workload_info
+    def ClearBuffer(self):
+        """Clear all nodes in the current replay buffer."""
+        self.nodes = []
+        self.workload_info = None
+        self.initial_size = 0
+
+
     def Save(self, path):
         """Saves all Nodes in the current replay buffer to a file."""
         if os.path.exists(path):
