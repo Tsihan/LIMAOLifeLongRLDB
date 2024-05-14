@@ -2709,7 +2709,6 @@ class BalsaAgent(object):
 
                 # Qihan Reset the experience buffer.
                 self.exp.ClearBuffer()
-                self.exp.workload_info = self.workload.GetWorkloadInfo()
                 self.exp.nodes = self.train_nodes
                 self.exp.initial_size = len(self.exp.nodes)
 
