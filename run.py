@@ -105,8 +105,7 @@ def MakeModel(p, exp, dataset):
         int(dataset.costs.max().item()) + 2
     )  # +1 for 0, +1 for ceil(max cost).
     query_feat_size = len(exp.query_featurizer(exp.nodes[0]))
-    # TODO here we use PhysicalTreeNodeFeaturizer
-    # TODO try to divide blocking operotors!!!
+    # Qihan here we use PhysicalTreeNodeFeaturizer
     batch = exp.featurizer(exp.nodes[0])
     assert batch.ndim == 1
     plan_feat_size = batch.shape[0]
@@ -414,7 +413,7 @@ def TrainSim(p, loggers=None):
     sim_p.validate_fraction = p.validate_fraction
 
     # Instantiate.
-    # TODO QIHANZHANG this takes time!!!!!!
+    #  Qihan this takes time!!!!!!
     sim = sim_lib.Sim(sim_p)
     if p.sim_checkpoint is None:
         sim.CollectSimulationData()
@@ -934,7 +933,7 @@ class BalsaAgent(object):
 
     def _MakeWorkload(self, is_origin = False):
         p = self.params
-        # TODO QIHANZHANG entrance this branch
+        #  Qihan entrance this branch
         if os.path.isfile(p.init_experience) and self.curr_value_iter == 0:
             # Load the expert optimizer experience.
             with open(p.init_experience, "rb") as f:
@@ -997,7 +996,7 @@ class BalsaAgent(object):
     def _MakeExperienceBuffer(self):
         p = self.params
         if not p.run_baseline and p.sim:
-            # TODO this is used to train or get the simulator
+            # Qihan this is used to train or get the simulator
             wi = self.GetOrTrainSim().training_workload_info
         else:
             # E.g., if sim is disabled, we just use the overall workload info
@@ -1224,6 +1223,188 @@ class BalsaAgent(object):
             self._LogDatasetStats(train_labels, num_new_datapoints)
 
         return train_ds, train_loader, val_ds, val_loader
+    
+    def _MakeDatasetAndLoader_episode(self, log=True):
+        p = self.params
+        do_replay_training = (
+            p.prev_replay_buffers_glob is not None and p.agent_checkpoint is None 
+        )
+        if do_replay_training or (
+            p.skip_training_on_expert and self.curr_value_iter > 0
+        ):
+            # The first 'n' nodes are expert experience.  Optionally, skip
+            # training on those.  At iter 0, we don't skip (impl convenience)
+            # but we don't train on those data.
+            skip_first_n = len(self.train_nodes)
+        else:
+            # FIXME: ideally, let's make sure expert nodes are not added to the
+            # replay buffer all together.  This was just to make sure iter=0
+            # code doesn't break (e.g., that we calculate a label mean/std).
+            skip_first_n = 0
+        # Use only the latest round of executions?
+        on_policy = p.on_policy
+        if do_replay_training and self.curr_value_iter == 0:
+            # Reloading replay buffers: let's train on all data.
+            on_policy = False
+        # TODO: avoid repeatedly featurizing already-featurized nodes.
+        tup = self.exp.featurize(
+            rewrite_generic=not p.plan_physical,
+            verbose=False,
+            skip_first_n=skip_first_n,
+            deduplicate=p.dedup_training_data,
+            physical_execution_hindsight=p.physical_execution_hindsight,
+            on_policy=on_policy,
+            use_last_n_iters=p.use_last_n_iters,
+            use_new_data_only=p.use_new_data_only,
+            skip_training_on_timeouts=p.skip_training_on_timeouts,
+        )
+
+        (
+            all_query_vecs,
+            all_trees_vecs,
+            all_hash_join_trees_vecs,
+            all_nested_loop_join_trees_vecs,
+            all_pos_indexes_vecs,
+            all_hash_join_pos_indexes_vecs,
+            all_nested_loop_join_pos_indexes_vecs,
+            all_costs,
+            all_names
+        ) = tup[:9]
+        num_new_datapoints = None
+        if len(tup) == 10:
+            num_new_datapoints = tup[-1]
+
+        if p.label_transform_running_stats and skip_first_n > 0:
+            # Use running stats to stabilize.
+            assert p.label_transforms in [
+                ["log1p", "standardize"],
+                ["standardize"],
+                ["sqrt", "standardize"],
+            ], p.label_transforms
+            assert not p.physical_execution_hindsight
+            labels = np.asarray(
+                [executed_node.cost for executed_node in self.exp.nodes[-skip_first_n:]]
+            )
+            if p.label_transforms[0] == "log1p":
+                labels = np.log(1 + labels)
+            elif p.label_transforms[0] == "sqrt":
+                labels = np.sqrt(1 + labels)
+            for label in labels:
+                self.label_running_stats.Record(label)
+            # PlansDataset would use these as-is, when supplied.
+            self.label_mean = self.label_running_stats.Mean()
+            self.label_std = self.label_running_stats.Std(epsilon_guard=False)
+
+        dataset = ds.PlansDataset(
+            all_query_vecs,
+            all_trees_vecs,
+            all_hash_join_trees_vecs,
+            all_nested_loop_join_trees_vecs,
+            all_pos_indexes_vecs,
+            all_hash_join_pos_indexes_vecs,
+            all_nested_loop_join_pos_indexes_vecs,
+            all_costs,
+            all_names,
+            tree_conv=p.tree_conv,
+            transform_cost=p.label_transforms,
+            label_mean=self.label_mean,
+            label_std=self.label_std,
+            cross_entropy=p.cross_entropy,
+        )
+
+        if do_replay_training and self.curr_value_iter == 0:
+            self.label_mean = dataset.mean
+            self.label_std = dataset.std
+            print("Set label mean/std to offline set!")
+
+        if (
+            not p.update_label_stats_every_iter
+            and self.label_mean is None
+            and len(self.exp.nodes) > len(self.query_nodes)
+        ):
+            # Update the stats once, as soon as some experience is collected.
+            self.label_mean = dataset.mean
+            self.label_std = dataset.std
+
+        if self.exp_val is None:
+            assert 0 <= p.validate_fraction <= 1, p.validate_fraction
+            num_train = int(len(dataset) * (1 - p.validate_fraction))
+            num_validation = len(dataset) - num_train
+            assert num_train > 0 and num_validation >= 0, len(dataset)
+            print("num_train={} num_validation={}".format(num_train, num_validation))
+            train_ds, val_ds = torch.utils.data.random_split(
+                dataset, [num_train, num_validation]
+            )
+            train_labels = np.asarray(all_costs)[train_ds.indices]
+        else:
+            tup = self.exp_val.featurize(
+                rewrite_generic=not p.plan_physical,
+                verbose=False,
+                skip_first_n=skip_first_n,
+                deduplicate=p.dedup_training_data,
+                physical_execution_hindsight=p.physical_execution_hindsight,
+                on_policy=False,
+                use_last_n_iters=-1,
+                use_new_data_only=False,
+                skip_training_on_timeouts=p.skip_training_on_timeouts,
+            )
+            (
+                all_query_vecs_val,
+                all_trees_vecs_val,
+                all_hash_join_trees_vecs_val,
+                all_nested_loop_join_trees_vecs_val,
+                all_pos_indexes_vecs_val,
+                all_hash_join_pos_indexes_vecs_val,
+                all_nested_loop_join_pos_indexes_vecs_val,
+                all_costs_val,
+                all_names_val
+            ) = tup[:9]
+            dataset_val = ds.PlansDataset(
+                all_query_vecs_val,
+                all_trees_vecs_val,
+                all_hash_join_trees_vecs_val,
+                all_nested_loop_join_trees_vecs_val,
+                all_pos_indexes_vecs_val,
+                all_hash_join_pos_indexes_vecs_val,
+                all_nested_loop_join_pos_indexes_vecs_val,
+                all_costs_val,
+                all_names_val,
+                tree_conv=p.tree_conv,
+                transform_cost=p.label_transforms,
+                label_mean=self.label_mean,
+                label_std=self.label_std,
+                cross_entropy=p.cross_entropy,
+            )
+            train_ds, val_ds = dataset, dataset_val
+            train_labels = all_costs
+        if p.tree_conv:
+            collate_fn = ds.InputBatch
+        else:
+            collate_fn = lambda xs: ds.InputBatch(
+                xs,
+                plan_pad_idx=self.exp.featurizer.pad(),
+                parent_pos_pad_idx=self.exp.pos_featurizer.pad(),
+            )
+
+        train_loader = torch.utils.data.DataLoader(
+            train_ds,
+            batch_size=p.bs,
+            shuffle=True,
+            collate_fn=collate_fn,
+            pin_memory=True,
+        )
+        if p.validate_fraction > 0:
+            val_loader = torch.utils.data.DataLoader(
+                val_ds, batch_size=p.bs, collate_fn=collate_fn
+            )
+        else:
+            val_loader = None
+        if log:
+            self._LogDatasetStats(train_labels, num_new_datapoints)
+
+        return train_ds, train_loader, val_ds, val_loader
+
+
 
     def _LogDatasetStats(self, train_labels, num_new_datapoints):
         # Track # of training trees that are not timeouts.
@@ -1569,6 +1750,60 @@ class BalsaAgent(object):
         print("make a copy of the model, and use the copy to generate exp in the futrue")
         self.model_copy = copy.deepcopy(model.model)
         return model, plans_dataset
+    
+    # Qihan: TODO 
+    # 1. modify _MakeDatasetAndLoader_episode
+    # 2. modify Train_episode
+    # 3. embed Train_episode during one iteration
+    def Train_episode(self, train_from_scratch=False):
+        p = self.params
+
+        self.timer.Start("train_episode")
+        train_ds, train_loader, _, val_loader = self._MakeDatasetAndLoader_episode(
+            log=not train_from_scratch
+        )
+        # Fields accessed: 'costs' (for p.cross_entropy; unused);
+        # 'TorchInvertCost', 'InvertCost'.  We don't access the actual data.
+        # Thus, it doesn't matter if we use a Dataset referring to the entire
+        # data or just the train data.  (Subset.dataset returns the entire
+        # original data is where the subset is sampled.)
+        #
+        # The else branch is for when self.exp_val is not None
+        # (p.prev_replay_buffers_glob_val).
+        plans_dataset = (
+            train_ds.dataset
+            if isinstance(train_ds, torch.utils.data.Subset)
+            else train_ds
+        )
+        # Qihan now we use the copy to revocer the model first
+        model = self._MakeModel(plans_dataset, train_from_scratch)
+        if train_from_scratch:
+            model.SetLoggingPrefix(
+                "train_from_scratch/iter-{}-".format(self.curr_value_iter)
+            )
+        else:
+            model.SetLoggingPrefix("train/iter-{}-".format(self.curr_value_iter))
+        trainer = self._MakeTrainer(train_loader)
+        if train_from_scratch:
+            trainer.fit(model, train_loader, val_loader)
+        elif not (
+            self.curr_value_iter == 0
+            and p.skip_training_on_expert
+            and (p.prev_replay_buffers_glob is None or p.agent_checkpoint is not None)
+        ) :
+            # This condition only affects the first ever call to Train().
+            # Iteration 0 doesn't have a timeout limit, so during the second
+            # call to Train() we would always have self.curr_value_iter == 1.
+            trainer.fit(model, train_loader, val_loader)
+            self.model = model.model
+            # Optimizer state dict now available.
+            self.prev_optimizer_state_dict = None
+            if p.inherit_optimizer_state:
+                self.prev_optimizer_state_dict = trainer.optimizers[0].state_dict()
+        # Load best ckpt.
+        self._LoadBestCheckpointForEval(model, trainer)
+        self.timer.Stop("train_episode")
+        return model, plans_dataset
 
     def _SampleInternalNode(self, node):
         num_leaves = len(node.leaf_ids())
@@ -1748,7 +1983,9 @@ class BalsaAgent(object):
             epsilon_greedy_within_beam_search = p.epsilon_greedy_within_beam_search
 
         self.timer.Start("plan_test_set" if is_test else "plan")
-        # TODO Qihan this for loop is used for planning but not for execution
+
+        # Qihan this for loop is used for planning but not for execution
+        #TODO set a threshold eg 10, to train the model
         for i, node in enumerate(nodes):
             print("---------------------------------------")
             tup = planner.plan(
@@ -1955,7 +2192,8 @@ class BalsaAgent(object):
             )
         )
         try:
-            # TODO QIHANZHANG THIS ONE TAKES HUGE TIME!!!!!!
+            # TODO QIHANZHANG THIS ONE exectue sql
+            # TODO make it in a loop form, say threshold is 10, train the model using exp_episode
             refs = ray.get(tasks)
         except Exception as e:
             print("ray.get(tasks) received exception:", e)
@@ -2401,7 +2639,7 @@ class BalsaAgent(object):
         planner = self._MakePlanner(model, dataset)
         # Use the model to plan the workload.  Execute the plans and get
         # latencies.
-        # TODO QIHANZHANG This takes time too!!!!!!Huge!!!!!! Waiting on Ray tasks...value_iter=xxx
+        # QIHANZHANG This takes time too!!!!!!Huge!!!!!! Waiting on Ray tasks...value_iter=xxx
         to_execute, execution_results = self.PlanAndExecute(
             model, planner, is_test=False
         )

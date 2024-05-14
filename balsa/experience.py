@@ -414,7 +414,7 @@ class Experience(object):
                 #     all_pos_vecs.append(self.pos_featurizer(best_subplan))
             else:
                 for best_cost, best_subplan in to_featurize:
-                    # TODO Qihan here we extend three new lists
+                    #  Qihan here we extend three new lists
 
                     query_names.append(self.nodes[i + skip_first_n].info['query_name'])
      

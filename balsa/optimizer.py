@@ -266,7 +266,7 @@ class Optimizer(object):
             nested_loop_join = []
             # default this if branch
             if self.tree_conv:
-                # TODO pay attention to here, how it features the plans!
+                # Qihan pay attention to here, how it features the plans!
                 all_plans,hash_join_plans,nested_loop_join_plans\
                 , all_indexes,hash_join_indexes,nested_loop_join = treeconv.make_and_featurize_trees(
                     plans, self.plan_featurizer)
@@ -300,7 +300,7 @@ class Optimizer(object):
                                           query_feat,plan_feat,hash_join_feat,nested_loop_join_feat,pos_feat,
                                           hash_join_pos_feat,nested_loop_join_pos_feat).cpu().numpy()
             else:
-                # TODO since we modify the forword of network, this one needs modify but we leave it furture
+                #  TODO qihan since we modify the forword of network, this one needs modify but we leave it furture
                 raise NotImplementedError("This branch cannot be used for now! Qihan Zhang")
 
             cost = self.inverse_label_transform_fn(cost)
