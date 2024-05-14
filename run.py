@@ -1717,7 +1717,7 @@ class BalsaAgent(object):
             if isinstance(train_ds, torch.utils.data.Subset)
             else train_ds
         )
-        # Qihan now we use the copy to revocer the model first
+        # Qihan now we use the copy to recover the model first
         model = self._MakeModel(plans_dataset, train_from_scratch)
         if train_from_scratch:
             model.SetLoggingPrefix(
