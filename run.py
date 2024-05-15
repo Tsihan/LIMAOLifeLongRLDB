@@ -916,6 +916,8 @@ class BalsaAgent(object):
         self.timer = train_utils.Timer()
         # Experience (replay) buffer.
         self.exp, self.exp_val = self._MakeExperienceBuffer()
+        #Qihan, init exp_episode, just use deepcopy
+        self.exp_episode = copy.deepcopy(self.exp)
         self._latest_replay_buffer_path = None
 
         # Cleanup handlers.  Ensures that the Ray cluster state remains healthy
@@ -1232,30 +1234,15 @@ class BalsaAgent(object):
 
         return train_ds, train_loader, val_ds, val_loader
 
-    def _MakeDatasetAndLoader_episode(self, log=True):
+    def _MakeDatasetAndLoader_episode(self):
         p = self.params
-        do_replay_training = (
-            p.prev_replay_buffers_glob is not None and p.agent_checkpoint is None
-        )
-        if do_replay_training or (
-            p.skip_training_on_expert and self.curr_value_iter > 0
-        ):
-            # The first 'n' nodes are expert experience.  Optionally, skip
-            # training on those.  At iter 0, we don't skip (impl convenience)
-            # but we don't train on those data.
-            skip_first_n = len(self.train_nodes)
-        else:
-            # FIXME: ideally, let's make sure expert nodes are not added to the
-            # replay buffer all together.  This was just to make sure iter=0
-            # code doesn't break (e.g., that we calculate a label mean/std).
-            skip_first_n = 0
+
+        skip_first_n = 0
         # Use only the latest round of executions?
-        on_policy = p.on_policy
-        if do_replay_training and self.curr_value_iter == 0:
-            # Reloading replay buffers: let's train on all data.
-            on_policy = False
+        # Qihan use all the data in the exp_episode, but make sure not contain expert data
+        on_policy = False
         # TODO: avoid repeatedly featurizing already-featurized nodes.
-        tup = self.exp.featurize(
+        tup = self.exp_episode.featurize(
             rewrite_generic=not p.plan_physical,
             verbose=False,
             skip_first_n=skip_first_n,
@@ -1320,11 +1307,6 @@ class BalsaAgent(object):
             cross_entropy=p.cross_entropy,
         )
 
-        if do_replay_training and self.curr_value_iter == 0:
-            self.label_mean = dataset.mean
-            self.label_std = dataset.std
-            print("Set label mean/std to offline set!")
-
         if (
             not p.update_label_stats_every_iter
             and self.label_mean is None
@@ -1334,58 +1316,22 @@ class BalsaAgent(object):
             self.label_mean = dataset.mean
             self.label_std = dataset.std
 
-        if self.exp_val is None:
-            assert 0 <= p.validate_fraction <= 1, p.validate_fraction
-            num_train = int(len(dataset) * (1 - p.validate_fraction))
-            num_validation = len(dataset) - num_train
-            assert num_train > 0 and num_validation >= 0, len(dataset)
-            print("num_train={} num_validation={}".format(
+        
+     
+        num_train = int(len(dataset) * (1 - 0))
+        num_validation = len(dataset) - num_train
+        assert num_train > 0 and num_validation >= 0, len(dataset)
+        print("num_train={} num_validation={}".format(
                 num_train, num_validation))
-            train_ds, val_ds = torch.utils.data.random_split(
+        train_ds, val_ds = torch.utils.data.random_split(
                 dataset, [num_train, num_validation]
             )
-            train_labels = np.asarray(all_costs)[train_ds.indices]
-        else:
-            tup = self.exp_val.featurize(
-                rewrite_generic=not p.plan_physical,
-                verbose=False,
-                skip_first_n=skip_first_n,
-                deduplicate=p.dedup_training_data,
-                physical_execution_hindsight=p.physical_execution_hindsight,
-                on_policy=False,
-                use_last_n_iters=-1,
-                use_new_data_only=False,
-                skip_training_on_timeouts=p.skip_training_on_timeouts,
-            )
-            (
-                all_query_vecs_val,
-                all_trees_vecs_val,
-                all_hash_join_trees_vecs_val,
-                all_nested_loop_join_trees_vecs_val,
-                all_pos_indexes_vecs_val,
-                all_hash_join_pos_indexes_vecs_val,
-                all_nested_loop_join_pos_indexes_vecs_val,
-                all_costs_val,
-                all_names_val
-            ) = tup[:9]
-            dataset_val = ds.PlansDataset(
-                all_query_vecs_val,
-                all_trees_vecs_val,
-                all_hash_join_trees_vecs_val,
-                all_nested_loop_join_trees_vecs_val,
-                all_pos_indexes_vecs_val,
-                all_hash_join_pos_indexes_vecs_val,
-                all_nested_loop_join_pos_indexes_vecs_val,
-                all_costs_val,
-                all_names_val,
-                tree_conv=p.tree_conv,
-                transform_cost=p.label_transforms,
-                label_mean=self.label_mean,
-                label_std=self.label_std,
-                cross_entropy=p.cross_entropy,
-            )
-            train_ds, val_ds = dataset, dataset_val
-            train_labels = all_costs
+        train_labels = np.asarray(all_costs)[train_ds.indices]
+
+        train_ds = dataset
+        train_labels = all_costs
+
+
         if p.tree_conv:
             collate_fn = ds.InputBatch
         else:
@@ -1402,14 +1348,8 @@ class BalsaAgent(object):
             collate_fn=collate_fn,
             pin_memory=True,
         )
-        if p.validate_fraction > 0:
-            val_loader = torch.utils.data.DataLoader(
-                val_ds, batch_size=p.bs, collate_fn=collate_fn
-            )
-        else:
-            val_loader = None
-        if log:
-            self._LogDatasetStats(train_labels, num_new_datapoints)
+
+        val_loader = None
 
         return train_ds, train_loader, val_ds, val_loader
 
@@ -1764,60 +1704,34 @@ class BalsaAgent(object):
         self.model_copy = copy.deepcopy(model.model)
         return model, plans_dataset
 
-    # Qihan: TODO
-    # 1. modify _MakeDatasetAndLoader_episode
-    # 2. modify Train_episode
-    # 3. embed Train_episode during one iteration
+    # Qihan: 
+    # 1. modify _MakeDatasetAndLoader_episode ok
+    # 2. modify Train_episode ok
+    # 3. TODO embed Train_episode during one iteration
     def Train_episode(self, train_from_scratch=False):
         p = self.params
-
-        self.timer.Start("train_episode")
         train_ds, train_loader, _, val_loader = self._MakeDatasetAndLoader_episode(
             log=not train_from_scratch
         )
-        # Fields accessed: 'costs' (for p.cross_entropy; unused);
-        # 'TorchInvertCost', 'InvertCost'.  We don't access the actual data.
-        # Thus, it doesn't matter if we use a Dataset referring to the entire
-        # data or just the train data.  (Subset.dataset returns the entire
-        # original data is where the subset is sampled.)
-        #
-        # The else branch is for when self.exp_val is not None
-        # (p.prev_replay_buffers_glob_val).
         plans_dataset = (
             train_ds.dataset
             if isinstance(train_ds, torch.utils.data.Subset)
             else train_ds
         )
-        # Qihan now we use the copy to revocer the model first
         model = self._MakeModel(plans_dataset, train_from_scratch)
-        if train_from_scratch:
-            model.SetLoggingPrefix(
-                "train_from_scratch/iter-{}-".format(self.curr_value_iter)
-            )
-        else:
-            model.SetLoggingPrefix(
-                "train/iter-{}-".format(self.curr_value_iter))
+
+        model.SetLoggingPrefix(
+                "train/episode/iter-{}-".format(self.curr_value_iter))
         trainer = self._MakeTrainer(train_loader)
-        if train_from_scratch:
-            trainer.fit(model, train_loader, val_loader)
-        elif not (
-            self.curr_value_iter == 0
-            and p.skip_training_on_expert
-            and (p.prev_replay_buffers_glob is None or p.agent_checkpoint is not None)
-        ):
-            # This condition only affects the first ever call to Train().
-            # Iteration 0 doesn't have a timeout limit, so during the second
-            # call to Train() we would always have self.curr_value_iter == 1.
-            trainer.fit(model, train_loader, val_loader)
-            self.model = model.model
+
+        trainer.fit(model, train_loader, val_loader)
+        self.model = model.model
             # Optimizer state dict now available.
-            self.prev_optimizer_state_dict = None
-            if p.inherit_optimizer_state:
-                self.prev_optimizer_state_dict = trainer.optimizers[0].state_dict(
+        self.prev_optimizer_state_dict = None
+        if p.inherit_optimizer_state:
+            self.prev_optimizer_state_dict = trainer.optimizers[0].state_dict(
                 )
-        # Load best ckpt.
-        self._LoadBestCheckpointForEval(model, trainer)
-        self.timer.Stop("train_episode")
+        # qihan, in one episode, don't need to load best ckpt.
         return model, plans_dataset
 
     def _SampleInternalNode(self, node):
@@ -1965,7 +1879,7 @@ class BalsaAgent(object):
 
         return predicted_latency, found_plan
     # planner is the class of optimizer
-
+    # TODO use Reset_Fill_exp_episode to modify this process
     def PlanAndExecute(self, model, planner, is_test=False, max_retries=3):
 
         p = self.params
@@ -2210,7 +2124,7 @@ class BalsaAgent(object):
             )
         )
         try:
-            # TODO QIHANZHANG THIS ONE exectue sql
+            #  QIHANZHANG THIS ONE exectue sql
             # TODO make it in a loop form, say threshold is 10, train the model using exp_episode
             refs = ray.get(tasks)
         except Exception as e:
@@ -2460,6 +2374,66 @@ class BalsaAgent(object):
 
         return iter_total_latency, has_timeouts
 
+
+    def Reset_Fill_exp_episode(self, nodes_this_episode, to_execute_this_episode, execution_results_this_episode):
+        self.exp_episode.ClearBuffer()
+
+        p = self.params
+        num_timeouts = 0
+        # Errors the current policy incurs on (agent plans for train queries,
+        # expert plans for train queries).
+        agent_plans_diffs = []
+        expert_plans_diffs = []
+        for node, result_tup, to_execute_tup in zip(
+            nodes_this_episode, execution_results_this_episode, to_execute_this_episode
+        ):
+            result, real_cost, server_ip = result_tup
+            _, hint_str, planning_time, actual, predicted_latency, curr_timeout = (
+                to_execute_tup
+            )
+
+
+
+            if real_cost < 0:
+                has_timeouts = True
+                num_timeouts += 1
+                self.num_total_timeouts += 1
+                if p.special_timeout_label:
+                    real_cost = self.timeout_label()
+                    print(
+                        "Timeout detected! Assigning a special label",
+                        real_cost,
+                        "(server_ip={})".format(server_ip),
+                    )
+                else:
+                    real_cost = curr_timeout * 2
+                    print(
+                        "Timeout detected! Assigning 2*timeout as label",
+                        real_cost,
+                        "(server_ip={})".format(server_ip),
+                    )
+                actual.actual_time_ms = real_cost
+                actual.is_timeout = True
+            else:
+                agent_plans_diffs.append((real_cost - predicted_latency) / 1e3)
+            expert_plans_diffs.append(
+                (node.cost - node.info["curr_predicted_latency"]) / 1e3
+            )
+
+            assert real_cost > 0, real_cost
+            actual.cost = real_cost
+            actual.info = copy.deepcopy(node.info)
+            actual.info.pop("explain_json")
+
+            # Put into exp_episode buffer.
+            self.exp_episode.add(actual)
+
+ 
+
+
+        
+
+
     def _SaveReplayBuffer(self, iter_total_latency):
         p = self.params
         # "<class 'experiments.ConfigName'>" -> "ConfigName".
@@ -2704,9 +2678,9 @@ class BalsaAgent(object):
         if (self.curr_value_iter + 1) % 5 == 0:
             self.SaveAgent(model, iter_total_latency)
         # Run and log test queries.
-        # TODO QIHANZHANG This takes time too!!!!!! value_iter=0
+        #  QIHANZHANG This takes time too!!!!!! value_iter=0
         self.EvaluateTestSet(model, planner)
-        # QIHANZHANG TODO we don't go below
+        # QIHANZHANG  we don't go below
         if p.track_model_moving_averages:
             # Update model averages.
             # 1. EMA.  Aka Polyak averaging.
@@ -2982,9 +2956,11 @@ class BalsaAgent(object):
                     query_featurizer_cls=self.exp.query_featurizer_cls,
                     plan_featurizer_cls=self.exp.plan_featurizer_cls,
                 )
-                #qihan TODO still remain the last iter's data in the new exp to be align with the Lifelong RL paper
+                #qihan still remain the last iter's data in the new exp to be align with the Lifelong RL paper
+                exp_new.add_last_iter_data(self.exp)
                 self.exp = exp_new
-
+                #qihan reinit self.exp_episode
+                self.exp_episode = copy.deepcopy(self.exp)
                 print("Switching workload done, the buffer has been reset.")
 
                 # Qihan now we need to retrain the model using buffer to refresh the model
