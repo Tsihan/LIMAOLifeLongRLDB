@@ -2982,6 +2982,7 @@ class BalsaAgent(object):
                     query_featurizer_cls=self.exp.query_featurizer_cls,
                     plan_featurizer_cls=self.exp.plan_featurizer_cls,
                 )
+                #qihan TODO still remain the last iter's data in the new exp to be align with the Lifelong RL paper
                 self.exp = exp_new
 
                 print("Switching workload done, the buffer has been reset.")
