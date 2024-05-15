@@ -52,11 +52,8 @@ class Experience(object):
         plan_featurizer_cls=plans_lib.PreOrderSequenceFeaturizer,
         query_featurizer_cls=plans_lib.QueryFeaturizer,
         workload_info=None,
-        #seed=None
     ):
         
-        #self.seed = seed
-        #np.random.seed(self.seed)
         self.tree_conv = tree_conv
         if keep_scans_joins_only:
             print('plans_lib.FilterScansOrJoins()')
@@ -90,10 +87,13 @@ class Experience(object):
         # TODO: check that first N nodes don't change.
         postgres.EstimateFilterRows(self.nodes)
 
-    # Qihan add a new mothod to clear data and workload_info
+    # Qihan add a new mothod to clear data and workload_info, this is used for exp_episode
     def ClearBuffer(self):
-        """Clear all nodes in the current replay buffer."""
-        self.nodes = []
+        """if nodes' length <= initialize size, clear all, or retain the last init_size and workload_info are cleared."""
+        if len(self.nodes) <= self.initial_size:
+            self.nodes = []
+        else:
+            self.nodes = self.nodes[-self.initial_size:]
         self.workload_info = None
         self.initial_size = 0
 
@@ -590,6 +590,7 @@ class Experience(object):
                 skip_first_n,
                 use_last_n_iters=use_last_n_iters)
         if deduplicate:
+            #Qihan normally go this branch
             return self._featurize_dedup(
                 rewrite_generic,
                 verbose,
@@ -690,6 +691,7 @@ class Experience(object):
 
     def add(self, node):
         self.nodes.append(node)
+
 
     def DropAgentExperience(self):
         old_len = len(self.nodes)

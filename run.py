@@ -76,7 +76,8 @@ FLAGS = flags.FLAGS
 
 
 flags.DEFINE_string("run", "Balsa_JOBRandSplit", "Experiment config to run.")
-flags.DEFINE_boolean("local", False, "Whether to use local engine for query execution.")
+flags.DEFINE_boolean(
+    "local", False, "Whether to use local engine for query execution.")
 
 
 def GetDevice():
@@ -313,7 +314,8 @@ def ParseExecutionResult(
         messages.append(pprint.pformat(query_node.info["all_filters"]))
         messages.append("")
         messages.append(
-            "q{},{:.1f},{}".format(query_node.info["query_name"], real_cost, hint_str)
+            "q{},{:.1f},{}".format(
+                query_node.info["query_name"], real_cost, hint_str)
         )
         messages.append(
             "{} Execution time: {:.1f} (predicted {:.1f}) curr_timeout_ms={}".format(
@@ -364,7 +366,8 @@ def ParseExecutionResult(
                 )
             else:
                 messages.append(
-                    "          {:.1f}  {}  {}".format(p_latency, found_hint_str, extras)
+                    "          {:.1f}  {}  {}".format(
+                        p_latency, found_hint_str, extras)
                 )
     messages.append("-" * 80)
     return result_tup, real_cost, server_ip, "\n".join(messages)
@@ -480,10 +483,10 @@ def InitializeModel(
             new_state_dict[new_key] = value
         return new_state_dict
 
-    #如果model在CPU 移动到GPU
+    # 如果model在CPU 移动到GPU
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model = model.to(device)
-    
+
     sim_weights = sim.model.state_dict()
     sim_weights_renamed = copy.deepcopy(Rename(sim_weights))
     model_weights = model.state_dict()
@@ -505,14 +508,16 @@ def InitializeModel(
             # Use an exponential moving average of source networks.
             if ema_source_tm1 is None:
                 ema_source_tm1 = sim_weights_renamed
-            assert isinstance(ema_source_tm1, collections.OrderedDict), ema_source_tm1
+            assert isinstance(
+                ema_source_tm1, collections.OrderedDict), ema_source_tm1
             assert ema_source_tm1.keys() == model_weights.keys()
             # Calculates source_t for current iteration t:
             #    source_t = tau * source_(t-1) + (1-tau) model_(t-1)
             with torch.no_grad():
                 ema_source_t = copy.deepcopy(ema_source_tm1)
                 for key, param in model_weights.items():
-                    ema_source_t[key] = tau * ema_source_tm1[key] + (1.0 - tau) * param
+                    ema_source_t[key] = tau * \
+                        ema_source_tm1[key] + (1.0 - tau) * param
             # Assign model_t := source_t.
             model.load_state_dict(ema_source_t)
             print("Initialized from EMA source network: tau={}".format(tau))
@@ -532,7 +537,8 @@ def InitializeModel(
     if p.param_noise:
         for layer in model.out_mlp:
             if isinstance(layer, nn.Linear):
-                print("Adding N(0, {}) to out_mlp's {}.".format(p.param_noise, layer))
+                print("Adding N(0, {}) to out_mlp's {}.".format(
+                    p.param_noise, layer))
 
                 def _Add(w):
                     w.requires_grad = False
@@ -583,7 +589,6 @@ class BalsaModel(pl.LightningModule):
         """Useful for prepending value iteration numbers."""
         self.logging_prefix = prefix
 
-    
     def forward(
         self,
         idx_other_modulelist,
@@ -633,7 +638,8 @@ class BalsaModel(pl.LightningModule):
             optimizer.load_state_dict(self.optimizer_state_dict)
             for param_group in optimizer.param_groups:
                 param_group["lr"] = self.learning_rate
-            assert optimizer.state_dict()["param_groups"][0]["lr"] == self.learning_rate
+            assert optimizer.state_dict(
+            )["param_groups"][0]["lr"] == self.learning_rate
             print("LR", self.learning_rate)
         if not self.reduce_lr_within_val_iter:
             return optimizer
@@ -666,7 +672,8 @@ class BalsaModel(pl.LightningModule):
     def validation_step(self, batch, batch_idx):
         val_loss, l2_loss = self._ComputeLoss(batch)
         result = pl.EvalResult(checkpoint_on=val_loss, early_stop_on=val_loss)
-        result.log("{}val_loss".format(self.logging_prefix), val_loss, prog_bar=False)
+        result.log("{}val_loss".format(self.logging_prefix),
+                   val_loss, prog_bar=False)
         result.log("val_loss", val_loss, prog_bar=True)
         if self.l2_lambda > 0:
             result.log("val_l2_loss", l2_loss, prog_bar=False)
@@ -707,7 +714,6 @@ class BalsaModel(pl.LightningModule):
         # FIXME QIHANZHANG here we need to make it like LIfelong Modular RL
         # Qihan: when we want to train the real model, we need get the correct indexes!
 
-        
         def get_three_indexes(names):
             list_other = []
             list_hash_join = []
@@ -721,12 +727,10 @@ class BalsaModel(pl.LightningModule):
                 idx_nested_loop_join = optim.SQL_DICT_NESTED_LOOP_JOIN[name]
                 list_nested_loop_join.append(idx_nested_loop_join)
 
-
             return list_other, list_hash_join, list_nested_loop_join
 
-
-        
-        idx_other_module_list,idx_hash_join_module_list,idx_nested_loop_join_module_list = get_three_indexes(names)
+        idx_other_module_list, idx_hash_join_module_list, idx_nested_loop_join_module_list = get_three_indexes(
+            names)
 
         output = self.forward(
             idx_other_module_list,
@@ -749,8 +753,10 @@ class BalsaModel(pl.LightningModule):
             w_ceil = ceil - target
             floor = torch.floor(target)
             w_floor = 1 - w_ceil
-            target_dist.scatter_(1, ceil.long().unsqueeze(1), w_ceil.unsqueeze(1))
-            target_dist.scatter_(1, floor.long().unsqueeze(1), w_floor.unsqueeze(1))
+            target_dist.scatter_(
+                1, ceil.long().unsqueeze(1), w_ceil.unsqueeze(1))
+            target_dist.scatter_(
+                1, floor.long().unsqueeze(1), w_floor.unsqueeze(1))
             loss = (-target_dist * log_probs).sum(-1).mean()
         else:
             if self.loss_type == "mean_qerror":
@@ -845,11 +851,6 @@ class BalsaAgent(object):
         self.curr_value_iter = 0
         self.is_origin_workload = True
 
-
-
-
-
-
         # Ray.
         if p.use_local_execution:
             # print('Using local execution!!!!!')
@@ -931,7 +932,7 @@ class BalsaAgent(object):
         )
         ray.shutdown()
 
-    def _MakeWorkload(self, is_origin = False):
+    def _MakeWorkload(self, is_origin=False):
         p = self.params
         #  Qihan entrance this branch
         if os.path.isfile(p.init_experience) and self.curr_value_iter == 0:
@@ -939,10 +940,11 @@ class BalsaAgent(object):
             with open(p.init_experience, "rb") as f:
                 workload = pickle.load(f)
             # Filter queries based on the current query_glob.
-            workload.FilterQueries(p.query_dir, p.query_glob, p.test_query_glob)
+            workload.FilterQueries(
+                p.query_dir, p.query_glob, p.test_query_glob)
         elif self.curr_value_iter == 0:
             wp = envs.IMDB_assorted_small.Params()
-            #wp = envs.IMDB_assorted_small_2.Params()
+            # wp = envs.IMDB_assorted_small_2.Params()
             # wp = envs.IMDB_assorted.Params()
             # wp = envs.JoinOrderBenchmark.Params()
             # wp = envs.TPCH10.Params()
@@ -962,13 +964,15 @@ class BalsaAgent(object):
                 with open('data/IMDB_assorted_small/initial_policy_data.pkl', "rb") as f:
                     workload = pickle.load(f)
             # Filter queries based on the current query_glob.
-                workload.FilterQueries('queries/imdb_assorted_small', ['*.sql'], ['29a_job.sql', '28c_baochanged.sql'])
+                workload.FilterQueries(
+                    'queries/imdb_assorted_small', ['*.sql'], ['29a_job.sql', '28c_baochanged.sql'])
             else:
 
                 with open('data/IMDB_assorted_small_2/initial_policy_data.pkl', "rb") as f:
                     workload = pickle.load(f)
             # Filter queries based on the current query_glob.
-                workload.FilterQueries('queries/imdb_assorted_small_2', ['*.sql'], ['28a_bao.sql', '23b_jobchanged.sql'])
+                workload.FilterQueries(
+                    'queries/imdb_assorted_small_2', ['*.sql'], ['28a_bao.sql', '23b_jobchanged.sql'])
 
         return workload
 
@@ -1021,10 +1025,11 @@ class BalsaAgent(object):
             query_featurizer_cls=query_featurizer_cls,
             plan_featurizer_cls=plan_feat_cls,
         )
-       
+
         if p.prev_replay_buffers_glob is not None:
-            exp.Load(p.prev_replay_buffers_glob, p.prev_replay_keep_last_fraction)
-            pa = plan_analysis.PlanAnalysis.Build(exp.nodes[exp.initial_size :])
+            exp.Load(p.prev_replay_buffers_glob,
+                     p.prev_replay_keep_last_fraction)
+            pa = plan_analysis.PlanAnalysis.Build(exp.nodes[exp.initial_size:])
             pa.Print()
 
         if p.prev_replay_buffers_glob_val is not None:
@@ -1037,17 +1042,18 @@ class BalsaAgent(object):
                 plan_featurizer_cls=plan_feat_cls,
             )
             exp_val.Load(p.prev_replay_buffers_glob_val)
-            pa = plan_analysis.PlanAnalysis.Build(exp_val.nodes[exp_val.initial_size :])
+            pa = plan_analysis.PlanAnalysis.Build(
+                exp_val.nodes[exp_val.initial_size:])
             pa.Print()
         else:
             exp_val = None
 
         return exp, exp_val
 
-    def _MakeDatasetAndLoader(self, log=True):
+    def _MakeDatasetAndLoader(self, log=True, need_refresh=False):
         p = self.params
         do_replay_training = (
-            p.prev_replay_buffers_glob is not None and p.agent_checkpoint is None 
+            p.prev_replay_buffers_glob is not None and p.agent_checkpoint is None
         )
         if do_replay_training or (
             p.skip_training_on_expert and self.curr_value_iter > 0
@@ -1063,7 +1069,8 @@ class BalsaAgent(object):
             skip_first_n = 0
         # Use only the latest round of executions?
         on_policy = p.on_policy
-        if do_replay_training and self.curr_value_iter == 0:
+        #Qihan, add another condition to refresh the model
+        if (do_replay_training and self.curr_value_iter == 0) or need_refresh:
             # Reloading replay buffers: let's train on all data.
             on_policy = False
         # TODO: avoid repeatedly featurizing already-featurized nodes.
@@ -1151,7 +1158,8 @@ class BalsaAgent(object):
             num_train = int(len(dataset) * (1 - p.validate_fraction))
             num_validation = len(dataset) - num_train
             assert num_train > 0 and num_validation >= 0, len(dataset)
-            print("num_train={} num_validation={}".format(num_train, num_validation))
+            print("num_train={} num_validation={}".format(
+                num_train, num_validation))
             train_ds, val_ds = torch.utils.data.random_split(
                 dataset, [num_train, num_validation]
             )
@@ -1200,7 +1208,7 @@ class BalsaAgent(object):
         if p.tree_conv:
             collate_fn = ds.InputBatch
         else:
-            collate_fn = lambda xs: ds.InputBatch(
+            def collate_fn(xs): return ds.InputBatch(
                 xs,
                 plan_pad_idx=self.exp.featurizer.pad(),
                 parent_pos_pad_idx=self.exp.pos_featurizer.pad(),
@@ -1223,11 +1231,11 @@ class BalsaAgent(object):
             self._LogDatasetStats(train_labels, num_new_datapoints)
 
         return train_ds, train_loader, val_ds, val_loader
-    
+
     def _MakeDatasetAndLoader_episode(self, log=True):
         p = self.params
         do_replay_training = (
-            p.prev_replay_buffers_glob is not None and p.agent_checkpoint is None 
+            p.prev_replay_buffers_glob is not None and p.agent_checkpoint is None
         )
         if do_replay_training or (
             p.skip_training_on_expert and self.curr_value_iter > 0
@@ -1331,7 +1339,8 @@ class BalsaAgent(object):
             num_train = int(len(dataset) * (1 - p.validate_fraction))
             num_validation = len(dataset) - num_train
             assert num_train > 0 and num_validation >= 0, len(dataset)
-            print("num_train={} num_validation={}".format(num_train, num_validation))
+            print("num_train={} num_validation={}".format(
+                num_train, num_validation))
             train_ds, val_ds = torch.utils.data.random_split(
                 dataset, [num_train, num_validation]
             )
@@ -1380,7 +1389,7 @@ class BalsaAgent(object):
         if p.tree_conv:
             collate_fn = ds.InputBatch
         else:
-            collate_fn = lambda xs: ds.InputBatch(
+            def collate_fn(xs): return ds.InputBatch(
                 xs,
                 plan_pad_idx=self.exp.featurizer.pad(),
                 parent_pos_pad_idx=self.exp.pos_featurizer.pad(),
@@ -1404,11 +1413,10 @@ class BalsaAgent(object):
 
         return train_ds, train_loader, val_ds, val_loader
 
-
-
     def _LogDatasetStats(self, train_labels, num_new_datapoints):
         # Track # of training trees that are not timeouts.
-        num_normal_trees = (np.asarray(train_labels) != self.timeout_label()).sum()
+        num_normal_trees = (np.asarray(train_labels) !=
+                            self.timeout_label()).sum()
         data = [
             (
                 "train/iter-{}-num-trees".format(self.curr_value_iter),
@@ -1442,7 +1450,7 @@ class BalsaAgent(object):
         else:
             # Some training was performed before.  Weights would be
             # re-initialized by InitializeModel() below.
-            model = self.model  
+            model = self.model
         print("InitializeModel curr_value_iter={}".format(self.curr_value_iter))
         if p.sim:
             should_skip = p.skip_sim_init_iter_1p and hasattr(self, "model")
@@ -1509,7 +1517,8 @@ class BalsaAgent(object):
             )
             # 1 epoch = 1 pass over the replay window.
             # Total num steps per epoch * desired_update_fraction.
-            max_steps = int(np.ceil(len(train_loader) * desired_update_fraction))
+            max_steps = int(
+                np.ceil(len(train_loader) * desired_update_fraction))
             print(
                 "per_transition_sgd_steps={} max_batches={} "
                 "num_batches_per_epoch={}".format(
@@ -1581,14 +1590,16 @@ class BalsaAgent(object):
             for node in expert_test_nodes:
                 data_to_log.append(
                     (
-                        "latency_expert_test/q{}".format(node.info["query_name"]),
+                        "latency_expert_test/q{}".format(
+                            node.info["query_name"]),
                         node.cost / 1e3,
                         0,
                     )
                 )
                 total_s_test += node.cost / 1e3
                 num_joins.append(len(node.leaf_ids()) - 1)
-            data_to_log.append(("latency_expert_test/workload", total_s_test, 0))
+            data_to_log.append(
+                ("latency_expert_test/workload", total_s_test, 0))
             print(
                 "latency_expert_test/workload (seconds): {:.2f} ({} queries)".format(
                     total_s_test, len(expert_test_nodes)
@@ -1613,15 +1624,15 @@ class BalsaAgent(object):
         # Qihan here we copy the parameters from the first module in each modulelist
         # get all module lists from the model
         module_lists = [
-        self.sim.model.tree_conv.conv_module_list_hash_join,
-        self.sim.model.tree_conv.conv_module_list_nested_loop_join,
-        self.sim.model.tree_conv.conv_module_list_other]
-
+            self.sim.model.tree_conv.conv_module_list_hash_join,
+            self.sim.model.tree_conv.conv_module_list_nested_loop_join,
+            self.sim.model.tree_conv.conv_module_list_other]
 
         # do the parameter copy
         for module_list in module_lists:
             source_module = module_list[0]
-            for target_module in module_list[1:]:  # start from the second module
+            # start from the second module
+            for target_module in module_list[1:]:
                 self.copy_module_parameters(source_module, target_module)
 
         return self.sim
@@ -1676,12 +1687,13 @@ class BalsaAgent(object):
                 # on a different engine.
                 print(node)
             print(message)
-            print("q{},{:.1f} (baseline)".format(node.info["query_name"], real_cost))
+            print("q{},{:.1f} (baseline)".format(
+                node.info["query_name"], real_cost))
             print("Execution time: {}".format(real_cost))
         # NOTE: if engine != pg, we're still saving PG plans but with target
         # engine's latencies.  This mainly affects debug strings.
         Save(self.workload, "./data/IMDB_assorted_small/initial_policy_data.pkl")
-        #Save(self.workload, "./data/IMDB_assorted_small_2/initial_policy_data.pkl")
+        # Save(self.workload, "./data/IMDB_assorted_small_2/initial_policy_data.pkl")
         # Save(self.workload, "./data/IMDB_assorted/initial_policy_data.pkl")
         # Save(self.workload, "./data/JOB/initial_policy_data.pkl")
         # Save(self.workload, './data/JOB_changed/initial_policy_data.pkl')
@@ -1691,18 +1703,17 @@ class BalsaAgent(object):
         # Save(self.workload, './data/TPCH/initial_policy_data.pkl')
         self.LogExpertExperience(self.train_nodes, self.test_nodes)
 
-    def Train(self, train_from_scratch=False):
+    def Train(self, train_from_scratch=False,need_refresh=False):
         p = self.params
 
         # Qihan use the copy to recover
-        
-        if  hasattr(self, "model_copy") and self.model_copy is not None:
-            self.model = self.model_copy
 
+        if hasattr(self, "model_copy") and self.model_copy is not None:
+            self.model = self.model_copy
 
         self.timer.Start("train")
         train_ds, train_loader, _, val_loader = self._MakeDatasetAndLoader(
-            log=not train_from_scratch
+            log=not train_from_scratch,need_refresh=need_refresh
         )
         # Fields accessed: 'costs' (for p.cross_entropy; unused);
         # 'TorchInvertCost', 'InvertCost'.  We don't access the actual data.
@@ -1724,7 +1735,8 @@ class BalsaAgent(object):
                 "train_from_scratch/iter-{}-".format(self.curr_value_iter)
             )
         else:
-            model.SetLoggingPrefix("train/iter-{}-".format(self.curr_value_iter))
+            model.SetLoggingPrefix(
+                "train/iter-{}-".format(self.curr_value_iter))
         trainer = self._MakeTrainer(train_loader)
         if train_from_scratch:
             trainer.fit(model, train_loader, val_loader)
@@ -1732,7 +1744,7 @@ class BalsaAgent(object):
             self.curr_value_iter == 0
             and p.skip_training_on_expert
             and (p.prev_replay_buffers_glob is None or p.agent_checkpoint is not None)
-        ) :
+        ):
             # This condition only affects the first ever call to Train().
             # Iteration 0 doesn't have a timeout limit, so during the second
             # call to Train() we would always have self.curr_value_iter == 1.
@@ -1741,17 +1753,18 @@ class BalsaAgent(object):
             # Optimizer state dict now available.
             self.prev_optimizer_state_dict = None
             if p.inherit_optimizer_state:
-                self.prev_optimizer_state_dict = trainer.optimizers[0].state_dict()
+                self.prev_optimizer_state_dict = trainer.optimizers[0].state_dict(
+                )
         # Load best ckpt.
         self._LoadBestCheckpointForEval(model, trainer)
         self.timer.Stop("train")
 
-        #Qihan add a copy of the model, the class is BalsaModel
+        # Qihan add a copy of the model, the class is BalsaModel
         print("make a copy of the model, and use the copy to generate exp in the futrue")
         self.model_copy = copy.deepcopy(model.model)
         return model, plans_dataset
-    
-    # Qihan: TODO 
+
+    # Qihan: TODO
     # 1. modify _MakeDatasetAndLoader_episode
     # 2. modify Train_episode
     # 3. embed Train_episode during one iteration
@@ -1782,7 +1795,8 @@ class BalsaAgent(object):
                 "train_from_scratch/iter-{}-".format(self.curr_value_iter)
             )
         else:
-            model.SetLoggingPrefix("train/iter-{}-".format(self.curr_value_iter))
+            model.SetLoggingPrefix(
+                "train/iter-{}-".format(self.curr_value_iter))
         trainer = self._MakeTrainer(train_loader)
         if train_from_scratch:
             trainer.fit(model, train_loader, val_loader)
@@ -1790,7 +1804,7 @@ class BalsaAgent(object):
             self.curr_value_iter == 0
             and p.skip_training_on_expert
             and (p.prev_replay_buffers_glob is None or p.agent_checkpoint is not None)
-        ) :
+        ):
             # This condition only affects the first ever call to Train().
             # Iteration 0 doesn't have a timeout limit, so during the second
             # call to Train() we would always have self.curr_value_iter == 1.
@@ -1799,7 +1813,8 @@ class BalsaAgent(object):
             # Optimizer state dict now available.
             self.prev_optimizer_state_dict = None
             if p.inherit_optimizer_state:
-                self.prev_optimizer_state_dict = trainer.optimizers[0].state_dict()
+                self.prev_optimizer_state_dict = trainer.optimizers[0].state_dict(
+                )
         # Load best ckpt.
         self._LoadBestCheckpointForEval(model, trainer)
         self.timer.Stop("train_episode")
@@ -1855,7 +1870,8 @@ class BalsaAgent(object):
                     print("After: {}".format(found_plan.hint_str()))
                 elif p.epsilon_greedy_random_plan and self.curr_value_iter > 0:
                     # Randomly pick a plan.
-                    predicted_latency, found_plan = planner.SampleRandomPlan(query_node)
+                    predicted_latency, found_plan = planner.SampleRandomPlan(
+                        query_node)
                 else:
                     # Randomly pick a plan from all found plans.
                     rand_idx = np.random.randint(len(found_plans))
@@ -1895,7 +1911,8 @@ class BalsaAgent(object):
                     scores = visit_sum * 1.0 / (1.0 + visit_counts)
                     with torch.no_grad():
                         scores = torch.from_numpy(scores)
-                        rand_idx = torch.multinomial(scores, num_samples=1).item()
+                        rand_idx = torch.multinomial(
+                            scores, num_samples=1).item()
                     predicted_latency, found_plan = found_plans[rand_idx]
                     print(
                         "counts",
@@ -1948,6 +1965,7 @@ class BalsaAgent(object):
 
         return predicted_latency, found_plan
     # planner is the class of optimizer
+
     def PlanAndExecute(self, model, planner, is_test=False, max_retries=3):
 
         p = self.params
@@ -1985,7 +2003,7 @@ class BalsaAgent(object):
         self.timer.Start("plan_test_set" if is_test else "plan")
 
         # Qihan this for loop is used for planning but not for execution
-        #TODO set a threshold eg 10, to train the model
+        # TODO set a threshold eg 10, to train the model
         for i, node in enumerate(nodes):
             print("---------------------------------------")
             tup = planner.plan(
@@ -2013,7 +2031,8 @@ class BalsaAgent(object):
             # Calculate monitoring info.
             predicted_costs = None
             if p.sim:
-                predicted_costs = sim.Predict(node, [tup[1] for tup in found_plans])
+                predicted_costs = sim.Predict(
+                    node, [tup[1] for tup in found_plans])
             # Model-predicted latency of the expert plan.  Allows us to track
             # what exactly the model thinks of the expert plan.
             # TODO DEBUG balsa.optimizer.Optimizer object
@@ -2091,14 +2110,14 @@ class BalsaAgent(object):
             if exec_result is None:
                 # Lambdas are late-binding; use a default argument value to
                 # ensure that when invoked later, the correct kwarg is used.
-                fn = lambda task_index=i: ExecuteSql.options(
+                def fn(task_index=i): return ExecuteSql.options(
                     resources={
                         f"node:{ray.util.get_node_ip_address()}": 1,
                     }
                 ).remote(**kwargs[task_index])
             else:
                 # Cache hit.  See comment above for why the default arg val.
-                fn = lambda task_index=i: ray.put(exec_results[task_index])
+                def fn(task_index=i): return ray.put(exec_results[task_index])
             task_lambdas.append(fn)
             tasks.append(fn())
 
@@ -2164,15 +2183,14 @@ class BalsaAgent(object):
         optim.CONV_MODULE_OTHER_0 = 0
         optim.CONV_MODULE_OTHER_1 = 0
         optim.CONV_MODULE_OTHER_2 = 0
-        
+
         optim.CONV_MODULE_HASH_JOIN_0 = 0
         optim.CONV_MODULE_HASH_JOIN_1 = 0
         optim.CONV_MODULE_HASH_JOIN_2 = 0
-     
+
         optim.CONV_MODULE_NESTED_LOOP_JOIN_0 = 0
         optim.CONV_MODULE_NESTED_LOOP_JOIN_1 = 0
         optim.CONV_MODULE_NESTED_LOOP_JOIN_2 = 0
-     
 
         self.timer.Stop("plan_test_set" if is_test else "plan")
         self.timer.Start(
@@ -2280,7 +2298,7 @@ class BalsaAgent(object):
             assert isinstance(
                 result_tup, (pg_executor.Result, dbmsx_executor.Result)
             ), result_tup
-            #result_tups[1] is the execution time
+            # result_tups[1] is the execution time
             result_tups = ParseExecutionResult(result_tup, **kwargs[i])
             assert len(result_tups) == 4
             print(result_tups[-1])  # Messages.
@@ -2533,7 +2551,8 @@ class BalsaAgent(object):
                 break
             iter_total_latency += real_cost
             rows.append(
-                (node.info["query_name"], real_cost / 1e3, self.curr_value_iter)
+                (node.info["query_name"], real_cost /
+                 1e3, self.curr_value_iter)
             )
             data.append(
                 (
@@ -2555,7 +2574,8 @@ class BalsaAgent(object):
             return
         # Log a table of latencies, sorted by descending latency.
         rows = list(sorted(rows, key=lambda r: r[1], reverse=True))
-        table = wandb.Table(columns=["query_name", tag, "curr_value_iter"], rows=rows)
+        table = wandb.Table(
+            columns=["query_name", tag, "curr_value_iter"], rows=rows)
         self.wandb_logger.experiment.log({"{}_table".format(tag): table})
 
         data.extend(
@@ -2626,20 +2646,20 @@ class BalsaAgent(object):
             use_plan_restrictions=p.real_use_plan_restrictions,
         )
 
-    def RunOneIter(self):
+    def RunOneIter(self,need_refresh=False):
         p = self.params
         self.curr_iter_skipped_queries = 0
         # Train the model.
-        #Qihan this actially use the data collected in last iter
-        model, dataset = self.Train()
+        # Qihan this actually use the data collected in last iter
+        model, dataset = self.Train(need_refresh=need_refresh)
         # Replay buffer reset (if enabled).
         if self.curr_value_iter == p.replay_buffer_reset_at_iter:
             self.exp.DropAgentExperience()
-        
+
         planner = self._MakePlanner(model, dataset)
         # Use the model to plan the workload.  Execute the plans and get
         # latencies.
-        # QIHANZHANG This takes time too!!!!!!Huge!!!!!! Waiting on Ray tasks...value_iter=xxx
+        # Qihan This takes time too!!!!!!Huge!!!!!! Waiting on Ray tasks...value_iter=xxx
         to_execute, execution_results = self.PlanAndExecute(
             model, planner, is_test=False
         )
@@ -2679,8 +2699,8 @@ class BalsaAgent(object):
                 )
             self.LogScalars(to_log)
         self.SaveBestPlans()
-        #Qihan in the next iteration, we will switch the workload, so the buffer will be reset
-        #before that we will save it
+        # Qihan in the next iteration, we will switch the workload, so the buffer will be reset
+        # before that we will save it
         if (self.curr_value_iter + 1) % 5 == 0:
             self.SaveAgent(model, iter_total_latency)
         # Run and log test queries.
@@ -2699,7 +2719,8 @@ class BalsaAgent(object):
                     self.SwapMovingAverage(model, moving_average="ema")
                     # Clear the planner's label cache.
                     planner.SetModel(model)
-                    self.EvaluateTestSet(model, planner, tag="latency_test_ema")
+                    self.EvaluateTestSet(
+                        model, planner, tag="latency_test_ema")
                     self.SwapMovingAverage(model, moving_average="ema")
 
             # 2. SWA: Stochastic weight averaging.
@@ -2709,7 +2730,8 @@ class BalsaAgent(object):
                     self.SwapMovingAverage(model, moving_average="swa")
                     # Clear the planner's label cache.
                     planner.SetModel(model)
-                    self.EvaluateTestSet(model, planner, tag="latency_test_swa")
+                    self.EvaluateTestSet(
+                        model, planner, tag="latency_test_swa")
                     self.SwapMovingAverage(model, moving_average="swa")
 
         return has_timeouts
@@ -2729,7 +2751,8 @@ class BalsaAgent(object):
         piped to a SQL shell for execution.
         """
         p = self.params
-        best_plans_dir = os.path.join(self.wandb_logger.experiment.dir, "best_plans/")
+        best_plans_dir = os.path.join(
+            self.wandb_logger.experiment.dir, "best_plans/")
         qnames = []
         latencies = []
         sqls = []
@@ -2757,7 +2780,8 @@ class BalsaAgent(object):
         qnames.append("all")
         latencies.append(total_ms)
         # all.sql.
-        path = SaveText("\n".join(sqls), os.path.join(best_plans_dir, "all.sql"))
+        path = SaveText("\n".join(sqls), os.path.join(
+            best_plans_dir, "all.sql"))
         w.save(path, base_path=wandb_dir)
         # latencies.txt.
         pd.DataFrame({"query": qnames, "latency_ms": latencies}).to_csv(
@@ -2781,13 +2805,16 @@ class BalsaAgent(object):
         # Model weights can be reloaded with:
         #   model = TheModelClass(*args, **kwargs)
         #   model.load_state_dict(torch.load(PATH))
-        ckpt_path = os.path.join(self.wandb_logger.experiment.dir, "checkpoint.pt")
+        ckpt_path = os.path.join(
+            self.wandb_logger.experiment.dir, "checkpoint.pt")
         torch.save(model.state_dict(), ckpt_path)
         SaveText(
             "value_iter,{}".format(self.curr_value_iter),
-            os.path.join(self.wandb_logger.experiment.dir, "checkpoint-metadata.txt"),
+            os.path.join(self.wandb_logger.experiment.dir,
+                         "checkpoint-metadata.txt"),
         )
-        print("Saved iter={} checkpoint to: {}".format(self.curr_value_iter, ckpt_path))
+        print("Saved iter={} checkpoint to: {}".format(
+            self.curr_value_iter, ckpt_path))
 
         # Replay buffer.  Saved under data/.
         self._SaveReplayBuffer(iter_total_latency)
@@ -2804,7 +2831,8 @@ class BalsaAgent(object):
             for key, param in model.state_dict().items():
                 # Zero-init.
                 if key not in moving_average_state_dict:
-                    moving_average_state_dict[key] = torch.zeros_like(param.data)
+                    moving_average_state_dict[key] = torch.zeros_like(
+                        param.data)
                 avg_buffer = moving_average_state_dict[key]
                 # variable += new_val_weight * (value - variable)
                 diff = (param.data - avg_buffer) * new_val_weight
@@ -2816,7 +2844,8 @@ class BalsaAgent(object):
             for key, param in model.state_dict().items():
                 # Init from the first model iterate, w(0).
                 if key not in moving_average_state_dict:
-                    moving_average_state_dict[key] = param.data.clone().detach()
+                    moving_average_state_dict[key] = param.data.clone(
+                    ).detach()
                 avg_buffer = moving_average_state_dict[key]
                 # variable += new_val_weight * (value - variable)
                 diff = (param.data - avg_buffer) * new_val_weight
@@ -2852,7 +2881,8 @@ class BalsaAgent(object):
         to_execute_test, execution_results_test = self.PlanAndExecute(
             model, planner, is_test=True
         )
-        self.LogTestExperience(to_execute_test, execution_results_test, tag=tag)
+        self.LogTestExperience(
+            to_execute_test, execution_results_test, tag=tag)
 
     def LogTimings(self):
         """Logs timing statistics."""
@@ -2920,9 +2950,10 @@ class BalsaAgent(object):
             # self.{all,train,test}_nodes no longer share any references.
             self.train_nodes = plans_lib.FilterScansOrJoins(self.train_nodes)
             self.test_nodes = plans_lib.FilterScansOrJoins(self.test_nodes)
-        
+
         while self.curr_value_iter < p.val_iters:
-            #qihan: switch the workload here
+            # qihan: switch the workload here
+            need_refresh = False
             if self.curr_value_iter % 5 == 0 and self.curr_value_iter != 0:
                 print("Switching workload ... ...")
                 self.is_origin_workload = not self.is_origin_workload
@@ -2931,29 +2962,38 @@ class BalsaAgent(object):
                 else:
                     self.have_dynaic_workload_switch_back = False
 
-                # TODO now we need to retrain the model using buffer to refresh the model
-                if self.have_dynaic_workload_switch_back :
-                    self.exp.Load(p.prev_replay_buffers_glob_refresh, p.prev_replay_keep_last_fraction)
-                    pa = plan_analysis.PlanAnalysis.Build(self.exp.nodes[self.exp.initial_size :])
-                    pa.Print()
+
+
 
                 # Qihan Reset the experience buffer.
                 self.workload = self._MakeWorkload(self.is_origin_workload)
                 self.all_nodes = self.workload.Queries(split="all")
                 self.train_nodes = self.workload.Queries(split="train")
                 self.test_nodes = self.workload.Queries(split="test")
-                self.train_nodes = plans_lib.FilterScansOrJoins(self.train_nodes)
+                self.train_nodes = plans_lib.FilterScansOrJoins(
+                    self.train_nodes)
                 self.test_nodes = plans_lib.FilterScansOrJoins(self.test_nodes)
 
                 # Qihan Reset the experience buffer.
-                self.exp.ClearBuffer()
-                self.exp.nodes = self.train_nodes
-                self.exp.initial_size = len(self.exp.nodes)
+                exp_new = Experience(
+                    self.train_nodes,
+                    p.tree_conv,
+                    workload_info=self.workload.workload_info,
+                    query_featurizer_cls=self.exp.query_featurizer_cls,
+                    plan_featurizer_cls=self.exp.plan_featurizer_cls,
+                )
+                self.exp = exp_new
 
-                
-                print("Switching workload done")
+                print("Switching workload done, the buffer has been reset.")
 
-            has_timeouts = self.RunOneIter()
+                # Qihan now we need to retrain the model using buffer to refresh the model
+                if self.have_dynaic_workload_switch_back:
+                    print("Switching workload back to the original one, adding previous exp ... ...")
+                    self.exp.Load(p.prev_replay_buffers_glob_refresh,
+                                  p.prev_replay_keep_last_fraction)
+                    need_refresh = True
+
+            has_timeouts = self.RunOneIter(need_refresh=need_refresh)
             self.LogTimings()
 
             if (
@@ -2989,11 +3029,9 @@ class BalsaAgent(object):
                     if self.adaptive_lr_schedule is not None:
                         self.adaptive_lr_schedule.Step()
 
-   
-
 
 def Main(argv):
-    
+
     del argv  # Unused.
     name = FLAGS.run
     print("Looking up params by name:", name)
@@ -3004,7 +3042,7 @@ def Main(argv):
     # p.sim_checkpoint = None
     # p.epochs = 1
     p.val_iters = 20
-    
+
     # p.query_glob = ['7*.sql']
     # p.test_query_glob = ['7c.sql']
     # p.search_until_n_complete_plans = 1
@@ -3014,6 +3052,5 @@ def Main(argv):
 
 
 if __name__ == "__main__":
-
 
     app.run(Main)
