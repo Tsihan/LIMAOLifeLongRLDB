@@ -1707,7 +1707,7 @@ class BalsaAgent(object):
     # Qihan: 
     # 1. modify _MakeDatasetAndLoader_episode ok
     # 2. modify Train_episode ok
-    # 3. TODO embed Train_episode during one iteration
+    # 3. embed Train_episode during one iteration ok
     def Train_episode(self, train_from_scratch=False):
         p = self.params
         train_ds, train_loader, _, val_loader = self._MakeDatasetAndLoader_episode(
@@ -1878,8 +1878,304 @@ class BalsaAgent(object):
                     )
 
         return predicted_latency, found_plan
+    
+    # Qihan use Reset_Fill_exp_episode to modify this process
+    def PlanAndExecute_episode(self, model, planner, is_test=False, max_retries=3):
+        p = self.params
+        # qihan change some parameters here
+        if not self.is_origin_workload:
+            p.init_experience = 'data/IMDB_assorted_small_2/initial_policy_data.pkl'
+            p.test_query_glob = ['28a_bao.sql', '23b_jobchanged.sql']
+            p.query_dir = 'queries/imdb_assorted_small_2'
+        else:
+            p.init_experience = 'data/IMDB_assorted_small/initial_policy_data.pkl'
+            p.test_query_glob = ['29a_job.sql', '28c_baochanged.sql']
+            p.query_dir = 'queries/imdb_assorted_small'
+
+        model.eval()
+        all_to_execute = []
+        all_execution_results = []
+        
+        if p.sim:
+            sim = self.GetOrTrainSim()
+        positions_of_min_predicted = []
+        nodes = self.test_nodes if is_test else self.train_nodes
+  
+        if not is_test:
+            self.timeout_controller.OnIterStart()
+        planner_config = None
+        if p.planner_config is not None:
+            planner_config = optim.PlannerConfig.Get(p.planner_config)
+        epsilon_greedy_within_beam_search = 0
+        if not is_test and p.epsilon_greedy_within_beam_search > 0:
+            epsilon_greedy_within_beam_search = p.epsilon_greedy_within_beam_search
+
+        batch_size = 10
+        total_batches = (len(self.nodes) + batch_size - 1) // batch_size
+
+        for batch_index in range(total_batches):
+            tasks = []  # Ensure tasks are reset for each batch
+            to_execute = []
+            # Plan the workload.
+            kwargs = []
+            task_lambdas = []
+            exec_results = []
+
+            start_index = batch_index * batch_size
+            end_index = min((batch_index + 1) * batch_size, len(self.nodes))
+            nodes_batch = self.nodes[start_index:end_index]
+
+            self.timeout_controller.OnIterStart()
+            planner_config = optim.PlannerConfig.Get(p.planner_config) if p.planner_config else None
+            epsilon_greedy_within_beam_search = p.epsilon_greedy_within_beam_search if not is_test and p.epsilon_greedy_within_beam_search > 0 else 0
+
+            self.timer.Start("plan_test_set" if is_test else "plan")
+            for i, node in enumerate(nodes_batch):
+                # Planning logic here
+                planning_time, found_plan, predicted_latency, found_plans = planner.plan(
+                node,
+                p.search_method,
+                bushy=p.bushy,
+                return_all_found=True,
+                verbose=False,
+                planner_config=planner_config,
+                epsilon_greedy=epsilon_greedy_within_beam_search,
+                avoid_eq_filters=is_test and p.avoid_eq_filters,
+                )
+
+                # Add to execute list
+                predicted_latency, found_plan = self.SelectPlan(found_plans, predicted_latency, found_plan, planner, node)
+
+                print("{}q{}, predicted time: {:.1f}".format("[Test set] " if is_test else "", node.info["query_name"], predicted_latency))
+                # Calculate monitoring info.
+                predicted_costs = None
+                if p.sim:
+                    predicted_costs = sim.Predict(node, [tup[1] for tup in found_plans])
+                node.info["curr_predicted_latency"] = planner.infer(node, [node], planner.current_other_module_index, planner.current_hash_join_module_index, planner.current_nested_loop_join_module_index)[0]
+                self.LogScalars([("predicted_latency_expert_plans/q{}".format(node.info["query_name"]), node.info["curr_predicted_latency"] / 1e3, self.curr_value_iter)])
+                hint_str = HintStr(found_plan, with_physical_hints=p.plan_physical, engine=p.engine)
+                hinted_plan = found_plan
+                if is_test:
+                    curr_timeout = None
+                    curr_timeout = 1100000
+                else:
+                    curr_timeout = self.timeout_controller.GetTimeout(node)
+                print("q{},(predicted {:.1f}),{}".format(node.info["query_name"], predicted_latency, hint_str))
+                to_execute.append((node.info["sql_str"], hint_str, planning_time, found_plan, predicted_latency, curr_timeout))
+                if p.use_cache:
+                    exec_result = self.query_execution_cache.Get(key=(node.info["query_name"], hint_str))
+                else:
+                    exec_result = None
+                exec_results.append(exec_result)
+                kwarg = {
+                    "query_name": node.info["query_name"],
+                    "sql_str": node.info["sql_str"],
+                    "hint_str": hint_str,
+                    "hinted_plan": hinted_plan,
+                    "query_node": node,
+                    "predicted_latency": predicted_latency,
+                    "silent": True,
+                    "use_local_execution": p.use_local_execution,
+                    "engine": p.engine,
+                }
+                kwargs.append(kwarg)
+                if exec_result is not None:
+                    def fn(task_index=i): return ExecuteSql.options(
+                    resources={
+                        f"node:{ray.util.get_node_ip_address()}": 1,
+                    }
+                    ).remote(**kwargs[task_index])
+                else:
+                    def fn(task_index=i): return ray.put(exec_results[task_index])
+                task_lambdas.append(fn)
+                tasks.append(fn())
+                min_p_latency = 1e30
+                min_pos = 0
+                for pos, (p_latency, found_plan) in enumerate(found_plans):
+                    if p_latency < min_p_latency:
+                        min_p_latency = p_latency
+                        min_pos = pos
+                positions_of_min_predicted.append(min_pos)
+
+                # Create tasks for Ray to execute
+                tasks.append(
+              
+                self.execute_query.remote(node.info["sql_str"], found_plan)
+                )
+
+            self.timer.Stop("plan_test_set" if is_test else "plan")
+
+            # Execute the batch of plans
+            self.timer.Start("wait_for_executions_test_set" if is_test else "wait_for_executions")
+            self.wandb_logger.log_metrics(
+                {
+                "train/position-of-min-predicted-cost-plan": wandb.Histogram(
+                    positions_of_min_predicted
+                    ),
+                }
+            )
+            print(
+            "{}Waiting on Ray tasks...value_iter={},episode={}".format(
+                "[Test set] " if is_test else "", self.curr_value_iter, batch_index
+                )
+            )
+            try:
+                refs = ray.get(tasks)
+            except Exception as e:
+                print("ray.get(tasks) received exception:", e)
+                time.sleep(10)
+                print("Canceling Ray tasks.")
+                for task in tasks:
+                    ray.cancel(task)
+                if max_retries > 0:
+                    print("Retrying PlanAndExecute() (max_retries={}).".format(max_retries))
+                    return self.PlanAndExecute(
+                    model, planner, is_test, max_retries=max_retries - 1
+                    )
+                else:
+                    print("Retries exhausted; raising the exception.")
+                    raise e
+
+            execution_results = []
+            for i, task in enumerate(refs):
+                result_tup = None
+                is_cached_plan = True
+                if isinstance(task, ray.ObjectRef):
+                # New plan: remote PG execution.
+                    try:
+                        result_tup = ray.get(task)
+                        is_cached_plan = False
+                    except ray.exceptions.RayTaskError as e:
+                        is_disk_full = "psycopg2.errors.DiskFull" in str(e)
+                        num_secs = 8 + (np.random.rand() * 5)
+                        print(
+                        "Exception received:\n{}\nSleeping for {} secs"
+                        " before retrying.".format(e, num_secs)
+                        )
+                        time.sleep(num_secs)
+    
+                        print("Resubmitting.")
+                        new_task = task_lambdas[i]()
+                        print("Calling ray.get() on the new task.")
+                        new_ref = ray.get(new_task)
+                        try:
+                            result_tup = ray.get(new_ref)
+                        except psycopg2.errors.DiskFull:
+              
+                            assert is_disk_full, "DiskFull should happen twice."
+                            print(
+                            "DiskFull happens twice; treating as a timeout."
+                            "  *NOTE* The agent will train on the timeout "
+                            "label regardless of whether use_timeout is set."
+                            )
+                            result_tup = pg_executor.Result(
+                            result=[], has_timeout=True, server_ip=None
+                            )
+ 
+                        is_cached_plan = False
+                        print("Retry succeeded.")
+                elif isinstance(task, (pg_executor.Result, dbmsx_executor.Result)):
+                # New plan: local PG execution.
+                    result_tup = task
+                    is_cached_plan = False
+                else:
+         
+                    assert isinstance(task, tuple), task
+                    assert len(task) == 2, task
+     
+                    cached_result_tup = task[0][0]
+                    result_tup = cached_result_tup
+                assert isinstance(
+                result_tup, (pg_executor.Result, dbmsx_executor.Result)
+                ), result_tup
+          
+                result_tups = ParseExecutionResult(result_tup, **kwargs[i])
+                assert len(result_tups) == 4
+                print(result_tups[-1])  # Messages.
+                execution_results.append(result_tups[:-1])
+        
+                if not is_test:
+                    if is_cached_plan:
+                        self.curr_iter_skipped_queries += 1
+                        if self.adaptive_lr_schedule is not None:
+                            self.adaptive_lr_schedule.SetOrTakeMax(
+                            self.curr_iter_skipped_queries
+                        )
+                    else:
+                        self.num_query_execs += 1
+
+            all_to_execute.extend(to_execute)
+            all_execution_results.extend(execution_results)
+
+            self.timer.Stop("wait_for_executions_test_set" if is_test else "wait_for_executions")
+            print("Reseting and filling exp_episode ... ...")
+            self.Reset_Fill_exp_episode(nodes_batch,to_execute,execution_results)
+            print("train the model ... ...")
+            self.Train_episode(self, train_from_scratch=False)
+
+        print(
+            "In this iteration, conv_module_other_0 is used {} times".format(
+                optim.CONV_MODULE_OTHER_0
+            )
+        )
+        print(
+            "In this iteration, conv_module_other_1 is used {} times".format(
+                optim.CONV_MODULE_OTHER_1
+            )
+        )
+        print(
+            "In this iteration, conv_module_other_2 is used {} times".format(
+                optim.CONV_MODULE_OTHER_2
+            )
+        )
+
+        print(
+            "In this iteration, conv_module_hash_join_0 is used {} times".format(
+                optim.CONV_MODULE_HASH_JOIN_0
+            )
+        )
+        print(
+            "In this iteration, conv_module_hash_join_1 is used {} times".format(
+                optim.CONV_MODULE_HASH_JOIN_1
+            )
+        )
+        print(
+            "In this iteration, conv_module_hash_join_2 is used {} times".format(
+                optim.CONV_MODULE_HASH_JOIN_2
+            )
+        )
+
+        print(
+            "In this iteration, conv_module_nested_loop_join_0 is used {} times".format(
+                optim.CONV_MODULE_NESTED_LOOP_JOIN_0
+            )
+        )
+        print(
+            "In this iteration, conv_module_nested_loop_join_1 is used {} times".format(
+                optim.CONV_MODULE_NESTED_LOOP_JOIN_1
+            )
+        )
+        print(
+            "In this iteration, conv_module_nested_loop_join_2 is used {} times".format(
+                optim.CONV_MODULE_NESTED_LOOP_JOIN_2
+            )
+        )
+
+        # reset to zero
+        optim.CONV_MODULE_OTHER_0 = 0
+        optim.CONV_MODULE_OTHER_1 = 0
+        optim.CONV_MODULE_OTHER_2 = 0
+
+        optim.CONV_MODULE_HASH_JOIN_0 = 0
+        optim.CONV_MODULE_HASH_JOIN_1 = 0
+        optim.CONV_MODULE_HASH_JOIN_2 = 0
+
+        optim.CONV_MODULE_NESTED_LOOP_JOIN_0 = 0
+        optim.CONV_MODULE_NESTED_LOOP_JOIN_1 = 0
+        optim.CONV_MODULE_NESTED_LOOP_JOIN_2 = 0
+        return all_to_execute, all_execution_results
+   
     # planner is the class of optimizer
-    # TODO use Reset_Fill_exp_episode to modify this process
     def PlanAndExecute(self, model, planner, is_test=False, max_retries=3):
 
         p = self.params
@@ -1917,7 +2213,7 @@ class BalsaAgent(object):
         self.timer.Start("plan_test_set" if is_test else "plan")
 
         # Qihan this for loop is used for planning but not for execution
-        # TODO set a threshold eg 10, to train the model
+        
         for i, node in enumerate(nodes):
             print("---------------------------------------")
             tup = planner.plan(
@@ -2125,7 +2421,7 @@ class BalsaAgent(object):
         )
         try:
             #  QIHANZHANG THIS ONE exectue sql
-            # TODO make it in a loop form, say threshold is 10, train the model using exp_episode
+            
             refs = ray.get(tasks)
         except Exception as e:
             print("ray.get(tasks) received exception:", e)
@@ -2634,7 +2930,8 @@ class BalsaAgent(object):
         # Use the model to plan the workload.  Execute the plans and get
         # latencies.
         # Qihan This takes time too!!!!!!Huge!!!!!! Waiting on Ray tasks...value_iter=xxx
-        to_execute, execution_results = self.PlanAndExecute(
+        # Qihan, make it in a batch form
+        to_execute, execution_results = self.PlanAndExecute_episode(
             model, planner, is_test=False
         )
         # Add exeuction results to the experience buffer.
