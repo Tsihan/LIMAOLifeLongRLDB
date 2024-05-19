@@ -20,6 +20,7 @@ import os
 import pickle
 import pprint
 import time
+import random
 
 import numpy as np
 
@@ -88,8 +89,11 @@ class Experience(object):
         postgres.EstimateFilterRows(self.nodes)
 
     # Qihan add a new mothod to clear data and workload_info, this is used for exp_episode
+    
     def ClearBuffer(self):
-        self.nodes = []
+        if len(self.nodes) <= 10:
+            return  
+        self.nodes = random.sample(self.nodes, 10)
 
 
     def Save(self, path):
