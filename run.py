@@ -2976,6 +2976,8 @@ class BalsaAgent(object):
             self.SaveAgent(model, iter_total_latency)
         # Run and log test queries.
         #  QIHANZHANG This takes time too!!!!!! value_iter=0
+        # Qihan, if we want to test on the global model, we need to do the following lines
+        model.model = self.model_copy
         self.EvaluateTestSet(model, planner)
         # QIHANZHANG  we don't go below
         if p.track_model_moving_averages:
