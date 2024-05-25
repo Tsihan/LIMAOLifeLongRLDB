@@ -1911,7 +1911,7 @@ class BalsaAgent(object):
             epsilon_greedy_within_beam_search = p.epsilon_greedy_within_beam_search
 
         batch_size = 10
-        total_batches = (len(self.nodes) + batch_size - 1) // batch_size
+        total_batches = (len(nodes) + batch_size - 1) // batch_size
 
         for batch_index in range(total_batches):
             tasks = []  # Ensure tasks are reset for each batch
@@ -1922,8 +1922,8 @@ class BalsaAgent(object):
             exec_results = []
 
             start_index = batch_index * batch_size
-            end_index = min((batch_index + 1) * batch_size, len(self.nodes))
-            nodes_batch = self.nodes[start_index:end_index]
+            end_index = min((batch_index + 1) * batch_size, len(nodes))
+            nodes_batch = nodes[start_index:end_index]
 
             self.timeout_controller.OnIterStart()
             planner_config = optim.PlannerConfig.Get(p.planner_config) if p.planner_config else None
@@ -1996,12 +1996,6 @@ class BalsaAgent(object):
                         min_p_latency = p_latency
                         min_pos = pos
                 positions_of_min_predicted.append(min_pos)
-
-                # Create tasks for Ray to execute
-                tasks.append(
-              
-                self.execute_query.remote(node.info["sql_str"], found_plan)
-                )
 
             self.timer.Stop("plan_test_set" if is_test else "plan")
 
@@ -2110,7 +2104,7 @@ class BalsaAgent(object):
             self.timer.Stop("wait_for_executions_test_set" if is_test else "wait_for_executions")
             print("Reseting and filling exp_episode ... ...")
             self.Reset_Fill_exp_episode(nodes_batch,to_execute,execution_results)
-            print("train the model ... ...")
+            print("train the model in one episode... ...")
             self.Train_episode(self, train_from_scratch=False)
 
         print(
