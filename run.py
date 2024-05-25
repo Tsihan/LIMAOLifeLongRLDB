@@ -1710,9 +1710,7 @@ class BalsaAgent(object):
     # 3. embed Train_episode during one iteration ok
     def Train_episode(self, train_from_scratch=False):
         p = self.params
-        train_ds, train_loader, _, val_loader = self._MakeDatasetAndLoader_episode(
-            log=not train_from_scratch
-        )
+        train_ds, train_loader, _, val_loader = self._MakeDatasetAndLoader_episode()
         plans_dataset = (
             train_ds.dataset
             if isinstance(train_ds, torch.utils.data.Subset)
@@ -1979,7 +1977,7 @@ class BalsaAgent(object):
                     "engine": p.engine,
                 }
                 kwargs.append(kwarg)
-                if exec_result is not None:
+                if exec_result is None:
                     def fn(task_index=i): return ExecuteSql.options(
                     resources={
                         f"node:{ray.util.get_node_ip_address()}": 1,
@@ -2105,7 +2103,7 @@ class BalsaAgent(object):
             print("Reseting and filling exp_episode ... ...")
             self.Reset_Fill_exp_episode(nodes_batch,to_execute,execution_results)
             print("train the model in one episode... ...")
-            self.Train_episode(self, train_from_scratch=False)
+            self.Train_episode(train_from_scratch=False)
 
         print(
             "In this iteration, conv_module_other_0 is used {} times".format(
