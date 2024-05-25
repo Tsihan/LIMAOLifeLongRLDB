@@ -1349,9 +1349,9 @@ class BalsaAgent(object):
             pin_memory=True,
         )
 
-        val_loader = None
+        
 
-        return train_ds, train_loader, val_ds, val_loader
+        return train_ds, train_loader
 
     def _LogDatasetStats(self, train_labels, num_new_datapoints):
         # Track # of training trees that are not timeouts.
@@ -1481,6 +1481,36 @@ class BalsaAgent(object):
             logger=self.loggers,
             gradient_clip_val=p.gradient_clip_val,
             num_sanity_val_steps=2 if p.validate_fraction > 0 else 0,
+        )
+
+
+
+    def _MakeTrainer_episode(self, train_loader):
+        p = self.params
+        max_steps = None
+        if p.use_last_n_iters > 0 and p.epochs == 1 and p.per_transition_sgd_steps > 0:
+            desired_update_fraction = (
+                float(p.per_transition_sgd_steps) / p.use_last_n_iters
+            )
+            max_steps = int(
+                np.ceil(len(train_loader) * desired_update_fraction))
+            print(
+                "per_transition_sgd_steps={} max_batches={} "
+                "num_batches_per_epoch={}".format(
+                    p.per_transition_sgd_steps, max_steps, len(train_loader)
+                )
+            )
+        return pl.Trainer(
+            gpus=1 if torch.cuda.is_available() else 0,
+            #Qihan hard coding 
+            max_epochs=20,
+            max_steps=max_steps,
+            row_log_interval=1,
+            check_val_every_n_epoch=10000,  # Set this to a large number to effectively disable validation.
+            weights_summary=None,
+            logger=self.loggers,
+            gradient_clip_val=p.gradient_clip_val,
+            num_sanity_val_steps=0,  # Disable sanity check as there's no validation.
         )
 
     def _LoadBestCheckpointForEval(self, model, trainer):
@@ -1710,7 +1740,7 @@ class BalsaAgent(object):
     # 3. embed Train_episode during one iteration ok
     def Train_episode(self, train_from_scratch=False):
         p = self.params
-        train_ds, train_loader, _, val_loader = self._MakeDatasetAndLoader_episode()
+        train_ds, train_loader = self._MakeDatasetAndLoader_episode()
         plans_dataset = (
             train_ds.dataset
             if isinstance(train_ds, torch.utils.data.Subset)
@@ -1720,9 +1750,9 @@ class BalsaAgent(object):
 
         model.SetLoggingPrefix(
                 "train/episode/iter-{}-".format(self.curr_value_iter))
-        trainer = self._MakeTrainer(train_loader)
-
-        trainer.fit(model, train_loader, val_loader)
+        trainer = self._MakeTrainer_episode(train_loader)
+        
+        trainer.fit(model, train_loader)
         self.model = model.model
             # Optimizer state dict now available.
         self.prev_optimizer_state_dict = None
