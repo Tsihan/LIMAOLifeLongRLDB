@@ -2212,6 +2212,11 @@ class BalsaAgent(object):
             p.query_dir = 'queries/imdb_assorted_small'
 
         model.eval()
+
+        #qihan make sure model.model is on GPU
+        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        model.model.to(device)
+        
         to_execute = []
         tasks = []
         if p.sim:
