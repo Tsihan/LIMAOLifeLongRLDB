@@ -421,8 +421,8 @@ def TrainSim(p, loggers=None):
     if p.sim_checkpoint is None:
         sim.CollectSimulationData()
     # FIXME Qihan Zhang temporary modify to retain simulator p.sim_checkpoint None
-    # sim.Train(load_from_checkpoint=None, loggers=loggers)
-    sim.Train(load_from_checkpoint=p.sim_checkpoint, loggers=loggers)
+    sim.Train(load_from_checkpoint=None, loggers=loggers)
+    # sim.Train(load_from_checkpoint=p.sim_checkpoint, loggers=loggers)
     sim.model.freeze()
     sim.EvaluateCost()
     sim.FreeData()
@@ -711,7 +711,7 @@ class BalsaModel(pl.LightningModule):
             batch.names
         )
 
-        # FIXME QIHANZHANG here we need to make it like LIfelong Modular RL
+        #  QIHANZHANG here we need to make it like LIfelong Modular RL
         # Qihan: when we want to train the real model, we need get the correct indexes!
 
         def get_three_indexes(names):
@@ -1525,7 +1525,7 @@ class BalsaAgent(object):
         train_utils.LoadBestCheckpointForEval(model, trainer)
 
     def timeout_label(self):
-        # Qihan Zhang FIXME speed up!
+        # Qihan Zhang  speed up!
         # return 4096 * 1000
         return 1024 * 1000
 
