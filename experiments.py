@@ -44,7 +44,8 @@ RAND_52_TEST_QUERIES = [
     '22b.sql', '17c.sql', '24b.sql', '10a.sql', '22c.sql'
 ]
 
-RAND_52_TEST_QUERIES_JOB_changed = ['test28a.sql', 'test16d.sql', 'test10c.sql', 'test6e.sql', 'test17b.sql', 'test27c.sql', 
+RAND_52_TEST_QUERIES_JOB_changed = [
+'test28a.sql', 'test16d.sql', 'test10c.sql', 'test6e.sql', 'test17b.sql', 'test27c.sql', 
  'test33c.sql', 'test24a.sql', 'test29a.sql', 'test3c.sql', 'test22c.sql', 'test3a.sql', 
  'test16c.sql', 'test30b.sql', 'test28c.sql', 'test22b.sql', 'test4c.sql', 'test6c.sql']
 
@@ -531,7 +532,7 @@ class Balsa_JOBRandSplit_IMDB_assorted(Rand52MinCardCostOnPolLrC):
         p.db = 'imdbload'
         p.init_experience = 'data/IMDB_assorted/initial_policy_data.pkl'
         
-        p.test_query_glob = RAND_52_TEST_QUERIES_JOB_changed
+        p.test_query_glob = RAND_52_TEST_QUERIES_IMDB_ASSORTED
         p.sim_checkpoint = 'checkpoints/IMDB_assorted/epoch=24.ckpt'
         p.query_dir = 'queries/imdb_assorted'
                 
@@ -548,7 +549,7 @@ class Balsa_JOBRandSplit_IMDB_assorted_2(Rand52MinCardCostOnPolLrC):
         p.db = 'imdbload'
         p.init_experience = 'data/IMDB_assorted_2/initial_policy_data.pkl'
         
-        p.test_query_glob = RAND_52_TEST_QUERIES_JOB_changed
+        p.test_query_glob = RAND_52_TEST_QUERIES_IMDB_ASSORTED_2
         p.sim_checkpoint = 'checkpoints/IMDB_assorted_2/epoch=14.ckpt'
         p.query_dir = 'queries/imdb_assorted_2'
                 

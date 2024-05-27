@@ -1243,8 +1243,8 @@ class BalsaAgent(object):
 
     def _MakeDatasetAndLoader_episode(self):
         p = self.params
-
-        skip_first_n = 0
+        #Qihan magic number
+        skip_first_n = 10
         # Use only the latest round of executions?
         # Qihan use all the data in the exp_episode, but make sure not contain expert data
         on_policy = False
@@ -1951,7 +1951,7 @@ class BalsaAgent(object):
         epsilon_greedy_within_beam_search = 0
         if not is_test and p.epsilon_greedy_within_beam_search > 0:
             epsilon_greedy_within_beam_search = p.epsilon_greedy_within_beam_search
-
+        #Qihan magic number
         batch_size = 10
         total_batches = (len(nodes) + batch_size - 1) // batch_size
 
@@ -2771,6 +2771,9 @@ class BalsaAgent(object):
 
             # Put into exp_episode buffer.
             self.exp_episode.add(actual)
+            #Qihan modify initial size magic number 10, batch size
+            self.exp_episode.initial_size = 10
+
 
  
 
