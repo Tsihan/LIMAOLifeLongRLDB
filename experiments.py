@@ -371,6 +371,8 @@ class BalsaParams(object):
                  ' cluster?  Non-execution EXPLAINs are always issued to'\
                  ' local.')
         p.Define('use_cache', True, 'Skip executing seen plans?')
+        #Qihan add these two.
+        p.Define('use_switching_workload', False, 'If true, use switching workload.')
         p.Define('have_dynaic_workload_switch_back', False,
                  'If true, use dynamic workload and now return to the old ones. Then we need to replay buffer to avoid forgetting.')
         return p
@@ -571,14 +573,25 @@ class Balsa_JOBRandSplit_IMDB_assorted_small(Rand52MinCardCostOnPolLrC):
 
 
 @balsa.params_registry.Register
-class Balsa_JOBRandSplit_IMDB_assorted_small_Replay(Balsa_JOBRandSplit_IMDB_assorted_small):  # keep
+class Balsa_JOBRandSplit_IMDB_assorted_small_Replay(Balsa_JOBRandSplit_IMDB_assorted_small):  
 
     def Params(self):
         p = super().Params()
         # Change path to point to the desired buffers:
+        p.use_switching_workload = True
         p.prev_replay_buffers_glob_refresh = './data/IMDB_assorted_small/replay-Balsa_JOBRandSplit*'
         return p
 
+@balsa.params_registry.Register
+class Balsa_JOBRandSplit_IMDB_assorted_Replay(Balsa_JOBRandSplit_IMDB_assorted):  
+
+    def Params(self):
+        p = super().Params()
+        # Change path to point to the desired buffers:
+        p.use_switching_workload = True
+        p.prev_replay_buffers_glob_refresh = './data/IMDB_assorted/replay-Balsa_JOBRandSplit*'
+        return p
+    
 
 @balsa.params_registry.Register  
 class Balsa_JOBRandSplit_IMDB_assorted_small_2(Rand52MinCardCostOnPolLrC):
