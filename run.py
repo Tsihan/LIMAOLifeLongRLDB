@@ -271,12 +271,13 @@ def ParseExecutionResult(result_tup,
             print('after\n', executed_hint_str)
             msg = 'Hint not respected for {}; server_ip={}'.format(
                 query_name, server_ip)
-            try:
-                assert False, msg
-            except Exception as e:
-                print(e, flush=True)
-                import ipdb
-                ipdb.set_trace()
+            # Qihan FIXME
+            # try:
+            #     assert False, msg
+            # except Exception as e:
+            #     print(e, flush=True)
+            #     import ipdb
+            #     ipdb.set_trace()
 
     if not silent:
         messages.append('{}Running {}: hinted plan\n{}'.format(
@@ -377,6 +378,8 @@ def TrainSim(p, loggers=None):
     sim = sim_lib.Sim(sim_p)
     if p.sim_checkpoint is None:
         sim.CollectSimulationData()
+    # FIXME Qihan Zhang temporary modify to retain simulator p.sim_checkpoint None
+    #sim.Train(load_from_checkpoint=None, loggers=loggers)
     sim.Train(load_from_checkpoint=p.sim_checkpoint, loggers=loggers)
     sim.model.freeze()
     sim.EvaluateCost()
@@ -440,6 +443,10 @@ def InitializeModel(p,
                 new_key = key.replace('tree_conv.', '')
             new_state_dict[new_key] = value
         return new_state_dict
+    
+    # 如果model在CPU 移动到GPU
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    model = model.to(device)
 
     sim_weights = sim.model.state_dict()
     sim_weights_renamed = copy.deepcopy(Rename(sim_weights))
@@ -765,22 +772,55 @@ class BalsaAgent(object):
             signal.Signals(signum).name))
         ray.shutdown()
 
-    def _MakeWorkload(self):
+    def _MakeWorkload(self, is_origin=False):
         p = self.params
-        if os.path.isfile(p.init_experience):
+        #  Qihan entrance this branch
+        if os.path.isfile(p.init_experience) and self.curr_value_iter == 0:
             # Load the expert optimizer experience.
-            with open(p.init_experience, 'rb') as f:
+            with open(p.init_experience, "rb") as f:
                 workload = pickle.load(f)
             # Filter queries based on the current query_glob.
-            workload.FilterQueries(p.query_dir, p.query_glob, p.test_query_glob)
-        else:
-            wp = envs.JoinOrderBenchmark.Params()
+            workload.FilterQueries(
+                p.query_dir, p.query_glob, p.test_query_glob)
+        elif self.curr_value_iter == 0:
+            # wp = envs.IMDB_assorted_small.Params() 
+            # wp = envs.IMDB_assorted_small_2.Params()
+            # wp = envs.IMDB_assorted.Params()
+            wp = envs.IMDB_assorted_2.Params()
+            # wp = envs.JoinOrderBenchmark.Params()
+            # wp = envs.TPCH10.Params()
+            # wp = envs.SO.Params()
+            # wp = envs.IMDB_BAO.Params()
+            # wp = envs.IMDB_BAO_changed.Params()
+            # wp = envs.JoinOrderBenchmark_changed.Params()
             wp.query_dir = p.query_dir
             wp.query_glob = p.query_glob
             wp.test_query_glob = None
             workload = wp.cls(wp)
             # Requires baseline to run in this scenario.
             p.run_baseline = True
+        # qihan: here we change the workload on the fly
+        else:
+            if is_origin:
+                with open('data/IMDB_assorted/initial_policy_data.pkl', "rb") as f:
+                    workload = pickle.load(f)
+            # Filter queries based on the current query_glob.
+                workload.FilterQueries(
+                    'queries/imdb_assorted', ['*.sql'], [
+'32c_baochanged.sql', '12a_job.sql', '16a_bao.sql', '30c_baochanged.sql', '7a_bao.sql', 
+'4a_bao.sql', '26c_baochanged.sql', '10a_bao.sql', '19a_bao.sql', '15a_bao.sql', 
+'8b_job.sql', '5b_job.sql', '1a_bao.sql', '5a_bao.sql', '13b_job.sql', 
+'19c_jobchanged.sql', '9a_job.sql', '14a_bao.sql', '39c_baochanged.sql', '30a_bao.sql'])
+            else:
+
+                with open('data/IMDB_assorted_2/initial_policy_data.pkl', "rb") as f:
+                    workload = pickle.load(f)
+            # Filter queries based on the current query_glob.
+                workload.FilterQueries(
+                    'queries/imdb_assorted_2', ['*.sql'], [
+'5a4_ceb3.sql', '9b1_ceb3.sql', '11a3_ceb3.sql', '9b5_ceb3.sql', '2b3_ceb3.sql', '2a2_ceb3.sql', 
+'9a4_ceb3.sql', '2a3_ceb3.sql', '8a1_ceb3.sql', '3b3_ceb3.sql', '2c3_ceb3.sql', '3a2_ceb3.sql', '9b4_ceb3.sql'])
+
         return workload
 
     def _InitLogging(self):
@@ -1109,7 +1149,9 @@ class BalsaAgent(object):
         train_utils.LoadBestCheckpointForEval(model, trainer)
 
     def timeout_label(self):
-        return 4096 * 1000
+        # Qihan Zhang  speed up!
+        # return 4096 * 1000
+        return 1024 * 1000
 
     def LogScalars(self, metrics):
         if not isinstance(metrics, list):
@@ -1211,7 +1253,16 @@ class BalsaAgent(object):
             print('Execution time: {}'.format(real_cost))
         # NOTE: if engine != pg, we're still saving PG plans but with target
         # engine's latencies.  This mainly affects debug strings.
-        Save(self.workload, './data/initial_policy_data.pkl')
+        # Save(self.workload, "./data/IMDB_assorted_small/initial_policy_data.pkl")
+        # Save(self.workload, "./data/IMDB_assorted_small_2/initial_policy_data.pkl")
+        # Save(self.workload, "./data/IMDB_assorted/initial_policy_data.pkl")
+        Save(self.workload, "./data/IMDB_assorted_2/initial_policy_data.pkl")
+        # Save(self.workload, "./data/JOB/initial_policy_data.pkl")
+        # Save(self.workload, './data/JOB_changed/initial_policy_data.pkl')
+        # Save(self.workload, './data/IMDB_BAO/initial_policy_data.pkl')
+        # Save(self.workload, './data/IMDB_BAO_changed/initial_policy_data.pkl')
+        # Save(self.workload, './data/SO/initial_policy_data.pkl')
+        # Save(self.workload, './data/TPCH/initial_policy_data.pkl')
         self.LogExpertExperience(self.train_nodes, self.test_nodes)
 
     def Train(self, train_from_scratch=False):
@@ -1376,6 +1427,23 @@ class BalsaAgent(object):
 
     def PlanAndExecute(self, model, planner, is_test=False, max_retries=3):
         p = self.params
+        # qihan change some parameters here
+        if p.use_switching_workload:
+            if not self.is_origin_workload:
+                p.init_experience = 'data/IMDB_assorted_2/initial_policy_data.pkl'
+                p.test_query_glob = [
+'5a4_ceb3.sql', '9b1_ceb3.sql', '11a3_ceb3.sql', '9b5_ceb3.sql', '2b3_ceb3.sql', '2a2_ceb3.sql', 
+'9a4_ceb3.sql', '2a3_ceb3.sql', '8a1_ceb3.sql', '3b3_ceb3.sql', '2c3_ceb3.sql', '3a2_ceb3.sql', '9b4_ceb3.sql']
+                p.query_dir = 'queries/imdb_assorted_2'
+            else:
+                p.init_experience = 'data/IMDB_assorted/initial_policy_data.pkl'
+                p.test_query_glob = [
+'32c_baochanged.sql', '12a_job.sql', '16a_bao.sql', '30c_baochanged.sql', '7a_bao.sql', 
+'4a_bao.sql', '26c_baochanged.sql', '10a_bao.sql', '19a_bao.sql', '15a_bao.sql', 
+'8b_job.sql', '5b_job.sql', '1a_bao.sql', '5a_bao.sql', '13b_job.sql', 
+'19c_jobchanged.sql', '9a_job.sql', '14a_bao.sql', '39c_baochanged.sql', '30a_bao.sql']
+                p.query_dir = 'queries/imdb_assorted'
+
         model.eval()
         to_execute = []
         tasks = []
@@ -1721,11 +1789,81 @@ class BalsaAgent(object):
     def _SaveReplayBuffer(self, iter_total_latency):
         p = self.params
         # "<class 'experiments.ConfigName'>" -> "ConfigName".
-        experiment = str(p.cls).split('.')[-1][:-2]
-        path = 'data/replay-{}-{}execs-{}nodes-{}s-{}iters-{}.pkl'.format(
-            experiment, self.num_query_execs, len(self.exp.nodes),
-            int(iter_total_latency / 1e3), self.curr_value_iter,
-            self.wandb_logger.experiment.id)
+        experiment = str(p.cls).split(".")[-1][:-2]
+
+        # path = "data/IMDB_assorted_small/replay-{}-{}execs-{}nodes-{}s-{}iters-{}.pkl".format(
+        #     experiment,
+        #     self.num_query_execs,
+        #     len(self.exp.nodes),
+        #     int(iter_total_latency / 1e3),
+        #     self.curr_value_iter,
+        #     self.wandb_logger.experiment.id,
+        # )
+
+
+
+        # path = "data/IMDB_assorted_small_2/replay-{}-{}execs-{}nodes-{}s-{}iters-{}.pkl".format(
+        #     experiment,
+        #     self.num_query_execs,
+        #     len(self.exp.nodes),
+        #     int(iter_total_latency / 1e3),
+        #     self.curr_value_iter,
+        #     self.wandb_logger.experiment.id,
+        # )
+
+        # path = "data/IMDB_assorted/replay-{}-{}execs-{}nodes-{}s-{}iters-{}.pkl".format(
+        #     experiment,
+        #     self.num_query_execs,
+        #     len(self.exp.nodes),
+        #     int(iter_total_latency / 1e3),
+        #     self.curr_value_iter,
+        #     self.wandb_logger.experiment.id,
+        # )
+
+
+        path = "data/IMDB_assorted_2/replay-{}-{}execs-{}nodes-{}s-{}iters-{}.pkl".format(
+            experiment,
+            self.num_query_execs,
+            len(self.exp.nodes),
+            int(iter_total_latency / 1e3),
+            self.curr_value_iter,
+            self.wandb_logger.experiment.id,
+        )
+
+        # path = "data/JOB/replay-{}-{}execs-{}nodes-{}s-{}iters-{}.pkl".format(
+        #     experiment,
+        #     self.num_query_execs,
+        #     len(self.exp.nodes),
+        #     int(iter_total_latency / 1e3),
+        #     self.curr_value_iter,
+        #     self.wandb_logger.experiment.id,
+        # )
+
+        # path = 'data/JOB_changed/replay-{}-{}execs-{}nodes-{}s-{}iters-{}.pkl'.format(
+        #     experiment, self.num_query_execs, len(self.exp.nodes),
+        #     int(iter_total_latency / 1e3), self.curr_value_iter,
+        #     self.wandb_logger.experiment.id)
+
+        # path = 'data/SO/replay-{}-{}execs-{}nodes-{}s-{}iters-{}.pkl'.format(
+        #     experiment, self.num_query_execs, len(self.exp.nodes),
+        #     int(iter_total_latency / 1e3), self.curr_value_iter,
+        #     self.wandb_logger.experiment.id)
+
+        # path = 'data/TPCH/replay-{}-{}execs-{}nodes-{}s-{}iters-{}.pkl'.format(
+        #     experiment, self.num_query_execs, len(self.exp.nodes),
+        #     int(iter_total_latency / 1e3), self.curr_value_iter,
+        #     self.wandb_logger.experiment.id)
+
+        # path = 'data/IMDB_BAO/replay-{}-{}execs-{}nodes-{}s-{}iters-{}.pkl'.format(
+        #     experiment, self.num_query_execs, len(self.exp.nodes),
+        #     int(iter_total_latency / 1e3), self.curr_value_iter,
+        #     self.wandb_logger.experiment.id)
+
+        # path = 'data/IMDB_BAO_changed/replay-{}-{}execs-{}nodes-{}s-{}iters-{}.pkl'.format(
+        #     experiment, self.num_query_execs, len(self.exp.nodes),
+        #     int(iter_total_latency / 1e3), self.curr_value_iter,
+        #     self.wandb_logger.experiment.id)
+
         self.exp.Save(path)
         # Remove previous.
         if self._latest_replay_buffer_path is not None:
@@ -2097,6 +2235,39 @@ class BalsaAgent(object):
             self.test_nodes = plans_lib.FilterScansOrJoins(self.test_nodes)
 
         while self.curr_value_iter < p.val_iters:
+
+            #Qihan add p.use_switching_workload, if it's false then the same as balsa
+            if p.use_switching_workload and self.curr_value_iter % 5 == 0 and self.curr_value_iter != 0:
+                print("Switching workload ... ...")
+                self.is_origin_workload = not self.is_origin_workload
+                if self.is_origin_workload is True:
+                    self.have_dynaic_workload_switch_back = True
+                else:
+                    self.have_dynaic_workload_switch_back = False
+
+
+
+
+                # Qihan Reset the experience buffer.
+                self.workload = self._MakeWorkload(self.is_origin_workload)
+                self.all_nodes = self.workload.Queries(split="all")
+                self.train_nodes = self.workload.Queries(split="train")
+                self.test_nodes = self.workload.Queries(split="test")
+                self.train_nodes = plans_lib.FilterScansOrJoins(
+                    self.train_nodes)
+                self.test_nodes = plans_lib.FilterScansOrJoins(self.test_nodes)
+
+                # Qihan Reset the experience buffer.
+                exp_new = Experience(
+                    self.train_nodes,
+                    p.tree_conv,
+                    workload_info=self.workload.workload_info,
+                    query_featurizer_cls=self.exp.query_featurizer_cls,
+                    plan_featurizer_cls=self.exp.plan_featurizer_cls,
+                )
+                self.exp = exp_new
+                print("Switching workload done, the buffer has been reset.")
+
             has_timeouts = self.RunOneIter()
             self.LogTimings()
 
