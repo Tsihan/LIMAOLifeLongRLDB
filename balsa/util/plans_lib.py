@@ -83,7 +83,7 @@ class Node(object):
         return s
 
     def GetOrParseSql(self):
-        """Parses the join graph of this node into (nx.Graph, join conds).
+        """Parses the join graph of this node into (nx.MultiGraph, join conds).
 
         If self.info['sql_str'] exists, parses this SQL string.  Otherwise
         parses the result of self.to_sql(self.info['all_join_conds'])---this is
@@ -290,7 +290,12 @@ class Node(object):
             # PG uses the former & the extension expects the latter.
             node_type = node_type.replace('NestedLoop', 'NestLoop')
             if t.IsScan():
-                scans.append(node_type + '(' + t.table_alias + ')')
+                #FIXME QIHAN zhang
+                
+                if t.table_alias is  None:
+                    print('debug Scan!!! table_alias is None')
+                else:
+                    scans.append(node_type + '(' + t.table_alias + ')')
                 return [t.table_alias], t.table_alias
             rels = []  # Flattened
             leading = []  # Hierarchical
@@ -298,6 +303,8 @@ class Node(object):
                 a, b = helper(child)
                 rels.extend(a)
                 leading.append(b)
+            # print('debug joins!!!')
+            # print(node_type + '(' + ' '.join(rels) + ')')
             joins.append(node_type + '(' + ' '.join(rels) + ')')
             return rels, leading
 
@@ -432,7 +439,7 @@ class WorkloadInfo(object):
 
 def ExistsJoinEdgeInGraph(node1, node2, join_graph):
     """Checks if two nodes are connected via an edge in the join graph."""
-    assert isinstance(join_graph, nx.Graph), join_graph
+    assert isinstance(join_graph, nx.MultiGraph), join_graph
     leaves1 = node1.leaf_ids(alias_only=True)
     leaves2 = node2.leaf_ids(alias_only=True)
     edges = join_graph.edges
@@ -565,13 +572,19 @@ def FilterScansOrJoins(nodes):
         return filtered[0]
     return filtered
 
-
+# only 100% need Hash Join and Nested Loop. Index Scan and Sequence Scan set a threshold to 0.7
 def GetAllSubtrees(nodes):
     """For node in nodes: yield_all_subtrees(node)."""
     trees = []
 
     def _fn(node, trees):
         trees.append(node)
+        # if (node.node_type == 'Nested Loop' or node.node_type == 'Hash Join'):
+        #         trees.append(node)
+        # else:
+        #     if (np.random.rand()) > 0.7:
+        #         trees.append(node)
+                
         for c in node.children:
             _fn(c, trees)
 
@@ -582,13 +595,17 @@ def GetAllSubtrees(nodes):
         _fn(node, trees)
     return trees
 
-
+# only 100% need Hash Join and Nested Loop. Index Scan and Sequence Scan set a threshold to 0.7
 def GetAllSubtreesNoLeaves(nodes):
     """For node in nodes: yield_all_subtrees(node)."""
     trees = []
 
     def _fn(node, trees):
-        if len(node.children):
+        if  len(node.children):
+            # if (node.node_type == 'Nested Loop' or node.node_type == 'Hash Join'):
+            #     trees.append(node)
+            # else:
+            #     if (np.random.rand()) > 0.7:
             trees.append(node)
             for c in node.children:
                 _fn(c, trees)

@@ -412,55 +412,124 @@ class Sim(object):
     def Params(cls):
         p = hyperparams.InstantiableParams(cls)
         # Train.
-        p.Define('epochs', 100, 'Maximum training epochs.  '\
-                 'Early-stopping may kick in.')
-        p.Define('gradient_clip_val', 0, 'Clip the gradient norm computed over'\
-                 ' all model parameters together. 0 means no clipping.')
-        p.Define('bs', 2048, 'Batch size.')
-        # Validation.
-        p.Define('validate_fraction', 0.1,
-                 'Sample this fraction of the dataset as the validation set.  '\
-                 '0 to disable validation.')
-        # Search, train-time.
-        p.Define('search', search.DynamicProgramming.Params(),
-                 'Params of the enumeration routine to use for training data.')
-        # Search space.
-        p.Define('plan_physical', False,
-                 'Learn and plan physical scans/joins, or just join orders?')
-        # Infer, test-time.
-        p.Define('infer_search_method', 'beam_bk', 'Options: beam_bk.')
-        p.Define('infer_beam_size', 10, 'Beam size.')
-        p.Define('infer_search_until_n_complete_plans', 1,
-                 'Search until how many complete plans?')
-        # Workload.
-        p.Define('workload', envs.JoinOrderBenchmark.Params(),
-                 'Params of the Workload, i.e., a set of queries.')
-        # Data collection.
-        p.Define('skip_data_collection_geq_num_rels', None,
-                 'If specified, do not collect data for queries with at '\
-                 'least this many number of relations.')
         p.Define(
-            'generic_ops_only_for_min_card_cost', False,
-            'If using MinCardCost, whether to enumerate generic ops only.')
-        p.Define('sim_data_collection_intermediate_goals', True,
-                 'For each query, also collect sim data with intermediate '\
-                 'query goals?')
+            "epochs", 100, "Maximum training epochs.  " "Early-stopping may kick in."
+        )
+        p.Define(
+            "gradient_clip_val",
+            0,
+            "Clip the gradient norm computed over"
+            " all model parameters together. 0 means no clipping.",
+        )
+        p.Define("bs", 2048, "Batch size.")
+        # Validation.
+        p.Define(
+            "validate_fraction",
+            0.1,
+            "Sample this fraction of the dataset as the validation set.  "
+            "0 to disable validation.",
+        )
+        # Search, train-time.
+        p.Define(
+            "search",
+            search.DynamicProgramming.Params(),
+            "Params of the enumeration routine to use for training data.",
+        )
+        # Search space.
+        p.Define(
+            "plan_physical",
+            False,
+            "Learn and plan physical scans/joins, or just join orders?",
+        )
+        # Infer, test-time.
+        p.Define("infer_search_method", "beam_bk", "Options: beam_bk.")
+        p.Define("infer_beam_size", 10, "Beam size.")
+        p.Define(
+            "infer_search_until_n_complete_plans",
+            1,
+            "Search until how many complete plans?",
+        )
+        # Workload.
+        # p.Define(
+        #     "workload",
+        #     envs.IMDB_assorted_small.Params(),
+        #     "Params of the Workload, i.e., a set of queries.",
+        # )
+        
+        # p.Define(
+        #     "workload",
+        #     envs.IMDB_assorted_small_2.Params(),
+        #     "Params of the Workload, i.e., a set of queries.",
+        # )
+
+        # p.Define(
+        #     "workload",
+        #     envs.IMDB_assorted.Params(),
+        #     "Params of the Workload, i.e., a set of queries.",
+        # )
+
+        p.Define(
+            "workload",
+            envs.IMDB_assorted_2.Params(),
+            "Params of the Workload, i.e., a set of queries.",
+        )
+        
+        # p.Define(
+        #     "workload",
+        #     envs.JoinOrderBenchmark.Params(),
+        #     "Params of the Workload, i.e., a set of queries.",
+        # )
+        # p.Define('workload', envs.JoinOrderBenchmark_changed.Params(),
+        #          'Params of the Workload, i.e., a set of queries.')
+        # Qihan Zhang Need a paprameter here to decide which workload to use
+        # Workload.
+        # p.Define('workload', envs.IMDB_BAO.Params(),
+        #        'Params of the Workload, i.e., a set of queries.')
+        # p.Define('workload', envs.IMDB_BAO_changed.Params(),
+        #        'Params of the Workload, i.e., a set of queries.')
+        # p.Define('workload', envs.TPCH10.Params(),
+        #          'Params of the Workload, i.e., a set of queries.')
+
+        # p.Define('workload', envs.SO.Params(),
+        #          'Params of the Workload, i.e., a set of queries.')
+        # Data collection.
+        p.Define(
+            "skip_data_collection_geq_num_rels",
+            None,
+            "If specified, do not collect data for queries with at "
+            "least this many number of relations.",
+        )
+        p.Define(
+            "generic_ops_only_for_min_card_cost",
+            False,
+            "If using MinCardCost, whether to enumerate generic ops only.",
+        )
+        p.Define(
+            "sim_data_collection_intermediate_goals",
+            True,
+            "For each query, also collect sim data with intermediate " "query goals?",
+        )
         # Featurizations.
-        p.Define('plan_featurizer_cls', SimPlanFeaturizer,
-                 'Featurizer to use for plans.')
-        p.Define('query_featurizer_cls', SimQueryFeaturizer,
-                 'Featurizer to use for queries.')
-        p.Define('label_transforms', ['log1p', 'standardize'],
-                 'Transforms for labels.')
-        p.Define('perturb_query_features', None, 'See experiments.')
+        p.Define(
+            "plan_featurizer_cls", SimPlanFeaturizer, "Featurizer to use for plans."
+        )
+        p.Define(
+            "query_featurizer_cls", SimQueryFeaturizer, "Featurizer to use for queries."
+        )
+        p.Define("label_transforms", ["log1p", "standardize"], "Transforms for labels.")
+        p.Define("perturb_query_features", None, "See experiments.")
         # Eval.
-        p.Define('eval_output_path', 'eval-cost.csv',
-                 'Path to write evaluation output into.')
-        p.Define('eval_latency_output_path', 'eval-latency.csv',
-                 'Path to write evaluation latency output into.')
+        p.Define(
+            "eval_output_path", "eval-cost.csv", "Path to write evaluation output into."
+        )
+        p.Define(
+            "eval_latency_output_path",
+            "eval-latency.csv",
+            "Path to write evaluation latency output into.",
+        )
         # Model/loss.
-        p.Define('tree_conv_version', None, 'Options: None, V2.')
-        p.Define('loss_type', None, 'Options: None (MSE), mean_qerror.')
+        p.Define("tree_conv_version", None, "Options: None, V2.")
+        p.Define("loss_type", None, "Options: None (MSE), mean_qerror.")
         return p
 
     @classmethod
@@ -640,7 +709,16 @@ class Sim(object):
     def _SimulationDataPath(self):
         p = self.params
         hash_key = Sim.HashOfSimData(p)
-        return 'data/sim-data-{}.pkl'.format(hash_key)
+        # return 'data/JOB_changed/sim-data-{}.pkl'.format(hash_key)
+        # return "data/IMDB_assorted_small/sim-data-{}.pkl".format(hash_key)
+        #return "data/IMDB_assorted_small_2/sim-data-{}.pkl".format(hash_key)
+        #return "data/IMDB_assorted/sim-data-{}.pkl".format(hash_key)
+        return "data/IMDB_assorted_2/sim-data-{}.pkl".format(hash_key)
+        # return "data/JOB/sim-data-{}.pkl".format(hash_key)
+        # return 'data/TPCH/sim-data-{}.pkl'.format(hash_key)
+        # return 'data/IMDB_BAO/sim-data-{}.pkl'.format(hash_key)
+        # return 'data/IMDB_BAO_changed/sim-data-{}.pkl'.format(hash_key)
+        # return 'data/SO/sim-data-{}.pkl'.format(hash_key)
 
     def _LoadSimulationData(self):
         path = self._SimulationDataPath()
@@ -669,7 +747,17 @@ class Sim(object):
     def _FeaturizedDataPath(self):
         p = self.params
         hash_key = Sim.HashOfFeaturizedData(p)
-        return 'data/sim-featurized-{}.pkl'.format(hash_key)
+        # return "data/IMDB_assorted_small/sim-featurized-{}.pkl".format(hash_key)
+        # return "data/IMDB_assorted_small_2/sim-featurized-{}.pkl".format(hash_key)
+        #return "data/IMDB_assorted/sim-featurized-{}.pkl".format(hash_key)
+        return "data/IMDB_assorted_2/sim-featurized-{}.pkl".format(hash_key)
+        # return "data/JOB/sim-featurized-{}.pkl".format(hash_key)
+        # return 'data/JOB_changed/sim-featurized-{}.pkl'.format(hash_key)
+
+        # return 'data/IMDB_BAO_changed/sim-featurized-{}.pkl'.format(hash_key)
+        # return 'data/IMDB_BAO/sim-featurized-{}.pkl'.format(hash_key)
+        # return 'data/SO/sim-featurized-{}.pkl'.format(hash_key)
+        # return 'data/TPCH/sim-featurized-{}.pkl'.format(hash_key)
 
     def _LoadFeaturizedData(self):
         path = self._FeaturizedDataPath()
