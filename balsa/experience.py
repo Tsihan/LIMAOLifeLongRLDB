@@ -145,10 +145,12 @@ class Experience(object):
             #   buffer N: qname_0 qname_1, ...
             # I.e., query names all correspond.
             assert type(initial_size) is int and type(nodes) is list, path
-            assert initial_size == self.initial_size, (path, initial_size,
-                                                       self.initial_size)
-            assert len(nodes) >= initial_size and len(
-                nodes) % initial_size == 0, (len(nodes), path)
+            #Qihan since the two workload's length may be different, we need to check the workload info
+
+            # assert initial_size == self.initial_size, (path, initial_size,
+            #                                            self.initial_size)
+            # assert len(nodes) >= initial_size and len(
+            #     nodes) % initial_size == 0, (len(nodes), path)
             nodes_executed = nodes[initial_size:]
             if keep_last_fraction < 1:
                 assert len(nodes_executed) % initial_size == 0
@@ -177,7 +179,8 @@ class Experience(object):
 
     @classmethod
     def CountUniquePlans(cls, num_templates, nodes):
-        assert len(nodes) % num_templates == 0, (len(nodes), num_templates)
+        #Qihan since the two workload's length may be different, we need to check the workload info
+        #assert len(nodes) % num_templates == 0, (len(nodes), num_templates)
         unique_plans = collections.defaultdict(set)
         for i in range(num_templates):
             query_name = nodes[i].info['query_name']
