@@ -707,6 +707,10 @@ class BalsaAgent(object):
 
         # Optimizer state.
         self.prev_optimizer_state_dict = None
+
+        # qihan add this
+        self.curr_value_iter = 0
+        self.is_origin_workload = True
         # Ray.
         if p.use_local_execution:
             ray.init(resources={'pg': 1})
@@ -784,7 +788,7 @@ class BalsaAgent(object):
                 p.query_dir, p.query_glob, p.test_query_glob)
         elif self.curr_value_iter == 0:
             wp = envs.IMDB_assorted_small.Params() 
-            # wp = envs.IMDB_assorted_small_2.Params()
+            #wp = envs.IMDB_assorted_small_2.Params()
             # wp = envs.IMDB_assorted.Params()
             #wp = envs.IMDB_assorted_2.Params()
             # wp = envs.JoinOrderBenchmark.Params()
@@ -802,24 +806,18 @@ class BalsaAgent(object):
         # qihan: here we change the workload on the fly
         else:
             if is_origin:
-                with open('data/IMDB_assorted/initial_policy_data.pkl', "rb") as f:
+                with open('data/IMDB_assorted_small/initial_policy_data.pkl', "rb") as f:
                     workload = pickle.load(f)
             # Filter queries based on the current query_glob.
                 workload.FilterQueries(
-                    'queries/imdb_assorted', ['*.sql'], [
-'32c_baochanged.sql', '12a_job.sql', '16a_bao.sql', '30c_baochanged.sql', '7a_bao.sql', 
-'4a_bao.sql', '26c_baochanged.sql', '10a_bao.sql', '19a_bao.sql', '15a_bao.sql', 
-'8b_job.sql', '5b_job.sql', '1a_bao.sql', '5a_bao.sql', '13b_job.sql', 
-'19c_jobchanged.sql', '9a_job.sql', '14a_bao.sql', '39c_baochanged.sql', '30a_bao.sql'])
+                    'queries/imdb_assorted_small', ['*.sql'], ['29a_job.sql', '28c_baochanged.sql'])
             else:
 
-                with open('data/IMDB_assorted_2/initial_policy_data.pkl', "rb") as f:
+                with open('data/IMDB_assorted_small_2/initial_policy_data.pkl', "rb") as f:
                     workload = pickle.load(f)
             # Filter queries based on the current query_glob.
                 workload.FilterQueries(
-                    'queries/imdb_assorted_2', ['*.sql'], [
-'5a4_ceb3.sql', '9b1_ceb3.sql', '11a3_ceb3.sql', '9b5_ceb3.sql', '2b3_ceb3.sql', '2a2_ceb3.sql', 
-'9a4_ceb3.sql', '2a3_ceb3.sql', '8a1_ceb3.sql', '3b3_ceb3.sql', '2c3_ceb3.sql', '3a2_ceb3.sql', '9b4_ceb3.sql'])
+                    'queries/imdb_assorted_small_2', ['*.sql'], ['28a_bao.sql', '23b_jobchanged.sql'])
 
         return workload
 
@@ -1254,7 +1252,7 @@ class BalsaAgent(object):
         # NOTE: if engine != pg, we're still saving PG plans but with target
         # engine's latencies.  This mainly affects debug strings.
         Save(self.workload, "./data/IMDB_assorted_small/initial_policy_data.pkl")
-        # Save(self.workload, "./data/IMDB_assorted_small_2/initial_policy_data.pkl")
+        #Save(self.workload, "./data/IMDB_assorted_small_2/initial_policy_data.pkl")
         # Save(self.workload, "./data/IMDB_assorted/initial_policy_data.pkl")
         #Save(self.workload, "./data/IMDB_assorted_2/initial_policy_data.pkl")
         # Save(self.workload, "./data/JOB/initial_policy_data.pkl")
@@ -2309,7 +2307,7 @@ def Main(argv):
     # Override params here for quick debugging.
     # p.sim_checkpoint = None
     # p.epochs = 1
-    p.val_iters = 10
+    p.val_iters = 20
     # p.query_glob = ['7*.sql']
     # p.test_query_glob = ['7c.sql']
     # p.search_until_n_complete_plans = 1
