@@ -360,6 +360,9 @@ class Experience(object):
 
         # Loop through each template.
         for i in range(self.initial_size):
+            # Qihan this is used for different size workload switching
+            if i + skip_first_n >= len(self.nodes):
+                break  
             # Global label correction.
             subplan_to_best, num_subtrees, subtrees = self.ComputeBestLatencies(
                 i,
@@ -700,7 +703,7 @@ class Experience(object):
         
     def add_last_iter_data(self,old_replay_buffer):
         """Add the last iter's data from old_replay_buffer to self.nodes."""
-        assert len(old_replay_buffer.nodes) % old_replay_buffer.initial_size == 0
+        #assert len(old_replay_buffer.nodes) % old_replay_buffer.initial_size == 0
         assert len(old_replay_buffer.nodes) >= old_replay_buffer.initial_size
         self.nodes.extend(old_replay_buffer.nodes[-old_replay_buffer.initial_size:])
         print('Added last iter data from old replay buffer to the new one.')
