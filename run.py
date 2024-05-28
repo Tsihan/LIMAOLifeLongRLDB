@@ -1958,7 +1958,9 @@ class BalsaAgent(object):
         p = self.params
         self.curr_iter_skipped_queries = 0
         # Train the model.
+        
         model, dataset = self.Train()
+
         # Replay buffer reset (if enabled).
         if self.curr_value_iter == p.replay_buffer_reset_at_iter:
             self.exp.DropAgentExperience()
@@ -1994,7 +1996,7 @@ class BalsaAgent(object):
                                self.curr_value_iter))
             self.LogScalars(to_log)
         self.SaveBestPlans()
-        if (self.curr_value_iter + 1) % 5 == 0:
+        if (self.curr_value_iter + 1) % 3 == 0:
             self.SaveAgent(model, iter_total_latency)
         # Run and log test queries.
         self.EvaluateTestSet(model, planner)
@@ -2228,8 +2230,9 @@ class BalsaAgent(object):
 
         while self.curr_value_iter < p.val_iters:
 
-            #Qihan add p.use_switching_workload, if it's false then the same as balsa
-            if p.use_switching_workload and self.curr_value_iter % 5 == 0 and self.curr_value_iter != 0:
+        
+            
+            if p.use_switching_workload and self.curr_value_iter % 3 == 0 and self.curr_value_iter != 0:
                 print("Switching workload ... ...")
                 self.is_origin_workload = not self.is_origin_workload
                 if self.is_origin_workload is True:
@@ -2261,6 +2264,7 @@ class BalsaAgent(object):
                 exp_new.add_last_iter_data(self.exp)
                 self.exp = exp_new
                 print("Switching workload done, the buffer has been reset.")
+                
 
             has_timeouts = self.RunOneIter()
             self.LogTimings()
