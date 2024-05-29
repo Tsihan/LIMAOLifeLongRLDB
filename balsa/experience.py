@@ -95,6 +95,10 @@ class Experience(object):
             return  
         self.nodes = random.sample(self.nodes, 10)
 
+    def ClearBuffer_episode(self):
+        self.nodes = []
+        
+
 
     def Save(self, path):
         """Saves all Nodes in the current replay buffer to a file."""

@@ -24,6 +24,7 @@ logfile
 *.pkl
 *.csv
 *.log
+*output*.txt
 
 logs/**/*.pdf
 tensorboard_logs
