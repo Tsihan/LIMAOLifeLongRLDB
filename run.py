@@ -787,14 +787,14 @@ class BalsaAgent(object):
     def _MakeWorkload(self, is_origin=False):
         p = self.params
         #  Qihan entrance this branch
-        if os.path.isfile(p.init_experience) and self.curr_value_iter == 0:
+        if os.path.isfile(p.init_experience) :
             # Load the expert optimizer experience.
             with open(p.init_experience, "rb") as f:
                 workload = pickle.load(f)
             # Filter queries based on the current query_glob.
             workload.FilterQueries(
                 p.query_dir, p.query_glob, p.test_query_glob)
-        elif self.curr_value_iter == 0:
+        else:
             wp = envs.IMDB_assorted_small.Params() 
             #wp = envs.IMDB_assorted_small_2.Params()
             # wp = envs.IMDB_assorted.Params()
@@ -811,22 +811,7 @@ class BalsaAgent(object):
             workload = wp.cls(wp)
             # Requires baseline to run in this scenario.
             p.run_baseline = True
-        # qihan: here we change the workload on the fly
-        else:
-            if is_origin:
-                with open('data/IMDB_assorted_small/initial_policy_data.pkl', "rb") as f:
-                    workload = pickle.load(f)
-            # Filter queries based on the current query_glob.
-                workload.FilterQueries(
-                    'queries/imdb_assorted_small', ['*.sql'], ['29a_job.sql', '28c_baochanged.sql'])
-            else:
-
-                with open('data/IMDB_assorted_small_2/initial_policy_data.pkl', "rb") as f:
-                    workload = pickle.load(f)
-            # Filter queries based on the current query_glob.
-                workload.FilterQueries(
-                    'queries/imdb_assorted_small_2', ['*.sql'], ['28a_bao.sql', '23b_jobchanged.sql'])
-
+        
         return workload
 
     def _InitLogging(self):
@@ -1434,15 +1419,7 @@ class BalsaAgent(object):
     def PlanAndExecute(self, model, planner, is_test=False, max_retries=3):
         p = self.params
         # qihan change some parameters here
-        if p.use_switching_workload:
-            if not self.is_origin_workload:
-                p.init_experience = 'data/IMDB_assorted_small_2/initial_policy_data.pkl'
-                p.test_query_glob = ['28a_bao.sql', '23b_jobchanged.sql']
-                p.query_dir = 'queries/imdb_assorted_small_2'
-            else:
-                p.init_experience = 'data/IMDB_assorted_small/initial_policy_data.pkl'
-                p.test_query_glob = ['29a_job.sql', '28c_baochanged.sql']
-                p.query_dir = 'queries/imdb_assorted_small'
+
 
         model.eval()
         to_execute = []
