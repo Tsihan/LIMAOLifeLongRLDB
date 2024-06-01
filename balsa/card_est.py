@@ -45,6 +45,7 @@ class PostgresCardEst(CardEst):
         card = self._cache.get(key)
         if card is None:
             sql_str = node.to_sql(join_conds)
-            card = postgres.GetCardinalityEstimateFromPg(sql=sql_str)
+            from run import CURRENT_DATABASE
+            card = postgres.GetCardinalityEstimateFromPg(sql=sql_str, dbname=CURRENT_DATABASE)
             self._cache[key] = card
         return card

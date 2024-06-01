@@ -83,7 +83,8 @@ class Experience(object):
         #   plans_lib.QueryFeaturizer.
         #
         # TODO: check that first N nodes don't change.
-        postgres.EstimateFilterRows(self.nodes)
+        from run import CURRENT_DATABASE
+        postgres.EstimateFilterRows(self.nodes, dbname=CURRENT_DATABASE)
 
     def Save(self, path):
         """Saves all Nodes in the current replay buffer to a file."""
@@ -206,8 +207,9 @@ class Experience(object):
         print('{} all ops: {}'.format(len(all_ops), all_ops))
 
         # count(*) from T for all T in self.workload_info.rel_names.
+        from run import CURRENT_DATABASE
         self.workload_info.table_num_rows = postgres.GetAllTableNumRows(
-            self.workload_info.rel_names)
+            self.workload_info.rel_names,CURRENT_DATABASE)
 
         if self.tree_conv:
             assert issubclass(self.plan_featurizer_cls,

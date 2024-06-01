@@ -78,6 +78,7 @@ class PostgresCost(CostModel):
             sql=sql,
             hint=node.hint_str(with_physical_hints=p.cost_physical_ops),
             check_hint_used=True,
+            dbname=p.db,
         )
         return cost
 
@@ -115,7 +116,8 @@ class MinCardCost(CostModel):
 
     def GetBaseRelCardinality(self, node):
         assert node.table_name is not None, node
-        return postgres.GetAllTableNumRows([node.table_name])[node.table_name]
+        from run import CURRENT_DATABASE
+        return postgres.GetAllTableNumRows([node.table_name],dbname=CURRENT_DATABASE)[node.table_name]
 
     def Score(self, node, join_conds):
         if node._card:

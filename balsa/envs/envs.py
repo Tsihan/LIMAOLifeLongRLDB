@@ -30,7 +30,8 @@ def ParseSqlToNode(path):
     query_name = os.path.splitext(base)[0]
     with open(path, 'r') as f:
         sql_string = f.read()
-    node, json_dict = postgres.SqlToPlanNode(sql_string)
+    from run import CURRENT_DATABASE
+    node, json_dict = postgres.SqlToPlanNode(sql_string, dbname=CURRENT_DATABASE)
     node.info['path'] = path
     node.info['sql_str'] = sql_string
     node.info['query_name'] = query_name

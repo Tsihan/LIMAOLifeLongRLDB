@@ -74,6 +74,8 @@ flags.DEFINE_boolean('local', False,
                      'Whether to use local engine for query execution.')
 
 
+
+
 def GetDevice():
     return 'cuda' if torch.cuda.is_available() else 'cpu'
 
@@ -169,7 +171,8 @@ def ExecuteSql(query_name,
                                           verbose=False,
                                           geqo_off=True,
                                           timeout_ms=curr_timeout_ms,
-                                          remote=not use_local_execution)
+                                          remote=not use_local_execution,
+                                          dbname=CURRENT_DATABASE)
     else:
         return DbmsxExecuteSql(sql_str,
                                comment=hint_str,
@@ -262,7 +265,8 @@ def ParseExecutionResult(result_tup,
                 print('Timeout occurred; checking the hint against local PG.')
                 executed_node, _ = postgres.SqlToPlanNode(sql_str,
                                                           comment=hint_str,
-                                                          verbose=False)
+                                                          verbose=False,
+                                                          dbname=CURRENT_DATABASE)
             executed_node = plans_lib.FilterScansOrJoins(executed_node)
             executed_hint_str = executed_node.hint_str(
                 with_physical_hints=plan_physical)
@@ -711,6 +715,10 @@ class BalsaAgent(object):
         # qihan add this
         self.curr_value_iter = 0
         self.is_origin_workload = True
+
+        # qihan add this to show current database
+        self.db = p.db
+
         # Ray.
         if p.use_local_execution:
             ray.init(resources={'pg': 1})
@@ -2233,37 +2241,20 @@ class BalsaAgent(object):
         
             
             if p.use_switching_workload and self.curr_value_iter % 3 == 0 and self.curr_value_iter != 0:
-                print("Switching workload ... ...")
+                print("Switching database ... ...")
                 self.is_origin_workload = not self.is_origin_workload
+                global CURRENT_DATABASE
                 if self.is_origin_workload is True:
                     self.have_dynaic_workload_switch_back = True
+                    
+                    CURRENT_DATABASE = "imdbload"
+                    self.db = CURRENT_DATABASE
                 else:
                     self.have_dynaic_workload_switch_back = False
+                    CURRENT_DATABASE = "imdbload_after2000"
+                    self.db = CURRENT_DATABASE
 
-
-
-
-                # Qihan Reset the experience buffer.
-                self.workload = self._MakeWorkload(self.is_origin_workload)
-                self.all_nodes = self.workload.Queries(split="all")
-                self.train_nodes = self.workload.Queries(split="train")
-                self.test_nodes = self.workload.Queries(split="test")
-                self.train_nodes = plans_lib.FilterScansOrJoins(
-                    self.train_nodes)
-                self.test_nodes = plans_lib.FilterScansOrJoins(self.test_nodes)
-
-                # Qihan Reset the experience buffer.
-                exp_new = Experience(
-                    self.train_nodes,
-                    p.tree_conv,
-                    workload_info=self.workload.workload_info,
-                    query_featurizer_cls=self.exp.query_featurizer_cls,
-                    plan_featurizer_cls=self.exp.plan_featurizer_cls,
-                )
-                #qihan still remain the last iter's data in the new exp to be align with the loop
-                exp_new.add_last_iter_data(self.exp)
-                self.exp = exp_new
-                print("Switching workload done, the buffer has been reset.")
+                print("Switching database done, the buffer has been reset.")
                 
 
             has_timeouts = self.RunOneIter()
@@ -2315,8 +2306,10 @@ def Main(argv):
     # p.query_glob = ['7*.sql']
     # p.test_query_glob = ['7c.sql']
     # p.search_until_n_complete_plans = 1
-
+    global CURRENT_DATABASE
+    CURRENT_DATABASE = p.db
     agent = BalsaAgent(p)
+    
     agent.Run()
 
 
