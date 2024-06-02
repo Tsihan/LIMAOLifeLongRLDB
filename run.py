@@ -1771,9 +1771,6 @@ class BalsaAgent(object):
             node.info["curr_predicted_latency"] = planner.infer(
                 node,
                 [node],
-                planner.current_other_module_index,
-                planner.current_hash_join_module_index,
-                planner.current_nested_loop_join_module_index,
             )[0]
             self.LogScalars(
                 [

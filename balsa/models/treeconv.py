@@ -131,9 +131,9 @@ class TreeConvolution(nn.Module):
         concat_hash_join = torch.cat((query_embs_hash_join, hash_join_feats), axis=1)
         concat_merge_join = torch.cat((query_embs_merge_join, nested_loop_join_feats), axis=1)
             
-        out_other = self.conv((concat, indexes_pos_feats))
+        out_other = self.conv_other((concat, indexes_pos_feats))
         out_hash_join = self.conv_hash_join((concat_hash_join, hash_join_pos_feats))
-        out_merge_join = self.conv_merge_join((concat_merge_join, nested_loop_join_feats))
+        out_merge_join = self.conv_nested_loop_join((concat_merge_join, nested_loop_join_pos_feats))
        
         conv_outputs = [out_other,out_hash_join, out_merge_join]
         out_combined = self.attention_merger_3(conv_outputs)
