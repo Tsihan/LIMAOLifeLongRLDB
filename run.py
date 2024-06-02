@@ -923,8 +923,7 @@ class BalsaAgent(object):
         self.timer = train_utils.Timer()
         # Experience (replay) buffer.
         self.exp, self.exp_val = self._MakeExperienceBuffer()
-       
-
+        self._latest_replay_buffer_path = None
 
         # Cleanup handlers.  Ensures that the Ray cluster state remains healthy
         # even if this driver program is killed.

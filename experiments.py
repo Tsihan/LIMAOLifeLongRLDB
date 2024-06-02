@@ -561,7 +561,7 @@ class Balsa_JOBRandSplit_IMDB_assorted_small(Rand52MinCardCostOnPolLrC):
         p.init_experience = 'data/IMDB_assorted_small/initial_policy_data.pkl'
         
         p.test_query_glob = RAND_52_TEST_QUERIES_IMDB_ASSORTED_SMALL
-        p.sim_checkpoint = 'checkpoints/IMDB_assorted_small/epoch=24.ckpt'
+        p.sim_checkpoint = 'checkpoints/IMDB_assorted_small/epoch=7.ckpt'
         p.query_dir = 'queries/imdb_assorted_small'
                 
         return p
@@ -574,7 +574,7 @@ class Balsa_JOBRandSplit_IMDB_assorted_small_Replay(Balsa_JOBRandSplit_IMDB_asso
         p = super().Params()
         # Change path to point to the desired buffers:
         p.use_switching_workload = True
-        p.prev_replay_buffers_glob_refresh = './data/IMDB_assorted_small/replay-Balsa_JOBRandSplit*'
+       
         return p
 
 @balsa.params_registry.Register
@@ -584,7 +584,7 @@ class Balsa_JOBRandSplit_IMDB_assorted_Replay(Balsa_JOBRandSplit_IMDB_assorted):
         p = super().Params()
         # Change path to point to the desired buffers:
         p.use_switching_workload = True
-        p.prev_replay_buffers_glob_refresh = './data/IMDB_assorted/replay-Balsa_JOBRandSplit*'
+        
         return p
     
 
