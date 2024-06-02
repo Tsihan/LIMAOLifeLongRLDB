@@ -64,7 +64,7 @@ from balsa.util import dataset as ds
 from balsa.util import plans_lib
 from balsa.util import postgres
 
-from balsa.test_k_prototype import Kproto_DataProcessor
+
 
 import sim as sim_lib
 import pg_executor
@@ -595,9 +595,6 @@ class BalsaModel(pl.LightningModule):
 
     def forward(
         self,
-        idx_other_modulelist,
-        idx_hash_join_modulelist,
-        idx_nested_loop_join_modulelist,
         query_feats,
         tree_feats,
         hash_join_feats,
@@ -608,9 +605,6 @@ class BalsaModel(pl.LightningModule):
     ):
 
         return self.model(
-            idx_other_modulelist,
-            idx_hash_join_modulelist,
-            idx_nested_loop_join_modulelist,
             query_feats,
             tree_feats,
             hash_join_feats,
@@ -715,31 +709,9 @@ class BalsaModel(pl.LightningModule):
             batch.names
         )
 
-        #  QIHANZHANG here we need to make it like LIfelong Modular RL
-        # Qihan: when we want to train the real model, we need get the correct indexes!
 
-        def get_three_indexes(names):
-            list_other = []
-            list_hash_join = []
-            list_nested_loop_join = []
-            # name will not contain the directory, just the name of the sql file
-            for name in names:
-                idx_other = optim.SQL_DICT_OTHER[name]
-                list_other.append(idx_other)
-                idx_hash_join = optim.SQL_DICT_HASH_JOIN[name]
-                list_hash_join.append(idx_hash_join)
-                idx_nested_loop_join = optim.SQL_DICT_NESTED_LOOP_JOIN[name]
-                list_nested_loop_join.append(idx_nested_loop_join)
-
-            return list_other, list_hash_join, list_nested_loop_join
-
-        idx_other_module_list, idx_hash_join_module_list, idx_nested_loop_join_module_list = get_three_indexes(
-            names)
 
         output = self.forward(
-            idx_other_module_list,
-            idx_hash_join_module_list,
-            idx_nested_loop_join_module_list,
             query_feat,
             tree_feat,
             hash_join_feat,
@@ -1443,28 +1415,12 @@ class BalsaAgent(object):
             )
         )
 
-    def copy_module_parameters(self, source_module, target_module):
-        for target_param, source_param in zip(target_module.parameters(), source_module.parameters()):
-            target_param.data.copy_(source_param.data)
+
 
     def GetOrTrainSim(self):
         p = self.params
         if self.sim is None:
             self.sim = TrainSim(p, self.loggers)
-        # Qihan here we copy the parameters from the first module in each modulelist
-        # get all module lists from the model
-        module_lists = [
-            self.sim.model.tree_conv.conv_module_list_hash_join,
-            self.sim.model.tree_conv.conv_module_list_nested_loop_join,
-            self.sim.model.tree_conv.conv_module_list_other]
-
-        # do the parameter copy
-        for module_list in module_lists:
-            source_module = module_list[0]
-            # start from the second module
-            for target_module in module_list[1:]:
-                self.copy_module_parameters(source_module, target_module)
-
         return self.sim
 
     def RunBaseline(self):
@@ -1907,67 +1863,6 @@ class BalsaAgent(object):
                     min_pos = pos
             positions_of_min_predicted.append(min_pos)
         # Qihan Zhang count in this iteration how many times each submodule is used
-
-        print(
-            "In this iteration, conv_module_other_0 is used {} times".format(
-                optim.CONV_MODULE_OTHER_0
-            )
-        )
-        print(
-            "In this iteration, conv_module_other_1 is used {} times".format(
-                optim.CONV_MODULE_OTHER_1
-            )
-        )
-        print(
-            "In this iteration, conv_module_other_2 is used {} times".format(
-                optim.CONV_MODULE_OTHER_2
-            )
-        )
-
-        print(
-            "In this iteration, conv_module_hash_join_0 is used {} times".format(
-                optim.CONV_MODULE_HASH_JOIN_0
-            )
-        )
-        print(
-            "In this iteration, conv_module_hash_join_1 is used {} times".format(
-                optim.CONV_MODULE_HASH_JOIN_1
-            )
-        )
-        print(
-            "In this iteration, conv_module_hash_join_2 is used {} times".format(
-                optim.CONV_MODULE_HASH_JOIN_2
-            )
-        )
-
-        print(
-            "In this iteration, conv_module_nested_loop_join_0 is used {} times".format(
-                optim.CONV_MODULE_NESTED_LOOP_JOIN_0
-            )
-        )
-        print(
-            "In this iteration, conv_module_nested_loop_join_1 is used {} times".format(
-                optim.CONV_MODULE_NESTED_LOOP_JOIN_1
-            )
-        )
-        print(
-            "In this iteration, conv_module_nested_loop_join_2 is used {} times".format(
-                optim.CONV_MODULE_NESTED_LOOP_JOIN_2
-            )
-        )
-
-        # reset to zero
-        optim.CONV_MODULE_OTHER_0 = 0
-        optim.CONV_MODULE_OTHER_1 = 0
-        optim.CONV_MODULE_OTHER_2 = 0
-
-        optim.CONV_MODULE_HASH_JOIN_0 = 0
-        optim.CONV_MODULE_HASH_JOIN_1 = 0
-        optim.CONV_MODULE_HASH_JOIN_2 = 0
-
-        optim.CONV_MODULE_NESTED_LOOP_JOIN_0 = 0
-        optim.CONV_MODULE_NESTED_LOOP_JOIN_1 = 0
-        optim.CONV_MODULE_NESTED_LOOP_JOIN_2 = 0
 
         self.timer.Stop("plan_test_set" if is_test else "plan")
         self.timer.Start(

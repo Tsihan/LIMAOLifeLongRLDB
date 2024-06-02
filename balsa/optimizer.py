@@ -24,24 +24,7 @@ from balsa.models import treeconv
 from balsa.util import dataset as ds
 from balsa.util import plans_lib
 from balsa.util import simple_sql_parser
-from balsa.test_k_prototype import Kproto_DataProcessor
 
-
-CONV_MODULE_OTHER_0 = 0
-CONV_MODULE_OTHER_1 = 0
-CONV_MODULE_OTHER_2 = 0
-
-CONV_MODULE_HASH_JOIN_0 = 0
-CONV_MODULE_HASH_JOIN_1 = 0   
-CONV_MODULE_HASH_JOIN_2 = 0
-
-CONV_MODULE_NESTED_LOOP_JOIN_0 = 0
-CONV_MODULE_NESTED_LOOP_JOIN_1 = 0
-CONV_MODULE_NESTED_LOOP_JOIN_2 = 0
-
-SQL_DICT_OTHER = {}
-SQL_DICT_HASH_JOIN = {}
-SQL_DICT_NESTED_LOOP_JOIN = {}
 
 # Qihan: this is used for global variable, to correctly use the module index in sim.py
 
@@ -172,16 +155,6 @@ class Optimizer(object):
         self.total_random_triggers = 0
         self.num_queries_with_random = 0
 
-        self.current_other_module_index = 4
-        self.current_hash_join_module_index = 4
-        self.current_nested_loop_join_module_index = 4
-
-        self.k_prototype = Kproto_DataProcessor(
-    index_path='/home/qihan/balsaLifeLongRLDB/balsa/deal_assorted_text/indexes_env_matrix.txt',
-    operator_path='/home/qihan/balsaLifeLongRLDB/balsa/deal_assorted_text/operators_env_matrix.txt',
-    sql_path='/home/qihan/balsaLifeLongRLDB/balsa/deal_assorted_text/sql_feature_encode_matrix.txt',
-    query_path='/home/qihan/balsaLifeLongRLDB/balsa/deal_assorted_text/query_enc_matrix.txt',
-    matrix_size=46)
 
     def SetModel(self, model):
         self.value_network = model.to(DEVICE)
@@ -192,32 +165,10 @@ class Optimizer(object):
         # Reset the cache due to model being changed.
         self.label_cache = {}
         
-    def add_nodetype_recursively(self, node, res):
-        if node.node_type == 'Hash Join':
-            res.append(0)
-        elif node.node_type == 'Nested Loop':
-            res.append(1)
-        elif node.node_type == 'Merge Join':
-            res.append(2)
-        elif node.node_type == 'Seq Scan':
-            res.append(3)
-        elif node.node_type == 'Index Scan':
-            res.append(4)
-        elif node.node_type == 'Index Only Scan':
-            res.append(5)
-        else:
-            res.append(6)
-        if node.children:
-            if node.children[0]:
-                self.add_nodetype_recursively(node.children[0], res)
-        
-            if node.children[1]:
-                self.add_nodetype_recursively(node.children[1], res)
         
 
     # @profile
-    def infer(self, query_node, plan_nodes, 
-              chosen_idx_other,chosen_idx_hash_join, chosen_idx_nested_loop_join, set_model_eval=False):
+    def infer(self, query_node, plan_nodes, set_model_eval=False):
         """Forward pass.
 
         Args:
@@ -296,8 +247,7 @@ class Optimizer(object):
                     DEVICE, non_blocking=True)
                 # Based on the debugging situation, only one BalsaModel and one SimModel will be used
 
-                cost = self.value_network(chosen_idx_other,chosen_idx_hash_join,chosen_idx_nested_loop_join,
-                                          query_feat,plan_feat,hash_join_feat,nested_loop_join_feat,pos_feat,
+                cost = self.value_network(query_feat,plan_feat,hash_join_feat,nested_loop_join_feat,pos_feat,
                                           hash_join_pos_feat,nested_loop_join_pos_feat).cpu().numpy()
             else:
                 #  TODO qihan since we modify the forword of network, this one needs modify but we leave it furture
@@ -475,10 +425,7 @@ class Optimizer(object):
             valid_new_states[i] = new_state
         return valid_costs, valid_new_states
     
-    def get_depth(self, plan):
-        if plan.IsJoin():
-            return max(self.get_depth(plan.children[0]), self.get_depth(plan.children[1])) + 1
-        return 1
+
     # @profile
     def _beam_search_bk(self,
                         query_node,
@@ -503,44 +450,7 @@ class Optimizer(object):
                 assert planner_config.search_space == 'bushy', planner_config
             else:
                 assert planner_config.search_space != 'bushy', planner_config
-                
-        operators_env_matrix = []
-        self.add_nodetype_recursively(query_node,operators_env_matrix)
-        
-        # operators_env_matrix, indexes_env_matrix and query_enc_matrix will be used together 
-        # to decide which sub-module combination to use.
-        indexes_env_matrix = treeconv._make_indexes_environment(query_node)
-        query_enc_matrix = self.query_featurizer(query_node)
-        sql_str = query_node.info['sql_str']
-        print("sql_str: ",sql_str)
-        # One-hot vector [GROUP BY, ORDER BY, Aggregate Function, Subquery]
-        sql_feature_encode_matrix = simple_sql_parser.simple_encode_sql(sql_str)
-        
-        ############## test use ################
-        print("indexes_env_matrix for this sql: ",indexes_env_matrix)
-        print("operators_env_matrix for this sql: ",operators_env_matrix)
-        print("sql_feature_encode_matrix for this sql: ",sql_feature_encode_matrix)
-        print("query_enc_matrix for this sql: ",query_enc_matrix)
-        
-        
-        
-                    
-        chosen_idx_hash_join,chosen_idx_nested_loop_join,chosen_idx_other  = \
-        self.k_prototype.predict_datapoint([indexes_env_matrix.tolist(),operators_env_matrix,sql_feature_encode_matrix,query_enc_matrix.tolist()])
-
-        
-        self.current_other_module_index = chosen_idx_other
-        self.current_hash_join_module_index = chosen_idx_hash_join
-        self.current_nested_loop_join_module_index = chosen_idx_nested_loop_join
-       
-        global CURRENT_OTHER_MODULE_INDEX
-        CURRENT_OTHER_MODULE_INDEX = self.current_other_module_index
-        global CURRENT_HASH_JOIN_MODULE_INDEX
-        CURRENT_HASH_JOIN_MODULE_INDEX = self.current_hash_join_module_index
-        global CURRENT_NESTED_LOOP_JOIN_MODULE_INDEX
-        CURRENT_NESTED_LOOP_JOIN_MODULE_INDEX = self.current_nested_loop_join_module_index
-
-            
+   
         planning_start_t = time.time()
         # Join graph.
         join_graph, _ = query_node.GetOrParseSql()
@@ -598,7 +508,7 @@ class Optimizer(object):
 
         terminal_states = []
         # the number of states and costs are shrinking during this while loop
-        first_iteration = True
+
         while len(terminal_states) < self.search_until_n_complete_plans and fringe:
 
             state_cost, state = fringe.pop(0)
@@ -620,63 +530,9 @@ class Optimizer(object):
             # for i in range(len(possible_plans)):
             #     depth_record.append(self.get_depth(possible_plans[i][0]))
 
-            costs = self.infer(query_node,[join for join, _, _ in possible_plans],chosen_idx_other,chosen_idx_hash_join, chosen_idx_nested_loop_join)
+            costs = self.infer(query_node,[join for join, _, _ in possible_plans])
 
-            global CONV_MODULE_OTHER_0 
-            global CONV_MODULE_OTHER_1
-            global CONV_MODULE_OTHER_2
-        
-            global CONV_MODULE_HASH_JOIN_0 
-            global CONV_MODULE_HASH_JOIN_1 
-            global CONV_MODULE_HASH_JOIN_2 
-      
-            global CONV_MODULE_NESTED_LOOP_JOIN_0 
-            global CONV_MODULE_NESTED_LOOP_JOIN_1 
-            global CONV_MODULE_NESTED_LOOP_JOIN_2 
- 
-
-
-            if first_iteration and chosen_idx_other == 0:
-                CONV_MODULE_OTHER_0 += 1
-                SQL_DICT_OTHER[query_node.info['query_name']] = 0
-            elif first_iteration and chosen_idx_other == 1:
-                CONV_MODULE_OTHER_1 += 1
-                SQL_DICT_OTHER[query_node.info['query_name']] = 1
-            elif first_iteration and chosen_idx_other == 2:
-                CONV_MODULE_OTHER_2 += 1
-                SQL_DICT_OTHER[query_node.info['query_name']] = 2    
-
-                       
-
-            if first_iteration and chosen_idx_hash_join == 0:
-                CONV_MODULE_HASH_JOIN_0 += 1
-                SQL_DICT_HASH_JOIN[query_node.info['query_name']] = 0
-                
-            elif first_iteration and chosen_idx_hash_join == 1:
-                CONV_MODULE_HASH_JOIN_1 += 1
-                SQL_DICT_HASH_JOIN[query_node.info['query_name']] = 1
-                
-            elif first_iteration and chosen_idx_hash_join == 2:
-                CONV_MODULE_HASH_JOIN_2 += 1
-                SQL_DICT_HASH_JOIN[query_node.info['query_name']] = 2
-               
-
-                
-                
-            if first_iteration and chosen_idx_nested_loop_join == 0:
-                CONV_MODULE_NESTED_LOOP_JOIN_0 += 1
-                SQL_DICT_NESTED_LOOP_JOIN[query_node.info['query_name']] = 0
-                first_iteration = False 
-            elif first_iteration and chosen_idx_nested_loop_join == 1:
-                CONV_MODULE_NESTED_LOOP_JOIN_1 += 1
-                SQL_DICT_NESTED_LOOP_JOIN[query_node.info['query_name']] = 1
-                first_iteration = False 
-            elif first_iteration and chosen_idx_nested_loop_join == 2:
-                CONV_MODULE_NESTED_LOOP_JOIN_2 += 1
-                SQL_DICT_NESTED_LOOP_JOIN[query_node.info['query_name']] = 2
-                first_iteration = False 
-
-                
+       
                 
             valid_costs, valid_new_states = self._make_new_states(
                 state, costs, possible_plans)
