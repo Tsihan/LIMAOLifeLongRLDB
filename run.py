@@ -3266,17 +3266,6 @@ class BalsaAgent(object):
                     self.db = balsa.database_config.CURRENT_DATABASE
                 print("Switching database done, the buffer has been reset.")
 
-
-
-                # Qihan Reset the experience buffer.
-                self.workload = self._MakeWorkload(self.is_origin_workload)
-                self.all_nodes = self.workload.Queries(split="all")
-                self.train_nodes = self.workload.Queries(split="train")
-                self.test_nodes = self.workload.Queries(split="test")
-                self.train_nodes = plans_lib.FilterScansOrJoins(
-                    self.train_nodes)
-                self.test_nodes = plans_lib.FilterScansOrJoins(self.test_nodes)
-
                 # Qihan Reset the experience buffer.
                 exp_new = Experience(
                     self.train_nodes,
