@@ -74,11 +74,12 @@ import experiments  # noqa # pylint: disable=unused-import
 
 FLAGS = flags.FLAGS
 
+if 'run' not in FLAGS:
+    flags.DEFINE_string('run', 'Balsa_JOBRandSplit', 'Experiment config to run.')
+if 'local' not in FLAGS:
+    flags.DEFINE_boolean('local', False, 'Whether to use local engine for query execution.')
 
-flags.DEFINE_string("run", "Balsa_JOBRandSplit", "Experiment config to run.")
-flags.DEFINE_boolean(
-    "local", False, "Whether to use local engine for query execution.")
-
+import balsa.database_config
 
 def GetDevice():
     return "cuda" if torch.cuda.is_available() else "cpu"
@@ -161,6 +162,7 @@ def ExecuteSql(
     plan_physical=True,
     repeat=1,
     engine="postgres",
+    dbname='imdbload'
 ):
     """Executes a query.
 
@@ -192,6 +194,7 @@ def ExecuteSql(
             geqo_off=True,
             timeout_ms=curr_timeout_ms,
             remote=not use_local_execution,
+            dbname=dbname
         )
     else:
         return DbmsxExecuteSql(
@@ -254,6 +257,7 @@ def ParseExecutionResult(
     plan_physical=True,
     repeat=None,
     engine="postgres",
+    dbname='imdbload'
 ):
     del repeat  # Unused.
     messages = []
@@ -284,7 +288,7 @@ def ParseExecutionResult(
                 # checking against local Postgres.
                 print("Timeout occurred; checking the hint against local PG.")
                 executed_node, _ = postgres.SqlToPlanNode(
-                    sql_str, comment=hint_str, verbose=False
+                    sql_str, comment=hint_str, verbose=False, dbname=dbname
                 )
             executed_node = plans_lib.FilterScansOrJoins(executed_node)
             executed_hint_str = executed_node.hint_str(
@@ -851,6 +855,9 @@ class BalsaAgent(object):
         self.curr_value_iter = 0
         self.is_origin_workload = True
 
+        # qihan add this to show current database
+        self.db = p.db
+
         # Ray.
         if p.use_local_execution:
             # print('Using local execution!!!!!')
@@ -937,14 +944,14 @@ class BalsaAgent(object):
     def _MakeWorkload(self, is_origin=False):
         p = self.params
         #  Qihan entrance this branch
-        if os.path.isfile(p.init_experience) and self.curr_value_iter == 0:
+        if os.path.isfile(p.init_experience) :
             # Load the expert optimizer experience.
             with open(p.init_experience, "rb") as f:
                 workload = pickle.load(f)
             # Filter queries based on the current query_glob.
             workload.FilterQueries(
                 p.query_dir, p.query_glob, p.test_query_glob)
-        elif self.curr_value_iter == 0:
+        else:
             #wp = envs.IMDB_assorted_small.Params() 
             # wp = envs.IMDB_assorted_small_2.Params()
             #wp = envs.IMDB_assorted.Params()
@@ -961,28 +968,7 @@ class BalsaAgent(object):
             workload = wp.cls(wp)
             # Requires baseline to run in this scenario.
             p.run_baseline = True
-        # qihan: here we change the workload on the fly
-        else:
-            if not is_origin:
-                with open('data/IMDB_assorted/initial_policy_data.pkl', "rb") as f:
-                    workload = pickle.load(f)
-            # Filter queries based on the current query_glob.
-                workload.FilterQueries(
-                    'queries/imdb_assorted', ['*.sql'], [
-'32c_baochanged.sql', '12a_job.sql', '16a_bao.sql', '30c_baochanged.sql', '7a_bao.sql', 
-'4a_bao.sql', '26c_baochanged.sql', '10a_bao.sql', '19a_bao.sql', '15a_bao.sql', 
-'8b_job.sql', '5b_job.sql', '1a_bao.sql', '5a_bao.sql', '13b_job.sql', 
-'19c_jobchanged.sql', '9a_job.sql', '14a_bao.sql', '39c_baochanged.sql', '30a_bao.sql'])
-            else:
-
-                with open('data/IMDB_assorted_2/initial_policy_data.pkl', "rb") as f:
-                    workload = pickle.load(f)
-            # Filter queries based on the current query_glob.
-                workload.FilterQueries(
-                    'queries/imdb_assorted_2', [
-'5a4_ceb3.sql', '9b1_ceb3.sql', '11a3_ceb3.sql', '9b5_ceb3.sql', '2b3_ceb3.sql', '2a2_ceb3.sql', 
-'9a4_ceb3.sql', '2a3_ceb3.sql', '8a1_ceb3.sql', '3b3_ceb3.sql', '2c3_ceb3.sql', '3a2_ceb3.sql', '9b4_ceb3.sql'])
-
+       
         return workload
 
     def _InitLogging(self):
@@ -1093,7 +1079,7 @@ class BalsaAgent(object):
             use_last_n_iters=p.use_last_n_iters,
             use_new_data_only=p.use_new_data_only,
             skip_training_on_timeouts=p.skip_training_on_timeouts,
-        )
+            dbname=self.db)
 
         (
             all_query_vecs,
@@ -1184,6 +1170,7 @@ class BalsaAgent(object):
                 use_last_n_iters=-1,
                 use_new_data_only=False,
                 skip_training_on_timeouts=p.skip_training_on_timeouts,
+                dbname=self.db
             )
             (
                 all_query_vecs_val,
@@ -1259,6 +1246,7 @@ class BalsaAgent(object):
             use_last_n_iters=p.use_last_n_iters,
             use_new_data_only=p.use_new_data_only,
             skip_training_on_timeouts=p.skip_training_on_timeouts,
+            dbname=self.db
         )
 
         (
@@ -1617,7 +1605,7 @@ class BalsaAgent(object):
     def RunBaseline(self):
         p = self.params
         print("Dropping buffer cache.")
-        # postgres.DropBufferCache()
+        postgres.DropBufferCache(dbname = p.db)
         print("Running queries as-is (baseline PG performance)...")
 
         def Args(node):
@@ -1631,6 +1619,7 @@ class BalsaAgent(object):
                 "silent": True,
                 "use_local_execution": p.use_local_execution,
                 "engine": p.engine,
+                'dbname': p.db,
             }
 
         tasks = []
@@ -1918,22 +1907,6 @@ class BalsaAgent(object):
     # Qihan use Reset_Fill_exp_episode to modify this process
     def PlanAndExecute_episode(self, model, planner, is_test=False, max_retries=3):
         p = self.params
-        # qihan change some parameters here
-        if  self.is_origin_workload:
-            p.init_experience = 'data/IMDB_assorted_2/initial_policy_data.pkl'
-            p.test_query_glob = [
-'5a4_ceb3.sql', '9b1_ceb3.sql', '11a3_ceb3.sql', '9b5_ceb3.sql', '2b3_ceb3.sql', '2a2_ceb3.sql', 
-'9a4_ceb3.sql', '2a3_ceb3.sql', '8a1_ceb3.sql', '3b3_ceb3.sql', '2c3_ceb3.sql', '3a2_ceb3.sql', '9b4_ceb3.sql']
-            p.query_dir = 'queries/imdb_assorted_2'
-        else:
-            p.init_experience = 'data/IMDB_assorted/initial_policy_data.pkl'
-            p.test_query_glob = [
-'32c_baochanged.sql', '12a_job.sql', '16a_bao.sql', '30c_baochanged.sql', '7a_bao.sql', 
-'4a_bao.sql', '26c_baochanged.sql', '10a_bao.sql', '19a_bao.sql', '15a_bao.sql', 
-'8b_job.sql', '5b_job.sql', '1a_bao.sql', '5a_bao.sql', '13b_job.sql', 
-'19c_jobchanged.sql', '9a_job.sql', '14a_bao.sql', '39c_baochanged.sql', '30a_bao.sql']
-            p.query_dir = 'queries/imdb_assorted'
-
         model.eval()
         all_to_execute = []
         all_execution_results = []
@@ -2022,6 +1995,7 @@ class BalsaAgent(object):
                     "silent": True,
                     "use_local_execution": p.use_local_execution,
                     "engine": p.engine,
+                    'dbname': self.db,
                 }
                 kwargs.append(kwarg)
                 if exec_result is None:
@@ -2218,22 +2192,6 @@ class BalsaAgent(object):
     def PlanAndExecute(self, model, planner, is_test=False, max_retries=3):
 
         p = self.params
-        # qihan change some parameters here
-        if p.use_switching_workload:
-            if  self.is_origin_workload:
-                p.init_experience = 'data/IMDB_assorted_2/initial_policy_data.pkl'
-                p.test_query_glob = [
-'5a4_ceb3.sql', '9b1_ceb3.sql', '11a3_ceb3.sql', '9b5_ceb3.sql', '2b3_ceb3.sql', '2a2_ceb3.sql', 
-'9a4_ceb3.sql', '2a3_ceb3.sql', '8a1_ceb3.sql', '3b3_ceb3.sql', '2c3_ceb3.sql', '3a2_ceb3.sql', '9b4_ceb3.sql']
-                p.query_dir = 'queries/imdb_assorted_2'
-            else:
-                p.init_experience = 'data/IMDB_assorted/initial_policy_data.pkl'
-                p.test_query_glob = [
-'32c_baochanged.sql', '12a_job.sql', '16a_bao.sql', '30c_baochanged.sql', '7a_bao.sql', 
-'4a_bao.sql', '26c_baochanged.sql', '10a_bao.sql', '19a_bao.sql', '15a_bao.sql', 
-'8b_job.sql', '5b_job.sql', '1a_bao.sql', '5a_bao.sql', '13b_job.sql', 
-'19c_jobchanged.sql', '9a_job.sql', '14a_bao.sql', '39c_baochanged.sql', '30a_bao.sql']
-                p.query_dir = 'queries/imdb_assorted'
 
         model.eval()
 
@@ -2365,6 +2323,7 @@ class BalsaAgent(object):
                 "use_local_execution": p.use_local_execution,
                 "plan_physical": p.plan_physical,
                 "engine": p.engine,
+                'dbname': self.db,
             }
 
             kwargs.append(kwarg)
@@ -3295,13 +3254,17 @@ class BalsaAgent(object):
             need_refresh = False
             #Qihan add p.use_switching_workload, if it's false then the same as balsa
             if p.use_switching_workload and self.curr_value_iter % 2 == 0 and self.curr_value_iter != 0:
-                print("Switching workload ... ...")
+                print("Switching database ... ...")
                 self.is_origin_workload = not self.is_origin_workload
                 if self.is_origin_workload is True:
                     self.have_dynaic_workload_switch_back = True
+                    balsa.database_config.CURRENT_DATABASE = "imdbload"
+                    self.db = balsa.database_config.CURRENT_DATABASE
                 else:
                     self.have_dynaic_workload_switch_back = False
-
+                    balsa.database_config.CURRENT_DATABASE = "imdbload_after2000"
+                    self.db = balsa.database_config.CURRENT_DATABASE
+                print("Switching database done, the buffer has been reset.")
 
 
 
@@ -3348,7 +3311,7 @@ class BalsaAgent(object):
 
             if p.drop_cache and p.use_local_execution:
                 print("Dropping buffer cache.")
-                # postgres.DropBufferCache()
+                postgres.DropBufferCache(dbname=self.db)
 
             if p.increment_iter_despite_timeouts:
                 # Always increment the iteration counter.  This makes it fairer
