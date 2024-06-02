@@ -41,7 +41,7 @@ from balsa.util import plans_lib
 from balsa.util import postgres
 import train_utils
 
-
+from balsa.database_config import CURRENT_DATABASE
 
 class SimModel(pl.LightningModule):
 
@@ -1015,7 +1015,7 @@ class Sim(object):
     def _LogPostgresConfigs(self, wandb_logger):
         """Logs live Postgres server configs to a file and uploads to W&B."""
         wandb_run = wandb_logger.experiment
-        df = postgres.GetServerConfigsAsDf()
+        df = postgres.GetServerConfigsAsDf(dbname=CURRENT_DATABASE)
         path = os.path.join(wandb_run.dir, "postgres-conf.txt")
         df.to_csv(path, index=False, header=True)
 
@@ -1033,7 +1033,7 @@ class Sim(object):
             wi.all_ops = np.sort(np.concatenate((wi.all_ops, ["Join", "Scan"])))
             wi.join_types = np.sort(np.concatenate((wi.join_types, ["Join"])))
             wi.scan_types = np.sort(np.concatenate((wi.scan_types, ["Scan"])))
-        wi.table_num_rows = postgres.GetAllTableNumRows(wi.rel_names)
+        wi.table_num_rows = postgres.GetAllTableNumRows(wi.rel_names,CURRENT_DATABASE)
         self.training_workload_info = wi
 
         # Instantiate query featurizer once with train nodes, since it may need

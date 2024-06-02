@@ -71,6 +71,7 @@ import pg_executor
 from pg_executor import dbmsx_executor
 import train_utils
 import experiments  # noqa # pylint: disable=unused-import
+import balsa.database_config
 
 FLAGS = flags.FLAGS
 
@@ -425,8 +426,8 @@ def TrainSim(p, loggers=None):
     if p.sim_checkpoint is None:
         sim.CollectSimulationData()
     # FIXME Qihan Zhang temporary modify to retain simulator p.sim_checkpoint None
-    #sim.Train(load_from_checkpoint=None, loggers=loggers)
-    sim.Train(load_from_checkpoint=p.sim_checkpoint, loggers=loggers)
+    sim.Train(load_from_checkpoint=None, loggers=loggers)
+    #sim.Train(load_from_checkpoint=p.sim_checkpoint, loggers=loggers)
     sim.model.freeze()
     sim.EvaluateCost()
     sim.FreeData()
@@ -914,14 +915,14 @@ class BalsaAgent(object):
     def _MakeWorkload(self, is_origin=False):
         p = self.params
         #  Qihan entrance this branch
-        if os.path.isfile(p.init_experience) and self.curr_value_iter == 0:
+        if os.path.isfile(p.init_experience) :
             # Load the expert optimizer experience.
             with open(p.init_experience, "rb") as f:
                 workload = pickle.load(f)
             # Filter queries based on the current query_glob.
             workload.FilterQueries(
                 p.query_dir, p.query_glob, p.test_query_glob)
-        elif self.curr_value_iter == 0:
+        else:
             wp = envs.IMDB_assorted_small.Params() 
             #wp = envs.IMDB_assorted_small_2.Params()
             # wp = envs.IMDB_assorted.Params()
@@ -938,22 +939,7 @@ class BalsaAgent(object):
             workload = wp.cls(wp)
             # Requires baseline to run in this scenario.
             p.run_baseline = True
-        # qihan: here we change the workload on the fly
-        else:
-            if is_origin:
-                with open('data/IMDB_assorted_small/initial_policy_data.pkl', "rb") as f:
-                    workload = pickle.load(f)
-            # Filter queries based on the current query_glob.
-                workload.FilterQueries(
-                    'queries/imdb_assorted_small', ['*.sql'], ['29a_job.sql', '28c_baochanged.sql'])
-            else:
-
-                with open('data/IMDB_assorted_small_2/initial_policy_data.pkl', "rb") as f:
-                    workload = pickle.load(f)
-            # Filter queries based on the current query_glob.
-                workload.FilterQueries(
-                    'queries/imdb_assorted_small_2', ['*.sql'], ['28a_bao.sql', '23b_jobchanged.sql'])
-
+        
         return workload
 
     def _InitLogging(self):
@@ -1696,16 +1682,8 @@ class BalsaAgent(object):
     def PlanAndExecute(self, model, planner, is_test=False, max_retries=3):
 
         p = self.params
-        # qihan change some parameters here
-        if p.use_switching_workload:
-            if not self.is_origin_workload:
-                p.init_experience = 'data/IMDB_assorted_small_2/initial_policy_data.pkl'
-                p.test_query_glob = ['28a_bao.sql', '23b_jobchanged.sql']
-                p.query_dir = 'queries/imdb_assorted_small_2'
-            else:
-                p.init_experience = 'data/IMDB_assorted_small/initial_policy_data.pkl'
-                p.test_query_glob = ['29a_job.sql', '28c_baochanged.sql']
-                p.query_dir = 'queries/imdb_assorted_small'
+ 
+
         model.eval()
 
         #qihan make sure model.model is on GPU
@@ -2627,32 +2605,17 @@ class BalsaAgent(object):
                 self.is_origin_workload = not self.is_origin_workload
                 if self.is_origin_workload is True:
                     self.have_dynaic_workload_switch_back = True
+                    balsa.database_config.CURRENT_DATABASE = "imdbload"
+                    self.db = balsa.database_config.CURRENT_DATABASE
 
                 else:
                     self.have_dynaic_workload_switch_back = False
+                    balsa.database_config.CURRENT_DATABASE = "imdbload_after2000"
+                    self.db = balsa.database_config.CURRENT_DATABASE
 
 
-                # Qihan Reset the experience buffer.
-                self.workload = self._MakeWorkload(self.is_origin_workload)
-                self.all_nodes = self.workload.Queries(split="all")
-                self.train_nodes = self.workload.Queries(split="train")
-                self.test_nodes = self.workload.Queries(split="test")
-                self.train_nodes = plans_lib.FilterScansOrJoins(
-                    self.train_nodes)
-                self.test_nodes = plans_lib.FilterScansOrJoins(self.test_nodes)
-
-                # Qihan Reset the experience buffer.
-                exp_new = Experience(
-                    self.train_nodes,
-                    p.tree_conv,
-                    workload_info=self.workload.workload_info,
-                    query_featurizer_cls=self.exp.query_featurizer_cls,
-                    plan_featurizer_cls=self.exp.plan_featurizer_cls,
-                )
-                #qihan still remain the last iter's data in the new exp to be align with the loop
-                exp_new.add_last_iter_data(self.exp)
-                self.exp = exp_new
-                print("Switching workload done, the buffer has been reset.")
+  
+                print("Switching database done, the buffer has been reset.")
 
                     
 
