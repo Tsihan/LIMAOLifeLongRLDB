@@ -69,11 +69,12 @@ import train_utils
 import experiments  # noqa # pylint: disable=unused-import
 
 FLAGS = flags.FLAGS
-flags.DEFINE_string('run', 'Balsa_JOBRandSplit', 'Experiment config to run.')
-flags.DEFINE_boolean('local', False,
-                     'Whether to use local engine for query execution.')
+if 'run' not in FLAGS:
+    flags.DEFINE_string('run', 'Balsa_JOBRandSplit', 'Experiment config to run.')
+if 'local' not in FLAGS:
+    flags.DEFINE_boolean('local', False, 'Whether to use local engine for query execution.')
 
-
+import balsa.database_config
 
 
 def GetDevice():
@@ -151,7 +152,8 @@ def ExecuteSql(query_name,
                use_local_execution=True,
                plan_physical=True,
                repeat=1,
-               engine='postgres'):
+               engine='postgres',
+               dbname='imdbload'):
     """Executes a query.
 
     Returns:
@@ -172,7 +174,7 @@ def ExecuteSql(query_name,
                                           geqo_off=True,
                                           timeout_ms=curr_timeout_ms,
                                           remote=not use_local_execution,
-                                          dbname=CURRENT_DATABASE)
+                                          dbname=dbname)
     else:
         return DbmsxExecuteSql(sql_str,
                                comment=hint_str,
@@ -234,7 +236,8 @@ def ParseExecutionResult(result_tup,
                          use_local_execution=True,
                          plan_physical=True,
                          repeat=None,
-                         engine='postgres'):
+                         engine='postgres',
+                         dbname='imdbload'):
     del repeat  # Unused.
     messages = []
     result = result_tup.result
@@ -266,7 +269,7 @@ def ParseExecutionResult(result_tup,
                 executed_node, _ = postgres.SqlToPlanNode(sql_str,
                                                           comment=hint_str,
                                                           verbose=False,
-                                                          dbname=CURRENT_DATABASE)
+                                                          dbname=dbname)
             executed_node = plans_lib.FilterScansOrJoins(executed_node)
             executed_hint_str = executed_node.hint_str(
                 with_physical_hints=plan_physical)
@@ -911,7 +914,8 @@ class BalsaAgent(object):
             on_policy=on_policy,
             use_last_n_iters=p.use_last_n_iters,
             use_new_data_only=p.use_new_data_only,
-            skip_training_on_timeouts=p.skip_training_on_timeouts)
+            skip_training_on_timeouts=p.skip_training_on_timeouts,
+            dbname=self.db)
         # [np.ndarray], torch.Tensor, torch.Tensor, [float].
         all_query_vecs, all_feat_vecs, all_pos_vecs, all_costs = tup[:4]
         num_new_datapoints = None
@@ -1196,7 +1200,7 @@ class BalsaAgent(object):
     def RunBaseline(self):
         p = self.params
         print('Dropping buffer cache.')
-        postgres.DropBufferCache()
+        postgres.DropBufferCache(dbname = p.db)
         print('Running queries as-is (baseline PG performance)...')
 
         def Args(node):
@@ -1210,6 +1214,7 @@ class BalsaAgent(object):
                 'silent': True,
                 'use_local_execution': p.use_local_execution,
                 'engine': p.engine,
+                'dbname': p.db,
             }
 
         tasks = []
@@ -1514,6 +1519,7 @@ class BalsaAgent(object):
                 'use_local_execution': p.use_local_execution,
                 'plan_physical': p.plan_physical,
                 'engine': p.engine,
+                'dbname': self.db,
             }
 
             kwargs.append(kwarg)
@@ -1981,7 +1987,7 @@ class BalsaAgent(object):
                                self.curr_value_iter))
             self.LogScalars(to_log)
         self.SaveBestPlans()
-        if (self.curr_value_iter + 1) % 3 == 0:
+        if (self.curr_value_iter + 1) % 2 == 0:
             self.SaveAgent(model, iter_total_latency)
         # Run and log test queries.
         self.EvaluateTestSet(model, planner)
@@ -2217,19 +2223,19 @@ class BalsaAgent(object):
 
         
             
-            if p.use_switching_workload and self.curr_value_iter % 3 == 0 and self.curr_value_iter != 0:
+            if p.use_switching_workload and self.curr_value_iter % 2 == 0 and self.curr_value_iter != 0:
                 print("Switching database ... ...")
                 self.is_origin_workload = not self.is_origin_workload
-                global CURRENT_DATABASE
+                
                 if self.is_origin_workload is True:
                     self.have_dynaic_workload_switch_back = True
                     
-                    CURRENT_DATABASE = "imdbload"
-                    self.db = CURRENT_DATABASE
+                    balsa.database_config.CURRENT_DATABASE = "imdbload"
+                    self.db = balsa.database_config.CURRENT_DATABASE
                 else:
                     self.have_dynaic_workload_switch_back = False
-                    CURRENT_DATABASE = "imdbload_after2000"
-                    self.db = CURRENT_DATABASE
+                    balsa.database_config.CURRENT_DATABASE = "imdbload_after2000"
+                    self.db = balsa.database_config.CURRENT_DATABASE
 
                 print("Switching database done, the buffer has been reset.")
                 
@@ -2244,7 +2250,7 @@ class BalsaAgent(object):
 
             if p.drop_cache and p.use_local_execution:
                 print('Dropping buffer cache.')
-                postgres.DropBufferCache()
+                postgres.DropBufferCache(dbname=self.db)
 
             if p.increment_iter_despite_timeouts:
                 # Always increment the iteration counter.  This makes it fairer
@@ -2283,8 +2289,6 @@ def Main(argv):
     # p.query_glob = ['7*.sql']
     # p.test_query_glob = ['7c.sql']
     # p.search_until_n_complete_plans = 1
-    global CURRENT_DATABASE
-    CURRENT_DATABASE = p.db
     agent = BalsaAgent(p)
     
     agent.Run()

@@ -13,8 +13,7 @@
 # limitations under the License.
 
 from balsa.util import postgres
-
-
+from balsa.database_config import CURRENT_DATABASE
 class CardEst(object):
     """Base class for cardinality estimators."""
 
@@ -45,7 +44,7 @@ class PostgresCardEst(CardEst):
         card = self._cache.get(key)
         if card is None:
             sql_str = node.to_sql(join_conds)
-            from run import CURRENT_DATABASE
+            
             card = postgres.GetCardinalityEstimateFromPg(sql=sql_str, dbname=CURRENT_DATABASE)
             self._cache[key] = card
         return card

@@ -26,7 +26,7 @@ import numpy as np
 from balsa.models import treeconv
 from balsa.util import graphs, plans_lib, postgres
 
-
+from balsa.database_config import CURRENT_DATABASE
 def TreeConvFeaturize(plan_featurizer, subplans):
     """Returns (featurized plans, tree conv indexes) tensors."""
     assert len(subplans) > 0
@@ -83,7 +83,7 @@ class Experience(object):
         #   plans_lib.QueryFeaturizer.
         #
         # TODO: check that first N nodes don't change.
-        from run import CURRENT_DATABASE
+        
         postgres.EstimateFilterRows(self.nodes, dbname=CURRENT_DATABASE)
 
     def Save(self, path):
@@ -183,7 +183,7 @@ class Experience(object):
             into_table[query_name] = into.union(unique_plans)
         return sum([len(s) for s in into_table.values()])
 
-    def prepare(self, rewrite_generic=False, verbose=False):
+    def prepare(self, rewrite_generic=False, verbose=False, dbname = "imdbload"):
         #### Affects plan featurization.
         if rewrite_generic:
             print('Rewriting all joins -> Join, all scans -> Scan')
@@ -207,9 +207,9 @@ class Experience(object):
         print('{} all ops: {}'.format(len(all_ops), all_ops))
 
         # count(*) from T for all T in self.workload_info.rel_names.
-        from run import CURRENT_DATABASE
+       
         self.workload_info.table_num_rows = postgres.GetAllTableNumRows(
-            self.workload_info.rel_names,CURRENT_DATABASE)
+            self.workload_info.rel_names,dbname=dbname)
 
         if self.tree_conv:
             assert issubclass(self.plan_featurizer_cls,
@@ -311,7 +311,8 @@ class Experience(object):
                          on_policy=False,
                          use_last_n_iters=-1,
                          use_new_data_only=False,
-                         skip_training_on_timeouts=False):
+                         skip_training_on_timeouts=False,
+                         dbname = "imdbload"):
         if use_last_n_iters > 0 and use_new_data_only:
             print('Both use_last_n_iters > 0 and use_new_data_only are set: '\
                   'letting the latter take precedence.')
@@ -320,7 +321,7 @@ class Experience(object):
                 ' use_last_n_iters={} set.'.format(use_last_n_iters)
             use_last_n_iters = 1
 
-        self.prepare(rewrite_generic, verbose)
+        self.prepare(rewrite_generic, verbose, dbname=dbname)
         # Training data.
         all_query_vecs = []
         all_feat_vecs = []  # plan features
@@ -550,7 +551,8 @@ class Experience(object):
                   on_policy=False,
                   use_last_n_iters=-1,
                   use_new_data_only=False,
-                  skip_training_on_timeouts=False):
+                  skip_training_on_timeouts=False,
+                  dbname = "imdbload"):
         if physical_execution_hindsight:
             assert deduplicate
             return self._featurize_hindsight_relabeling(
@@ -566,7 +568,8 @@ class Experience(object):
                 on_policy=on_policy,
                 use_last_n_iters=use_last_n_iters,
                 use_new_data_only=use_new_data_only,
-                skip_training_on_timeouts=skip_training_on_timeouts)
+                skip_training_on_timeouts=skip_training_on_timeouts,
+                dbname=dbname)
 
         if use_last_n_iters == -1:
             # No dedup; use all previous iters.

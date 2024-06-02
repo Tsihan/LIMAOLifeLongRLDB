@@ -21,7 +21,7 @@ import balsa
 from balsa import hyperparams
 from balsa.util import plans_lib
 from balsa.util import postgres
-
+from balsa.database_config import CURRENT_DATABASE
 _EPSILON = 1e-6
 
 
@@ -30,7 +30,7 @@ def ParseSqlToNode(path):
     query_name = os.path.splitext(base)[0]
     with open(path, 'r') as f:
         sql_string = f.read()
-    from run import CURRENT_DATABASE
+    
     node, json_dict = postgres.SqlToPlanNode(sql_string, dbname=CURRENT_DATABASE)
     node.info['path'] = path
     node.info['sql_str'] = sql_string

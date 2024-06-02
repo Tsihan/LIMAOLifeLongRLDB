@@ -17,7 +17,7 @@ from balsa import card_est
 from balsa import hyperparams
 from balsa.util import postgres
 
-
+from balsa.database_config import CURRENT_DATABASE
 class CostModel(object):
     """Base class for a cost model."""
 
@@ -116,7 +116,6 @@ class MinCardCost(CostModel):
 
     def GetBaseRelCardinality(self, node):
         assert node.table_name is not None, node
-        from run import CURRENT_DATABASE
         return postgres.GetAllTableNumRows([node.table_name],dbname=CURRENT_DATABASE)[node.table_name]
 
     def Score(self, node, join_conds):
