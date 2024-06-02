@@ -923,9 +923,8 @@ class BalsaAgent(object):
         self.timer = train_utils.Timer()
         # Experience (replay) buffer.
         self.exp, self.exp_val = self._MakeExperienceBuffer()
-        #Qihan, init exp_episode, just use deepcopy
-        self.exp_episode = copy.deepcopy(self.exp)
-        self._latest_replay_buffer_path = None
+       
+
 
         # Cleanup handlers.  Ensures that the Ray cluster state remains healthy
         # even if this driver program is killed.
@@ -1228,125 +1227,6 @@ class BalsaAgent(object):
 
         return train_ds, train_loader, val_ds, val_loader
 
-    def _MakeDatasetAndLoader_episode(self):
-        p = self.params
-        #Qihan magic number
-        skip_first_n = 0
-        # Use only the latest round of executions?
-        # Qihan use all the data in the exp_episode, but make sure not contain expert data
-        on_policy = False
-        # TODO: avoid repeatedly featurizing already-featurized nodes.
-        tup = self.exp_episode.featurize(
-            rewrite_generic=not p.plan_physical,
-            verbose=False,
-            skip_first_n=skip_first_n,
-            deduplicate=p.dedup_training_data,
-            physical_execution_hindsight=p.physical_execution_hindsight,
-            on_policy=on_policy,
-            use_last_n_iters=p.use_last_n_iters,
-            use_new_data_only=p.use_new_data_only,
-            skip_training_on_timeouts=p.skip_training_on_timeouts,
-            dbname=self.db
-        )
-
-        (
-            all_query_vecs,
-            all_trees_vecs,
-            all_hash_join_trees_vecs,
-            all_nested_loop_join_trees_vecs,
-            all_pos_indexes_vecs,
-            all_hash_join_pos_indexes_vecs,
-            all_nested_loop_join_pos_indexes_vecs,
-            all_costs,
-            all_names
-        ) = tup[:9]
-        num_new_datapoints = None
-        if len(tup) == 10:
-            num_new_datapoints = tup[-1]
-
-        if p.label_transform_running_stats and skip_first_n > 0:
-            # Use running stats to stabilize.
-            assert p.label_transforms in [
-                ["log1p", "standardize"],
-                ["standardize"],
-                ["sqrt", "standardize"],
-            ], p.label_transforms
-            assert not p.physical_execution_hindsight
-            labels = np.asarray(
-                [executed_node.cost for executed_node in self.exp.nodes[-skip_first_n:]]
-            )
-            if p.label_transforms[0] == "log1p":
-                labels = np.log(1 + labels)
-            elif p.label_transforms[0] == "sqrt":
-                labels = np.sqrt(1 + labels)
-            for label in labels:
-                self.label_running_stats.Record(label)
-            # PlansDataset would use these as-is, when supplied.
-            self.label_mean = self.label_running_stats.Mean()
-            self.label_std = self.label_running_stats.Std(epsilon_guard=False)
-
-        dataset = ds.PlansDataset(
-            all_query_vecs,
-            all_trees_vecs,
-            all_hash_join_trees_vecs,
-            all_nested_loop_join_trees_vecs,
-            all_pos_indexes_vecs,
-            all_hash_join_pos_indexes_vecs,
-            all_nested_loop_join_pos_indexes_vecs,
-            all_costs,
-            all_names,
-            tree_conv=p.tree_conv,
-            transform_cost=p.label_transforms,
-            label_mean=self.label_mean,
-            label_std=self.label_std,
-            cross_entropy=p.cross_entropy,
-        )
-
-        if (
-            not p.update_label_stats_every_iter
-            and self.label_mean is None
-            and len(self.exp.nodes) > len(self.query_nodes)
-        ):
-            # Update the stats once, as soon as some experience is collected.
-            self.label_mean = dataset.mean
-            self.label_std = dataset.std
-
-        
-     
-        num_train = int(len(dataset) * (1 - 0))
-        num_validation = len(dataset) - num_train
-        assert num_train > 0 and num_validation >= 0, len(dataset)
-        print("num_train={} num_validation={}".format(
-                num_train, num_validation))
-        train_ds, val_ds = torch.utils.data.random_split(
-                dataset, [num_train, num_validation]
-            )
-        train_labels = np.asarray(all_costs)[train_ds.indices]
-
-        train_ds = dataset
-        train_labels = all_costs
-
-
-        if p.tree_conv:
-            collate_fn = ds.InputBatch
-        else:
-            def collate_fn(xs): return ds.InputBatch(
-                xs,
-                plan_pad_idx=self.exp.featurizer.pad(),
-                parent_pos_pad_idx=self.exp.pos_featurizer.pad(),
-            )
-
-        train_loader = torch.utils.data.DataLoader(
-            train_ds,
-            batch_size=p.bs,
-            shuffle=True,
-            collate_fn=collate_fn,
-            pin_memory=True,
-        )
-
-        
-
-        return train_ds, train_loader
 
     def _LogDatasetStats(self, train_labels, num_new_datapoints):
         # Track # of training trees that are not timeouts.
@@ -1478,35 +1358,6 @@ class BalsaAgent(object):
             num_sanity_val_steps=2 if p.validate_fraction > 0 else 0,
         )
 
-
-
-    def _MakeTrainer_episode(self, train_loader):
-        p = self.params
-        max_steps = None
-        if p.use_last_n_iters > 0 and p.epochs == 1 and p.per_transition_sgd_steps > 0:
-            desired_update_fraction = (
-                float(p.per_transition_sgd_steps) / p.use_last_n_iters
-            )
-            max_steps = int(
-                np.ceil(len(train_loader) * desired_update_fraction))
-            print(
-                "per_transition_sgd_steps={} max_batches={} "
-                "num_batches_per_epoch={}".format(
-                    p.per_transition_sgd_steps, max_steps, len(train_loader)
-                )
-            )
-        return pl.Trainer(
-            gpus=1 if torch.cuda.is_available() else 0,
-            #Qihan hard coding 
-            max_epochs=20,
-            max_steps=max_steps,
-            row_log_interval=1,
-            check_val_every_n_epoch=10000,  # Set this to a large number to effectively disable validation.
-            weights_summary=None,
-            logger=self.loggers,
-            gradient_clip_val=p.gradient_clip_val,
-            num_sanity_val_steps=0,  # Disable sanity check as there's no validation.
-        )
 
     def _LoadBestCheckpointForEval(self, model, trainer):
         """Loads the checkpoint with the best validation loss."""
@@ -1675,9 +1526,6 @@ class BalsaAgent(object):
 
         # Qihan use the copy to recover
 
-        if hasattr(self, "model_copy") and self.model_copy is not None:
-            self.model = self.model_copy
-
         self.timer.Start("train")
         train_ds, train_loader, _, val_loader = self._MakeDatasetAndLoader(
             log=not train_from_scratch,need_refresh=need_refresh
@@ -1725,39 +1573,9 @@ class BalsaAgent(object):
         # Load best ckpt.
         self._LoadBestCheckpointForEval(model, trainer)
         self.timer.Stop("train")
-
-        # Qihan add a copy of the model, the class is BalsaModel
-        print("make a copy of the model, and use the copy to generate exp in the futrue")
-        self.model_copy = copy.deepcopy(model.model)
         return model, plans_dataset
 
-    # Qihan: 
-    # 1. modify _MakeDatasetAndLoader_episode ok
-    # 2. modify Train_episode ok
-    # 3. embed Train_episode during one iteration ok
-    def Train_episode(self, train_from_scratch=False):
-        p = self.params
-        train_ds, train_loader = self._MakeDatasetAndLoader_episode()
-        plans_dataset = (
-            train_ds.dataset
-            if isinstance(train_ds, torch.utils.data.Subset)
-            else train_ds
-        )
-        model = self._MakeModel(plans_dataset, train_from_scratch)
 
-        model.SetLoggingPrefix(
-                "train/episode/iter-{}-".format(self.curr_value_iter))
-        trainer = self._MakeTrainer_episode(train_loader)
-        
-        trainer.fit(model, train_loader)
-        self.model = model.model
-            # Optimizer state dict now available.
-        self.prev_optimizer_state_dict = None
-        if p.inherit_optimizer_state:
-            self.prev_optimizer_state_dict = trainer.optimizers[0].state_dict(
-                )
-        # qihan, in one episode, don't need to load best ckpt.
-        return model, plans_dataset
 
     def _SampleInternalNode(self, node):
         num_leaves = len(node.leaf_ids())
@@ -1904,290 +1722,6 @@ class BalsaAgent(object):
 
         return predicted_latency, found_plan
     
-    # Qihan use Reset_Fill_exp_episode to modify this process
-    def PlanAndExecute_episode(self, model, planner, is_test=False, max_retries=3):
-        p = self.params
-        model.eval()
-        all_to_execute = []
-        all_execution_results = []
-        
-        if p.sim:
-            sim = self.GetOrTrainSim()
-        positions_of_min_predicted = []
-        nodes = self.test_nodes if is_test else self.train_nodes
-  
-        if not is_test:
-            self.timeout_controller.OnIterStart()
-        planner_config = None
-        if p.planner_config is not None:
-            planner_config = optim.PlannerConfig.Get(p.planner_config)
-        epsilon_greedy_within_beam_search = 0
-        if not is_test and p.epsilon_greedy_within_beam_search > 0:
-            epsilon_greedy_within_beam_search = p.epsilon_greedy_within_beam_search
-        #Qihan magic number
-        batch_size = 10
-        total_batches = (len(nodes) + batch_size - 1) // batch_size
-
-
-        planner_config = optim.PlannerConfig.Get(p.planner_config) if p.planner_config else None
-        epsilon_greedy_within_beam_search = p.epsilon_greedy_within_beam_search if not is_test and p.epsilon_greedy_within_beam_search > 0 else 0
-
-        for batch_index in range(total_batches):
-            tasks = []  # Ensure tasks are reset for each batch
-            to_execute = []
-            # Plan the workload.
-            kwargs = []
-            task_lambdas = []
-            exec_results = []
-
-            start_index = batch_index * batch_size
-            end_index = min((batch_index + 1) * batch_size, len(nodes))
-            nodes_batch = nodes[start_index:end_index]
-
-            self.timeout_controller.OnIterStart()
-
-
-            self.timer.Start("plan_test_set" if is_test else "plan")
-            for i, node in enumerate(nodes_batch):
-                # Planning logic here
-                planning_time, found_plan, predicted_latency, found_plans = planner.plan(
-                node,
-                p.search_method,
-                bushy=p.bushy,
-                return_all_found=True,
-                verbose=False,
-                planner_config=planner_config,
-                epsilon_greedy=epsilon_greedy_within_beam_search,
-                avoid_eq_filters=is_test and p.avoid_eq_filters,
-                )
-
-                # Add to execute list
-                predicted_latency, found_plan = self.SelectPlan(found_plans, predicted_latency, found_plan, planner, node)
-
-                print("{}q{}, predicted time: {:.1f}".format("[Test set] " if is_test else "", node.info["query_name"], predicted_latency))
-                # Calculate monitoring info.
-                predicted_costs = None
-                if p.sim:
-                    predicted_costs = sim.Predict(node, [tup[1] for tup in found_plans])
-                node.info["curr_predicted_latency"] = planner.infer(node, [node], planner.current_other_module_index, planner.current_hash_join_module_index, planner.current_nested_loop_join_module_index)[0]
-                self.LogScalars([("predicted_latency_expert_plans/q{}".format(node.info["query_name"]), node.info["curr_predicted_latency"] / 1e3, self.curr_value_iter)])
-                hint_str = HintStr(found_plan, with_physical_hints=p.plan_physical, engine=p.engine)
-                hinted_plan = found_plan
-                if is_test:
-                    curr_timeout = None
-                    curr_timeout = 1100000
-                else:
-                    curr_timeout = self.timeout_controller.GetTimeout(node)
-                print("q{},(predicted {:.1f}),{}".format(node.info["query_name"], predicted_latency, hint_str))
-                to_execute.append((node.info["sql_str"], hint_str, planning_time, found_plan, predicted_latency, curr_timeout))
-                if p.use_cache:
-                    exec_result = self.query_execution_cache.Get(key=(node.info["query_name"], hint_str))
-                else:
-                    exec_result = None
-                exec_results.append(exec_result)
-                kwarg = {
-                    "query_name": node.info["query_name"],
-                    "sql_str": node.info["sql_str"],
-                    "hint_str": hint_str,
-                    "hinted_plan": hinted_plan,
-                    "query_node": node,
-                    "predicted_latency": predicted_latency,
-                    "silent": True,
-                    "use_local_execution": p.use_local_execution,
-                    "engine": p.engine,
-                    'dbname': self.db,
-                }
-                kwargs.append(kwarg)
-                if exec_result is None:
-                    def fn(task_index=i): return ExecuteSql.options(
-                    resources={
-                        f"node:{ray.util.get_node_ip_address()}": 1,
-                    }
-                    ).remote(**kwargs[task_index])
-                else:
-                    def fn(task_index=i): return ray.put(exec_results[task_index])
-                task_lambdas.append(fn)
-                tasks.append(fn())
-                min_p_latency = 1e30
-                min_pos = 0
-                for pos, (p_latency, found_plan) in enumerate(found_plans):
-                    if p_latency < min_p_latency:
-                        min_p_latency = p_latency
-                        min_pos = pos
-                positions_of_min_predicted.append(min_pos)
-
-            self.timer.Stop("plan_test_set" if is_test else "plan")
-
-            # Execute the batch of plans
-            self.timer.Start("wait_for_executions_test_set" if is_test else "wait_for_executions")
-            self.wandb_logger.log_metrics(
-                {
-                "train/position-of-min-predicted-cost-plan": wandb.Histogram(
-                    positions_of_min_predicted
-                    ),
-                }
-            )
-            print(
-            "{}Waiting on Ray tasks...value_iter={},episode={}".format(
-                "[Test set] " if is_test else "", self.curr_value_iter, batch_index
-                )
-            )
-            try:
-                refs = ray.get(tasks)
-            except Exception as e:
-                print("ray.get(tasks) received exception:", e)
-                time.sleep(10)
-                print("Canceling Ray tasks.")
-                for task in tasks:
-                    ray.cancel(task)
-                if max_retries > 0:
-                    print("Retrying PlanAndExecute() (max_retries={}).".format(max_retries))
-                    return self.PlanAndExecute(
-                    model, planner, is_test, max_retries=max_retries - 1
-                    )
-                else:
-                    print("Retries exhausted; raising the exception.")
-                    raise e
-
-            execution_results = []
-            for i, task in enumerate(refs):
-                result_tup = None
-                is_cached_plan = True
-                if isinstance(task, ray.ObjectRef):
-                # New plan: remote PG execution.
-                    try:
-                        result_tup = ray.get(task)
-                        is_cached_plan = False
-                    except ray.exceptions.RayTaskError as e:
-                        is_disk_full = "psycopg2.errors.DiskFull" in str(e)
-                        num_secs = 8 + (np.random.rand() * 5)
-                        print(
-                        "Exception received:\n{}\nSleeping for {} secs"
-                        " before retrying.".format(e, num_secs)
-                        )
-                        time.sleep(num_secs)
-    
-                        print("Resubmitting.")
-                        new_task = task_lambdas[i]()
-                        print("Calling ray.get() on the new task.")
-                        new_ref = ray.get(new_task)
-                        try:
-                            result_tup = ray.get(new_ref)
-                        except psycopg2.errors.DiskFull:
-              
-                            assert is_disk_full, "DiskFull should happen twice."
-                            print(
-                            "DiskFull happens twice; treating as a timeout."
-                            "  *NOTE* The agent will train on the timeout "
-                            "label regardless of whether use_timeout is set."
-                            )
-                            result_tup = pg_executor.Result(
-                            result=[], has_timeout=True, server_ip=None
-                            )
- 
-                        is_cached_plan = False
-                        print("Retry succeeded.")
-                elif isinstance(task, (pg_executor.Result, dbmsx_executor.Result)):
-                # New plan: local PG execution.
-                    result_tup = task
-                    is_cached_plan = False
-                else:
-         
-                    assert isinstance(task, tuple), task
-                    assert len(task) == 2, task
-     
-                    cached_result_tup = task[0][0]
-                    result_tup = cached_result_tup
-                assert isinstance(
-                result_tup, (pg_executor.Result, dbmsx_executor.Result)
-                ), result_tup
-          
-                result_tups = ParseExecutionResult(result_tup, **kwargs[i])
-                assert len(result_tups) == 4
-                print(result_tups[-1])  # Messages.
-                execution_results.append(result_tups[:-1])
-        
-                if not is_test:
-                    if is_cached_plan:
-                        self.curr_iter_skipped_queries += 1
-                        if self.adaptive_lr_schedule is not None:
-                            self.adaptive_lr_schedule.SetOrTakeMax(
-                            self.curr_iter_skipped_queries
-                        )
-                    else:
-                        self.num_query_execs += 1
-
-            all_to_execute.extend(to_execute)
-            all_execution_results.extend(execution_results)
-
-            self.timer.Stop("wait_for_executions_test_set" if is_test else "wait_for_executions")
-            print("Reseting and filling exp_episode ... ...")
-            self.Reset_Fill_exp_episode(nodes_batch,to_execute,execution_results)
-            print("train the model in one episode... ...")
-            self.Train_episode(train_from_scratch=False)
-
-        print(
-            "In this iteration, conv_module_other_0 is used {} times".format(
-                optim.CONV_MODULE_OTHER_0
-            )
-        )
-        print(
-            "In this iteration, conv_module_other_1 is used {} times".format(
-                optim.CONV_MODULE_OTHER_1
-            )
-        )
-        print(
-            "In this iteration, conv_module_other_2 is used {} times".format(
-                optim.CONV_MODULE_OTHER_2
-            )
-        )
-
-        print(
-            "In this iteration, conv_module_hash_join_0 is used {} times".format(
-                optim.CONV_MODULE_HASH_JOIN_0
-            )
-        )
-        print(
-            "In this iteration, conv_module_hash_join_1 is used {} times".format(
-                optim.CONV_MODULE_HASH_JOIN_1
-            )
-        )
-        print(
-            "In this iteration, conv_module_hash_join_2 is used {} times".format(
-                optim.CONV_MODULE_HASH_JOIN_2
-            )
-        )
-
-        print(
-            "In this iteration, conv_module_nested_loop_join_0 is used {} times".format(
-                optim.CONV_MODULE_NESTED_LOOP_JOIN_0
-            )
-        )
-        print(
-            "In this iteration, conv_module_nested_loop_join_1 is used {} times".format(
-                optim.CONV_MODULE_NESTED_LOOP_JOIN_1
-            )
-        )
-        print(
-            "In this iteration, conv_module_nested_loop_join_2 is used {} times".format(
-                optim.CONV_MODULE_NESTED_LOOP_JOIN_2
-            )
-        )
-
-        # reset to zero
-        optim.CONV_MODULE_OTHER_0 = 0
-        optim.CONV_MODULE_OTHER_1 = 0
-        optim.CONV_MODULE_OTHER_2 = 0
-
-        optim.CONV_MODULE_HASH_JOIN_0 = 0
-        optim.CONV_MODULE_HASH_JOIN_1 = 0
-        optim.CONV_MODULE_HASH_JOIN_2 = 0
-
-        optim.CONV_MODULE_NESTED_LOOP_JOIN_0 = 0
-        optim.CONV_MODULE_NESTED_LOOP_JOIN_1 = 0
-        optim.CONV_MODULE_NESTED_LOOP_JOIN_2 = 0
-        return all_to_execute, all_execution_results
-   
     # planner is the class of optimizer
     def PlanAndExecute(self, model, planner, is_test=False, max_retries=3):
 
@@ -2681,65 +2215,6 @@ class BalsaAgent(object):
         return iter_total_latency, has_timeouts
 
 
-    def Reset_Fill_exp_episode(self, nodes_this_episode, to_execute_this_episode, execution_results_this_episode):
-        self.exp_episode.ClearBuffer_episode()
-
-        p = self.params
-        num_timeouts = 0
-        # Errors the current policy incurs on (agent plans for train queries,
-        # expert plans for train queries).
-        agent_plans_diffs = []
-        expert_plans_diffs = []
-        for node, result_tup, to_execute_tup in zip(
-            nodes_this_episode, execution_results_this_episode, to_execute_this_episode
-        ):
-            result, real_cost, server_ip = result_tup
-            _, hint_str, planning_time, actual, predicted_latency, curr_timeout = (
-                to_execute_tup
-            )
-
-
-
-            if real_cost < 0:
-                has_timeouts = True
-                num_timeouts += 1
-                self.num_total_timeouts += 1
-                if p.special_timeout_label:
-                    real_cost = self.timeout_label()
-                    print(
-                        "Timeout detected! Assigning a special label",
-                        real_cost,
-                        "(server_ip={})".format(server_ip),
-                    )
-                else:
-                    real_cost = curr_timeout * 2
-                    print(
-                        "Timeout detected! Assigning 2*timeout as label",
-                        real_cost,
-                        "(server_ip={})".format(server_ip),
-                    )
-                actual.actual_time_ms = real_cost
-                actual.is_timeout = True
-            else:
-                agent_plans_diffs.append((real_cost - predicted_latency) / 1e3)
-            expert_plans_diffs.append(
-                (node.cost - node.info["curr_predicted_latency"]) / 1e3
-            )
-
-            assert real_cost > 0, real_cost
-            actual.cost = real_cost
-            actual.info = copy.deepcopy(node.info)
-            actual.info.pop("explain_json")
-
-            # Put into exp_episode buffer.
-            self.exp_episode.add(actual)
-            #Qihan modify initial size magic number 10, batch size
-            self.exp_episode.initial_size = 10
-
-
- 
-
-
         
 
 
@@ -2941,12 +2416,11 @@ class BalsaAgent(object):
             use_plan_restrictions=p.real_use_plan_restrictions,
         )
 
-    def RunOneIter(self,need_refresh=False):
+    def RunOneIter(self):
         p = self.params
         self.curr_iter_skipped_queries = 0
         # Train the model.
-        # Qihan this actually use the data collected in last iter
-        model, dataset = self.Train(need_refresh=need_refresh)
+        model, dataset = self.Train()
         # Replay buffer reset (if enabled).
         if self.curr_value_iter == p.replay_buffer_reset_at_iter:
             self.exp.DropAgentExperience()
@@ -2954,83 +2428,63 @@ class BalsaAgent(object):
         planner = self._MakePlanner(model, dataset)
         # Use the model to plan the workload.  Execute the plans and get
         # latencies.
-        # Qihan This takes time too!!!!!!Huge!!!!!! Waiting on Ray tasks...value_iter=xxx
-        # Qihan, make it in a batch form
-        to_execute, execution_results = self.PlanAndExecute_episode(
-            model, planner, is_test=False
-        )
+        to_execute, execution_results = self.PlanAndExecute(model,
+                                                            planner,
+                                                            is_test=False)
         # Add exeuction results to the experience buffer.
         iter_total_latency, has_timeouts = self.FeedbackExecution(
-            to_execute, execution_results
-        )
+            to_execute, execution_results)
         # Logging.
         if not has_timeouts:
             self.overall_best_train_latency = min(
-                self.overall_best_train_latency, iter_total_latency / 1e3
-            )
+                self.overall_best_train_latency, iter_total_latency / 1e3)
             to_log = [
-                ("latency/workload", iter_total_latency / 1e3, self.curr_value_iter),
-                (
-                    "latency/workload_best",
-                    self.overall_best_train_latency,
-                    self.curr_value_iter,
-                ),
-                ("num_query_execs", self.num_query_execs, self.curr_value_iter),
-                (
-                    "num_queries_with_eps_random",
-                    planner.num_queries_with_random,
-                    self.curr_value_iter,
-                ),
-                (
-                    "curr_iter_skipped_queries",
-                    self.curr_iter_skipped_queries,
-                    self.curr_value_iter,
-                ),
-                ("curr_value_iter", self.curr_value_iter, self.curr_value_iter),
-                ("lr", model.learning_rate, self.curr_value_iter),
+                ('latency/workload', iter_total_latency / 1e3,
+                 self.curr_value_iter),
+                ('latency/workload_best', self.overall_best_train_latency,
+                 self.curr_value_iter),
+                ('num_query_execs', self.num_query_execs, self.curr_value_iter),
+                ('num_queries_with_eps_random', planner.num_queries_with_random,
+                 self.curr_value_iter),
+                ('curr_iter_skipped_queries', self.curr_iter_skipped_queries,
+                 self.curr_value_iter),
+                ('curr_value_iter', self.curr_value_iter, self.curr_value_iter),
+                ('lr', model.learning_rate, self.curr_value_iter),
             ]
             if p.reduce_lr_within_val_iter:
-                to_log.append(
-                    ("iter_final_lr", model.latest_per_iter_lr, self.curr_value_iter)
-                )
+                to_log.append(('iter_final_lr', model.latest_per_iter_lr,
+                               self.curr_value_iter))
             self.LogScalars(to_log)
         self.SaveBestPlans()
-        # Qihan in the next iteration, we will switch the workload, so the buffer will be reset
-        # before that we will save it
         if (self.curr_value_iter + 1) % 2 == 0:
             self.SaveAgent(model, iter_total_latency)
         # Run and log test queries.
-        #  QIHANZHANG This takes time too!!!!!! value_iter=0
-        # TODO Qihan, if we want to test on the global model, we need to do the following line
-        model.model = self.model_copy
         self.EvaluateTestSet(model, planner)
-        # QIHANZHANG  we don't go below
+
         if p.track_model_moving_averages:
             # Update model averages.
             # 1. EMA.  Aka Polyak averaging.
             if self.curr_value_iter >= 0:
-                self.UpdateMovingAverage(
-                    model, moving_average="ema", ema_decay=p.ema_decay
-                )
+                self.UpdateMovingAverage(model,
+                                         moving_average='ema',
+                                         ema_decay=p.ema_decay)
                 if (self.curr_value_iter + 1) % 5 == 0:
                     # Use EMA to evaluate test set too.
-                    self.SwapMovingAverage(model, moving_average="ema")
+                    self.SwapMovingAverage(model, moving_average='ema')
                     # Clear the planner's label cache.
                     planner.SetModel(model)
-                    self.EvaluateTestSet(
-                        model, planner, tag="latency_test_ema")
-                    self.SwapMovingAverage(model, moving_average="ema")
+                    self.EvaluateTestSet(model, planner, tag='latency_test_ema')
+                    self.SwapMovingAverage(model, moving_average='ema')
 
             # 2. SWA: Stochastic weight averaging.
             if self.curr_value_iter >= 75:
-                self.UpdateMovingAverage(model, moving_average="swa")
+                self.UpdateMovingAverage(model, moving_average='swa')
                 if (self.curr_value_iter + 1) % 5 == 0:
-                    self.SwapMovingAverage(model, moving_average="swa")
+                    self.SwapMovingAverage(model, moving_average='swa')
                     # Clear the planner's label cache.
                     planner.SetModel(model)
-                    self.EvaluateTestSet(
-                        model, planner, tag="latency_test_swa")
-                    self.SwapMovingAverage(model, moving_average="swa")
+                    self.EvaluateTestSet(model, planner, tag='latency_test_swa')
+                    self.SwapMovingAverage(model, moving_average='swa')
 
         return has_timeouts
 
@@ -3251,7 +2705,7 @@ class BalsaAgent(object):
 
         while self.curr_value_iter < p.val_iters:
             # qihan: switch the workload here
-            need_refresh = False
+            
             #Qihan add p.use_switching_workload, if it's false then the same as balsa
             if p.use_switching_workload and self.curr_value_iter % 2 == 0 and self.curr_value_iter != 0:
                 print("Switching database ... ...")
@@ -3267,39 +2721,9 @@ class BalsaAgent(object):
                 print("Switching database done, the buffer has been reset.")
 
 
+                    
 
-                # Qihan Reset the experience buffer.
-                self.workload = self._MakeWorkload(self.is_origin_workload)
-                self.all_nodes = self.workload.Queries(split="all")
-                self.train_nodes = self.workload.Queries(split="train")
-                self.test_nodes = self.workload.Queries(split="test")
-                self.train_nodes = plans_lib.FilterScansOrJoins(
-                    self.train_nodes)
-                self.test_nodes = plans_lib.FilterScansOrJoins(self.test_nodes)
-
-                # Qihan Reset the experience buffer.
-                exp_new = Experience(
-                    self.train_nodes,
-                    p.tree_conv,
-                    workload_info=self.workload.workload_info,
-                    query_featurizer_cls=self.exp.query_featurizer_cls,
-                    plan_featurizer_cls=self.exp.plan_featurizer_cls,
-                )
-                #qihan still remain the last iter's data in the new exp to be align with the Lifelong RL paper
-                exp_new.add_last_iter_data(self.exp)
-                self.exp = exp_new
-                #qihan reinit self.exp_episode
-                self.exp_episode = copy.deepcopy(self.exp)
-                print("Switching workload done, the buffer has been reset.")
-
-                # Qihan now we need to retrain the model using buffer to refresh the model
-                if self.have_dynaic_workload_switch_back:
-                    print("Switching workload back to the original one, adding previous exp ... ...")
-                    self.exp.Load(p.prev_replay_buffers_glob_refresh,
-                                  p.prev_replay_keep_last_fraction)
-                    need_refresh = True
-
-            has_timeouts = self.RunOneIter(need_refresh=need_refresh)
+            has_timeouts = self.RunOneIter()
             self.LogTimings()
 
             if (

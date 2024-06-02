@@ -278,12 +278,6 @@ class BalsaParams(object):
             'prev_replay_buffers_glob_val', None,
             'If specified, load previous replay buffers and merge them as validation purpose.'
         )
-        #qihan add this one to refresh the model from the previous replay buffer
-        p.Define(
-            'prev_replay_buffers_glob_refresh', None,
-            'If specified, load previous replay buffers and merge them as training purpose tp prevent forgetting.'
-        )
-
         p.Define(
             'agent_checkpoint', None,
             'Path to a pretrained agent checkpoint.  Load it instead '
