@@ -26,7 +26,7 @@ import numpy as np
 
 from balsa.models import treeconv
 from balsa.util import graphs, plans_lib, postgres
-from balsa.database_config import CURRENT_DATABASE
+
 
 #uery_feats,other_operators_feats,hash_join_feats,nested_loop_join_feats,other_operators_pos_feats,hash_join_pos_feats,nested_loop_join_pos_feats
 def TreeConvFeaturize(plan_featurizer, subplans):
@@ -87,7 +87,7 @@ class Experience(object):
         #   plans_lib.QueryFeaturizer.
         #
         # TODO: check that first N nodes don't change.
-        postgres.EstimateFilterRows(self.nodes, dbname=CURRENT_DATABASE)
+        postgres.EstimateFilterRows(self.nodes)
 
     # Qihan add a new mothod to clear data and workload_info, this is used for exp_episode
     
