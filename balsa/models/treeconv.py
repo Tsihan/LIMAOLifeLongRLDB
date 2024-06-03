@@ -44,47 +44,44 @@ class TreeConvolution(nn.Module):
             nn.Linear(64, 32),
         )
 
-        # 初始化三个模块列表
-        self.conv_module_list_other = nn.ModuleList()
-        self.conv_module_list_hash_join = nn.ModuleList()
-        self.conv_module_list_nested_loop_join = nn.ModuleList()
-        for i in range(3):
-            self.conv_module_list_other.append(nn.Sequential(
-                TreeConv1d(32 + plan_size, 512),
-                TreeStandardize(),
-                TreeAct(nn.LeakyReLU()),
-                TreeConv1d(512, 256),
-                TreeStandardize(),
-                TreeAct(nn.LeakyReLU()),
-                TreeConv1d(256, 128),
-                TreeStandardize(),
-                TreeAct(nn.LeakyReLU()),
-                TreeMaxPool(),
-            ))
-            self.conv_module_list_hash_join.append(nn.Sequential(
-                TreeConv1d(32 + plan_size, 512),
-                TreeStandardize(),
-                TreeAct(nn.LeakyReLU()),
-                TreeConv1d(512, 256),
-                TreeStandardize(),
-                TreeAct(nn.LeakyReLU()),
-                TreeConv1d(256, 128),
-                TreeStandardize(),
-                TreeAct(nn.LeakyReLU()),
-                TreeMaxPool(),
-            ))
-            self.conv_module_list_nested_loop_join.append(nn.Sequential(
-                TreeConv1d(32 + plan_size, 512),
-                TreeStandardize(),
-                TreeAct(nn.LeakyReLU()),
-                TreeConv1d(512, 256),
-                TreeStandardize(),
-                TreeAct(nn.LeakyReLU()),
-                TreeConv1d(256, 128),
-                TreeStandardize(),
-                TreeAct(nn.LeakyReLU()),
-                TreeMaxPool(),
-            ))
+        self.conv_hash_join = nn.Sequential(
+            TreeConv1d(32 + plan_size, 512),
+            TreeStandardize(),
+            TreeAct(nn.LeakyReLU()),
+            TreeConv1d(512, 256),
+            TreeStandardize(),
+            TreeAct(nn.LeakyReLU()),
+            TreeConv1d(256, 128),
+            TreeStandardize(),
+            TreeAct(nn.LeakyReLU()),
+            TreeMaxPool(),
+        )
+        self.conv_nested_loop_join = nn.Sequential(
+            TreeConv1d(32 + plan_size, 512),
+            TreeStandardize(),
+            TreeAct(nn.LeakyReLU()),
+            TreeConv1d(512, 256),
+            TreeStandardize(),
+            TreeAct(nn.LeakyReLU()),
+            TreeConv1d(256, 128),
+            TreeStandardize(),
+            TreeAct(nn.LeakyReLU()),
+            TreeMaxPool(),
+        )
+        
+        self.conv_other = nn.Sequential(
+            TreeConv1d(32 + plan_size, 512),
+            TreeStandardize(),
+            TreeAct(nn.LeakyReLU()),
+            TreeConv1d(512, 256),
+            TreeStandardize(),
+            TreeAct(nn.LeakyReLU()),
+            TreeConv1d(256, 128),
+            TreeStandardize(),
+            TreeAct(nn.LeakyReLU()),
+            TreeMaxPool(),
+        )
+
 
         self.out_mlp = nn.Sequential(
             nn.Linear(128, 64),
@@ -109,8 +106,7 @@ class TreeConvolution(nn.Module):
                 # Layer norm weight.
                 # assert 'norm' in name and 'weight' in name, name
                 nn.init.ones_(p)
-    def forward(self, idx_other, idx_hash_join, idx_nested_loop_join,
-            query_feats, trees_feats, hash_join_feats, nested_loop_join_feats, indexes_pos_feats,
+    def forward(self,query_feats, trees_feats, hash_join_feats, nested_loop_join_feats, indexes_pos_feats,
             hash_join_pos_feats, nested_loop_join_pos_feats):
         """Dynamic forward pass that adapts based on input types.
 
@@ -118,107 +114,32 @@ class TreeConvolution(nn.Module):
             If idx_* are integers, assumes static indexing for the entire batch.
         """
 
-        if isinstance(idx_other, list):
-        # Handle as dynamic indexing (new method)
-            return self.forward_dynamic(idx_other, idx_hash_join, idx_nested_loop_join,
-                                    query_feats, trees_feats, hash_join_feats, nested_loop_join_feats, indexes_pos_feats,
-                                    hash_join_pos_feats, nested_loop_join_pos_feats)
-        else:
-        # Handle as static indexing (original method)
-            return self.forward_static(idx_other, idx_hash_join, idx_nested_loop_join,
-                                   query_feats, trees_feats, hash_join_feats, nested_loop_join_feats, indexes_pos_feats,
-                                   hash_join_pos_feats, nested_loop_join_pos_feats)
-        
-    def forward_dynamic(self, idx_other, idx_hash_join, idx_nested_loop_join,
-            query_feats, trees_feats, hash_join_feats, nested_loop_join_feats, indexes_pos_feats,
-            hash_join_pos_feats, nested_loop_join_pos_feats):
-        """Forward pass with dynamic indexing for each batch element.
-
-        Args:
-            idx_other: List of indices for conv_module_list_other for each batch element.
-            idx_hash_join: List of indices for conv_module_list_hash_join for each batch element.
-            idx_nested_loop_join: List of indices for conv_module_list_nested_loop_join for each batch element.
-            Other args: Feature tensors for query, trees, hash joins, and nested loop joins.
-
-        Returns:
-            Predicted costs: Tensor of float, sized [batch size, 1].
-        """
-
-        query_embs = self.query_mlp(query_feats.unsqueeze(1)).transpose(1, 2)
-
-        # Expand embeddings to match the size of the tree features for each join type
-        max_subtrees = [trees_feats.shape[-1], hash_join_feats.shape[-1], nested_loop_join_feats.shape[-1]]
-        query_embs_expanded = [query_embs.expand(query_embs.shape[0], query_embs.shape[1], max_size) for max_size in max_subtrees]
-
-        # Concatenate query embeddings with corresponding tree features
-        concat_features = [torch.cat((emb, feat), axis=1) for emb, feat in zip(query_embs_expanded, [trees_feats, hash_join_feats, nested_loop_join_feats])]
-        pos_feats = [indexes_pos_feats, hash_join_pos_feats, nested_loop_join_pos_feats]
-        module_lists = [self.conv_module_list_other, self.conv_module_list_hash_join, self.conv_module_list_nested_loop_join]
-        indices = [idx_other, idx_hash_join, idx_nested_loop_join]
-
-        # Process each batch element with the corresponding module based on its index
-        conv_outputs = []
-        for i in range(query_feats.shape[0]):  # Assuming batch size is the first dimension of query_feats
-            outputs = []
-            for j, (module_list, idx_list, concat_feat, pos_feat) in enumerate(zip(module_lists, indices, concat_features, pos_feats)):
-                selected_module = module_list[idx_list[i]]
-                output = selected_module((concat_feat[i:i+1], pos_feat[i:i+1]))
-                outputs.append(output)
-            # Merge outputs from different module lists for each batch element
-            conv_outputs.append(self.attention_merger_3(outputs))
-
-        # Combine all batch outputs and pass through the final MLP for prediction
-        out_combined = torch.cat(conv_outputs, dim=0)
-        out = self.out_mlp(out_combined)
-        return out
-
-    def forward_static(self, idx_other, idx_hash_join, idx_nested_loop_join,
-                query_feats, trees_feats, hash_join_feats, nested_loop_join_feats, indexes_pos_feats,
-                hash_join_pos_feats, nested_loop_join_pos_feats
-                ):
-        """Forward pass.
-
-        Args:
-
-
-        Returns:
-          Predicted costs: Tensor of float, sized [batch size, 1].
-        """
-
         query_embs = self.query_mlp(query_feats.unsqueeze(1))
         query_embs = query_embs.transpose(1, 2)
-
+            
         max_subtrees = trees_feats.shape[-1]
         max_subtrees_hash_join = hash_join_feats.shape[-1]
-        max_subtrees_nested_loop_join = nested_loop_join_feats.shape[-1]
-
-        query_embs = query_embs.expand(
-            query_embs.shape[0], query_embs.shape[1], max_subtrees)
+        max_subtrees_merge_join = nested_loop_join_feats.shape[-1]
+            
+        query_embs = query_embs.expand(query_embs.shape[0], query_embs.shape[1], max_subtrees)
         query_embs_hash_join = query_embs.expand(query_embs.shape[0], query_embs.shape[1],
-                                                 max_subtrees_hash_join)
-        query_embs_nested_loop_join = query_embs.expand(query_embs.shape[0], query_embs.shape[1],
-                                                        max_subtrees_nested_loop_join)
-
+                                        max_subtrees_hash_join)
+        query_embs_merge_join = query_embs.expand(query_embs.shape[0], query_embs.shape[1],
+                                        max_subtrees_merge_join)
+        
         concat = torch.cat((query_embs, trees_feats), axis=1)
-        concat_hash_join = torch.cat(
-            (query_embs_hash_join, hash_join_feats), axis=1)
-        concat_nested_loop_join = torch.cat(
-            (query_embs_nested_loop_join, nested_loop_join_feats), axis=1)
-
-        out_other = self.conv_module_list_other[idx_other](
-            (concat, indexes_pos_feats))
-
-        out_hash_join = self.conv_module_list_hash_join[idx_hash_join](
-            (concat_hash_join, hash_join_pos_feats))
-
-        out_nested_loop_join = self.conv_module_list_nested_loop_join[idx_nested_loop_join](
-            (concat_nested_loop_join, nested_loop_join_pos_feats))
-
-        conv_outputs = [out_other, out_hash_join, out_nested_loop_join]
+        concat_hash_join = torch.cat((query_embs_hash_join, hash_join_feats), axis=1)
+        concat_merge_join = torch.cat((query_embs_merge_join, nested_loop_join_feats), axis=1)
+            
+        out_other = self.conv_other((concat, indexes_pos_feats))
+        out_hash_join = self.conv_hash_join((concat_hash_join, hash_join_pos_feats))
+        out_merge_join = self.conv_nested_loop_join((concat_merge_join, nested_loop_join_pos_feats))
+       
+        conv_outputs = [out_other,out_hash_join, out_merge_join]
         out_combined = self.attention_merger_3(conv_outputs)
         out = self.out_mlp(out_combined)
         return out
-
+        
 
 class AttentionMerger(nn.Module):
     def __init__(self, input_dim, input_num):
@@ -405,30 +326,6 @@ def _make_preorder_ids_tree_environment(curr, root_index=1):
     rhs, rhs_max_id = _make_preorder_ids_tree_environment(curr.children[1],
                                                           root_index=lhs_max_id + 1)
     return (root_index, lhs, rhs), rhs_max_id
-
-
-def _make_indexes_environment(root):
-    # Join(A, B) --> preorder_ids = (1, (2, 0, 0), (3, 0, 0))
-    # Join(Join(A, B), C) --> preorder_ids = (1, (2, 3, 4), (5, 0, 0))
-    preorder_ids, _ = _make_preorder_ids_tree_environment(root)
-    vecs = []
-    _walk(preorder_ids, vecs)
-    # Continuing with the Join(A,B) example:
-    # Preorder traversal _walk() produces
-    #   [1, 2, 3]
-    #   [2, 0, 0]
-    #   [3, 0, 0]
-    # which would be reshaped into
-    #   array([[1],
-    #          [2],
-    #          [3],
-    #          [2],
-    #          [0],
-    #          [0],
-    #    ...,
-    #          [0]])
-    vecs = np.asarray(vecs).reshape(-1, 1)
-    return vecs.flatten()
 
 
 def _make_indexes(root):

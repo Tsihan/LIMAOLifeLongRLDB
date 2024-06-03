@@ -83,9 +83,6 @@ class SimModel(pl.LightningModule):
     # called!
     def forward(
         self,
-        idx_other_modulelist,
-        idx_hash_join_modulelist,
-        idx_nested_loop_join_modulelist,
         query_feats,
         join_feats,
         hash_join_feats,
@@ -97,9 +94,6 @@ class SimModel(pl.LightningModule):
         if self.use_tree_conv:
             # FIXME MODIFY INPUT QIhan Zhang we always use first index for the three submodules
             return self.tree_conv(
-                idx_other_modulelist,
-                idx_hash_join_modulelist,
-                idx_nested_loop_join_modulelist,
                 query_feats,
                 join_feats,
                 hash_join_feats,
@@ -143,19 +137,8 @@ class SimModel(pl.LightningModule):
                 query_feat, distribution=self.perturb_query_features
             )
         if self.use_tree_conv:
-            # assert len(rest) == 2
-            # use defalut mode
-            # when we initialize model, we start from here
-            # TODO Qihan find correct idx here!
-            (
-                idx_other_modulelist,
-                idx_hash_join_modulelist,
-                idx_nested_loop_join_modulelist,
-            ) = (0, 0, 0)
+
             output = self.forward(
-                idx_other_modulelist,
-                idx_hash_join_modulelist,
-                idx_nested_loop_join_modulelist,
                 query_feat,
                 plans,
                 plans_hash_join,
@@ -1238,12 +1221,8 @@ class Sim(object):
     def Predict(self, query_node, nodes):
         """Runs forward pass on 'nodes' to predict their costs."""
         # default use upper version Qihan Zhang
-        # TODO debug mssing args!
-        from balsa.optimizer import CURRENT_OTHER_MODULE_INDEX
-        from balsa.optimizer import CURRENT_HASH_JOIN_MODULE_INDEX
-        from balsa.optimizer import CURRENT_NESTED_LOOP_JOIN_MODULE_INDEX
-        return self._GetPlanner().infer(query_node, nodes, CURRENT_OTHER_MODULE_INDEX, 
-                                        CURRENT_HASH_JOIN_MODULE_INDEX, CURRENT_NESTED_LOOP_JOIN_MODULE_INDEX)
+
+        return self._GetPlanner().infer(query_node, nodes)
 
     def _LoadBestCheckpointForEval(self):
         """Loads the checkpoint with the best validation loss."""
