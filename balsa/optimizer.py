@@ -450,8 +450,10 @@ class Optimizer(object):
                 assert planner_config.search_space == 'bushy', planner_config
             else:
                 assert planner_config.search_space != 'bushy', planner_config
-   
+        #move to GPU
+        self.value_network.to(DEVICE)
         planning_start_t = time.time()
+                                
         # Join graph.
         join_graph, _ = query_node.GetOrParseSql()
         # Base tables to join.
