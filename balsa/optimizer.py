@@ -540,6 +540,9 @@ class Optimizer(object):
         global CURRENT_NESTED_LOOP_JOIN_MODULE_INDEX
         CURRENT_NESTED_LOOP_JOIN_MODULE_INDEX = self.current_nested_loop_join_module_index
 
+        #move to GPU
+        self.value_network.to(DEVICE)
+
             
         planning_start_t = time.time()
         # Join graph.
