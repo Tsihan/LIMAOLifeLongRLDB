@@ -3301,7 +3301,7 @@ class BalsaAgent(object):
             # qihan: switch the workload here
             need_refresh = False
             #Qihan add p.use_switching_workload, if it's false then the same as balsa
-            if (p.use_switching_workload and self.curr_value_iter % 2 == 0 and self.curr_value_iter != 0) or self.curr_value_iter == 1:
+            if p.use_switching_workload and self.curr_value_iter % 2 == 0 and self.curr_value_iter != 0 :
                 print("Switching workload ... ...")
                 self.is_origin_workload = not self.is_origin_workload
                 if self.is_origin_workload is True:
