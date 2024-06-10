@@ -384,18 +384,18 @@ def GetAllTableNumRows(rel_names):
     # } 
 
     #tpch sf=1
-    CACHE = {
-        'part':2000000,
-        'customer':150000,
-        'orders':1500000,
-        'nation':25,
-        'region':5,
-        'supplier':10000,
-        'partsupp':8000000,
-        'part':200000,
-        'lineitem':6001215,
+    # CACHE = {
+    #     'part':2000000,
+    #     'customer':150000,
+    #     'orders':1500000,
+    #     'nation':25,
+    #     'region':5,
+    #     'supplier':10000,
+    #     'partsupp':8000000,
+    #     'part':200000,
+    #     'lineitem':6001215,
         
-    } 
+    # } 
 
 
 
@@ -411,6 +411,7 @@ def GetAllTableNumRows(rel_names):
     #     'tag':186770,
     #     'tag_question':36883819,
     # } 
+    CACHE = {}
 
     d = {}
     with pg_executor.Cursor() as cursor:

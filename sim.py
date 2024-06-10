@@ -864,8 +864,8 @@ class Sim(object):
         hash_key = Sim.HashOfFeaturizedData(p)
         #return "data/IMDB_assorted_small/sim-featurized-{}.pkl".format(hash_key)
         # return "data/IMDB_assorted_small_2/sim-featurized-{}.pkl".format(hash_key)
-        return "data/TPCH10_assorted/sim-featurized-{}.pkl".format(hash_key)
-        #return "data/TPCH10_assorted_2/sim-featurized-{}.pkl".format(hash_key)
+        return "data/TPCH10_assorted_small/sim-featurized-{}.pkl".format(hash_key)
+        #return "data/TPCH10_assorted_small_2/sim-featurized-{}.pkl".format(hash_key)
         # return "data/JOB/sim-featurized-{}.pkl".format(hash_key)
         # return 'data/JOB_changed/sim-featurized-{}.pkl'.format(hash_key)
 

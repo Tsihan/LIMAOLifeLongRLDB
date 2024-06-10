@@ -421,8 +421,8 @@ def TrainSim(p, loggers=None):
     if p.sim_checkpoint is None:
         sim.CollectSimulationData()
     # FIXME Qihan Zhang temporary modify to retain simulator p.sim_checkpoint None
-    #sim.Train(load_from_checkpoint=None, loggers=loggers)
-    sim.Train(load_from_checkpoint=p.sim_checkpoint, loggers=loggers)
+    sim.Train(load_from_checkpoint=None, loggers=loggers)
+    #sim.Train(load_from_checkpoint=p.sim_checkpoint, loggers=loggers)
     sim.model.freeze()
     sim.EvaluateCost()
     sim.FreeData()
@@ -970,14 +970,14 @@ class BalsaAgent(object):
                     workload = pickle.load(f)
             # Filter queries based on the current query_glob.
                 workload.FilterQueries(
-                    'queries/tpch_assorted', ['*.sql'], ['3a.sql'])
+                    'queries/tpch_assorted_small', ['*.sql'], ['3a.sql'])
             else:
 
                 with open('data/TPCH10_assorted_small_2/initial_policy_data.pkl', "rb") as f:
                     workload = pickle.load(f)
             # Filter queries based on the current query_glob.
                 workload.FilterQueries(
-                    'queries/tpch_assorted_2', ['*.sql'], ['5a.sql'])
+                    'queries/tpch_assorted_small_2', ['*.sql'], ['5a.sql'])
 
         return workload
 
@@ -1522,7 +1522,7 @@ class BalsaAgent(object):
 
     def timeout_label(self):
         # Qihan Zhang  speed up!
-        # return 4096 * 1000
+        # return 4096 * 1000 n 
         return 1024 * 1000
 
     def LogScalars(self, metrics):
@@ -1920,11 +1920,11 @@ class BalsaAgent(object):
         if  self.is_origin_workload:
             p.init_experience = 'data/TPCH10_assorted_small/initial_policy_data.pkl'
             p.test_query_glob = ['3a.sql']
-            p.query_dir = 'queries/tpch_assorted'
+            p.query_dir = 'queries/tpch_assorted_small'
         else:
             p.init_experience = 'data/TPCH10_assorted_small_2/initial_policy_data.pkl'
             p.test_query_glob = ['5a.sql']
-            p.query_dir = 'queries/tpch_assorted_2'
+            p.query_dir = 'queries/tpch_assorted_small_2'
 
         model.eval()
         all_to_execute = []
@@ -2215,11 +2215,11 @@ class BalsaAgent(object):
             if  self.is_origin_workload:
                 p.init_experience = 'data/TPCH10_assorted_small/initial_policy_data.pkl'
                 p.test_query_glob = ['3a.sql']
-                p.query_dir = 'queries/tpch_assorted'
+                p.query_dir = 'queries/tpch_assorted_small'
             else:
                 p.init_experience = 'data/TPCH10_assorted_small_2/initial_policy_data.pkl'
                 p.test_query_glob = ['5a.sql']
-                p.query_dir = 'queries/tpch_assorted_2'
+                p.query_dir = 'queries/tpch_assorted_small_2'
 
         model.eval()
 
