@@ -544,17 +544,30 @@ class Sim(object):
         #     "Params of the Workload, i.e., a set of queries.",
         # )
 
+
+        p.Define(
+            "workload",
+            envs.TPCH10_assorted_small.Params(),
+            "Params of the Workload, i.e., a set of queries.",
+        )
+        
+        # p.Define(
+        #     "workload",
+        #     envs.TPCH10_assorted_small_2.Params(),
+        #     "Params of the Workload, i.e., a set of queries.",
+        # )
+
         # p.Define(
         #     "workload",
         #     envs.IMDB_assorted.Params(),
         #     "Params of the Workload, i.e., a set of queries.",
         # )
 
-        p.Define(
-            "workload",
-            envs.IMDB_assorted_2.Params(),
-            "Params of the Workload, i.e., a set of queries.",
-        )
+        # p.Define(
+        #     "workload",
+        #     envs.IMDB_assorted_2.Params(),
+        #     "Params of the Workload, i.e., a set of queries.",
+        # )
         
         # p.Define(
         #     "workload",
@@ -805,8 +818,10 @@ class Sim(object):
         # return 'data/JOB_changed/sim-data-{}.pkl'.format(hash_key)
         #return "data/IMDB_assorted_small/sim-data-{}.pkl".format(hash_key)
         #return "data/IMDB_assorted_small_2/sim-data-{}.pkl".format(hash_key)
+        return "data/TPCH10_assorted_small/sim-data-{}.pkl".format(hash_key)
+        #return "data/TPCH10_assorted_small_2/sim-data-{}.pkl".format(hash_key)
         #return "data/IMDB_assorted/sim-data-{}.pkl".format(hash_key)
-        return "data/IMDB_assorted_2/sim-data-{}.pkl".format(hash_key)
+        #return "data/IMDB_assorted_2/sim-data-{}.pkl".format(hash_key)
         # return "data/JOB/sim-data-{}.pkl".format(hash_key)
         # return 'data/TPCH/sim-data-{}.pkl'.format(hash_key)
         # return 'data/IMDB_BAO/sim-data-{}.pkl'.format(hash_key)
@@ -849,8 +864,8 @@ class Sim(object):
         hash_key = Sim.HashOfFeaturizedData(p)
         #return "data/IMDB_assorted_small/sim-featurized-{}.pkl".format(hash_key)
         # return "data/IMDB_assorted_small_2/sim-featurized-{}.pkl".format(hash_key)
-        #return "data/IMDB_assorted/sim-featurized-{}.pkl".format(hash_key)
-        return "data/IMDB_assorted_2/sim-featurized-{}.pkl".format(hash_key)
+        return "data/TPCH10_assorted/sim-featurized-{}.pkl".format(hash_key)
+        #return "data/TPCH10_assorted_2/sim-featurized-{}.pkl".format(hash_key)
         # return "data/JOB/sim-featurized-{}.pkl".format(hash_key)
         # return 'data/JOB_changed/sim-featurized-{}.pkl'.format(hash_key)
 
