@@ -421,8 +421,8 @@ def TrainSim(p, loggers=None):
     if p.sim_checkpoint is None:
         sim.CollectSimulationData()
     # FIXME Qihan Zhang temporary modify to retain simulator p.sim_checkpoint None
-    sim.Train(load_from_checkpoint=None, loggers=loggers)
-    #sim.Train(load_from_checkpoint=p.sim_checkpoint, loggers=loggers)
+    #sim.Train(load_from_checkpoint=None, loggers=loggers)
+    sim.Train(load_from_checkpoint=p.sim_checkpoint, loggers=loggers)
     sim.model.freeze()
     sim.EvaluateCost()
     sim.FreeData()
@@ -1523,7 +1523,7 @@ class BalsaAgent(object):
     def timeout_label(self):
         # Qihan Zhang  speed up!
         # return 4096 * 1000
-        return 1024 * 1000
+        return 10 * 1000
 
     def LogScalars(self, metrics):
         if not isinstance(metrics, list):
@@ -3301,7 +3301,7 @@ class BalsaAgent(object):
             # qihan: switch the workload here
             need_refresh = False
             #Qihan add p.use_switching_workload, if it's false then the same as balsa
-            if p.use_switching_workload and self.curr_value_iter % 2 == 0 and self.curr_value_iter != 0:
+            if (p.use_switching_workload and self.curr_value_iter % 2 == 0 and self.curr_value_iter != 0) or self.curr_value_iter == 1:
                 print("Switching workload ... ...")
                 self.is_origin_workload = not self.is_origin_workload
                 if self.is_origin_workload is True:
