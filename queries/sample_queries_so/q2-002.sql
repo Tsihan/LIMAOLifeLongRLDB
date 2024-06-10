@@ -1,8 +1,8 @@
-SELECT DISTINCT a.display_name
+SELECT DISTINCT acc.display_name
 FROM
 tag AS t1, site AS s1, question AS q1, tag_question AS tq1, so_user AS u1,
 tag AS t2, site AS s2, question AS q2, tag_question AS tq2, so_user AS u2,
-account AS a
+account AS acc
 WHERE
 s1.site_name='stackoverflow' AND
 t1.name  = 'web-scraping' AND
@@ -23,4 +23,4 @@ tq2.tag_id = t2.id AND
 q2.owner_user_id = u2.id AND
 q2.site_id = u2.site_id AND
 u1.account_id = u2.account_id AND
-a.id = u1.account_id;
+acc.id = u1.account_id;
