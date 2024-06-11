@@ -421,6 +421,84 @@ class IMDB_assorted_small(Workload):
 
         return all_nodes, train_nodes, test_nodes
 
+class TPCH10_assorted(Workload):
+
+    @classmethod
+    def Params(cls):
+        p = super().Params()
+        # Needs to be an absolute path for rllib.
+        module_dir = os.path.abspath(os.path.dirname(balsa.__file__) + '/../')
+        p.query_dir = os.path.join(module_dir, 'queries/tpch_assorted')
+        return p
+
+    def __init__(self, params):
+        super().__init__(params)
+        p = params
+        self.query_nodes, self.train_nodes, self.test_nodes = \
+            self._LoadQueries()
+        self.workload_info = plans_lib.WorkloadInfo(self.query_nodes)
+        self.workload_info.SetPhysicalOps(p.search_space_join_ops,
+                                          p.search_space_scan_ops)
+
+    def _LoadQueries(self):
+        """Loads all queries into balsa.Node objects."""
+        p = self.params
+        all_sql_set = self._get_sql_set(p.query_dir, p.query_glob)
+        test_sql_set = self._get_sql_set(p.query_dir, p.test_query_glob)
+        assert test_sql_set.issubset(all_sql_set)
+        # sorted by query id for easy debugging
+        all_sql_list = sorted(all_sql_set)
+        all_nodes = [ParseSqlToNode(sqlfile) for sqlfile in all_sql_list]
+
+        train_nodes = [
+            n for n in all_nodes
+            if p.test_query_glob is None or n.info['path'] not in test_sql_set
+        ]
+        test_nodes = [n for n in all_nodes if n.info['path'] in test_sql_set]
+        assert len(train_nodes) > 0
+
+        return all_nodes, train_nodes, test_nodes
+
+class TPCH10_assorted_2(Workload):
+
+    @classmethod
+    def Params(cls):
+        p = super().Params()
+        # Needs to be an absolute path for rllib.
+        module_dir = os.path.abspath(os.path.dirname(balsa.__file__) + '/../')
+        p.query_dir = os.path.join(module_dir, 'queries/tpch_assorted_2')
+        return p
+
+    def __init__(self, params):
+        super().__init__(params)
+        p = params
+        self.query_nodes, self.train_nodes, self.test_nodes = \
+            self._LoadQueries()
+        self.workload_info = plans_lib.WorkloadInfo(self.query_nodes)
+        self.workload_info.SetPhysicalOps(p.search_space_join_ops,
+                                          p.search_space_scan_ops)
+
+    def _LoadQueries(self):
+        """Loads all queries into balsa.Node objects."""
+        p = self.params
+        all_sql_set = self._get_sql_set(p.query_dir, p.query_glob)
+        test_sql_set = self._get_sql_set(p.query_dir, p.test_query_glob)
+        assert test_sql_set.issubset(all_sql_set)
+        # sorted by query id for easy debugging
+        all_sql_list = sorted(all_sql_set)
+        all_nodes = [ParseSqlToNode(sqlfile) for sqlfile in all_sql_list]
+
+        train_nodes = [
+            n for n in all_nodes
+            if p.test_query_glob is None or n.info['path'] not in test_sql_set
+        ]
+        test_nodes = [n for n in all_nodes if n.info['path'] in test_sql_set]
+        assert len(train_nodes) > 0
+
+        return all_nodes, train_nodes, test_nodes
+ 
+
+
 class IMDB_BAO_changed(Workload):
 
     @classmethod
