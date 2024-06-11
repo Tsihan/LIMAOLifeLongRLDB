@@ -951,6 +951,8 @@ class BalsaAgent(object):
             #wp = envs.TPCH10_assorted_small_2.Params()
             #wp = envs.IMDB_assorted.Params()
             #wp = envs.IMDB_assorted_2.Params()
+            # wp = envs.TPCH10_assorted.Params()
+            # wp = envs.TPCH10_assorted_2.Params()
             # wp = envs.JoinOrderBenchmark.Params()
             # wp = envs.TPCH10.Params()
             # wp = envs.SO.Params()
@@ -1668,7 +1670,9 @@ class BalsaAgent(object):
         #Save(self.workload, "./data/IMDB_assorted_small/initial_policy_data.pkl")
         #Save(self.workload, "./data/IMDB_assorted_small_2/initial_policy_data.pkl")
         Save(self.workload, "./data/TPCH10_assorted_small/initial_policy_data.pkl")
-        #Save(self.workload, "./data/TPCH10_assorted_small_2/initial_policy_data.pkl")
+        # Save(self.workload, "./data/TPCH10_assorted_small_2/initial_policy_data.pkl")
+        # Save(self.workload, "./data/TPCH10_assorted/initial_policy_data.pkl")
+        # Save(self.workload, "./data/TPCH10_assorted_2/initial_policy_data.pkl")
         #Save(self.workload, "./data/IMDB_assorted/initial_policy_data.pkl")
         #Save(self.workload, "./data/IMDB_assorted_2/initial_policy_data.pkl")
         # Save(self.workload, "./data/JOB/initial_policy_data.pkl")
@@ -2808,6 +2812,26 @@ class BalsaAgent(object):
 
 
         # path = "data/TPCH10_assorted_small_2/replay-{}-{}execs-{}nodes-{}s-{}iters-{}.pkl".format(
+        #     experiment,
+        #     self.num_query_execs,
+        #     len(self.exp.nodes),
+        #     int(iter_total_latency / 1e3),
+        #     self.curr_value_iter,
+        #     self.wandb_logger.experiment.id,
+        # )
+
+        # path = "data/TPCH10_assorted/replay-{}-{}execs-{}nodes-{}s-{}iters-{}.pkl".format(
+        #     experiment,
+        #     self.num_query_execs,
+        #     len(self.exp.nodes),
+        #     int(iter_total_latency / 1e3),
+        #     self.curr_value_iter,
+        #     self.wandb_logger.experiment.id,
+        # )
+
+
+
+        # path = "data/TPCH10_assorted_2/replay-{}-{}execs-{}nodes-{}s-{}iters-{}.pkl".format(
         #     experiment,
         #     self.num_query_execs,
         #     len(self.exp.nodes),

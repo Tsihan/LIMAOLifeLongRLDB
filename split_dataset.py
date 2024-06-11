@@ -8,6 +8,6 @@ def select_files(directory, seed=52, fraction=1/6):
     return selected_files
 
 if __name__ == '__main__':
-    directory = '/home/qihan/balsaLifeLongRLDB/queries/imdb_assorted_2'  # 当前目录
+    directory = '/home/qihan/balsaLifeLongRLDB/queries/tpch_assorted_2'  # 当前目录
     selected_files = select_files(directory)
     print("Selected files:", selected_files)

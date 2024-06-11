@@ -26,3 +26,5 @@ from .envs import IMDB_assorted_small
 from .envs import IMDB_assorted_small_2
 from .envs import TPCH10_assorted_small
 from .envs import TPCH10_assorted_small_2
+from .envs import TPCH10_assorted
+from .envs import TPCH10_assorted_2
