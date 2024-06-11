@@ -789,8 +789,10 @@ class BalsaAgent(object):
         elif self.curr_value_iter == 0:
             wp = envs.IMDB_assorted_small.Params() 
             #wp = envs.IMDB_assorted_small_2.Params()
-            # wp = envs.IMDB_assorted.Params()
+            #wp = envs.IMDB_assorted.Params()
             #wp = envs.IMDB_assorted_2.Params()
+            #wp = envs.TPCH_assorted.Params()
+            #wp = envs.TPCH_assorted_2.Params()
             # wp = envs.JoinOrderBenchmark.Params()
             # wp = envs.TPCH10.Params()
             # wp = envs.SO.Params()
