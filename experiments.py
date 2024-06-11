@@ -28,6 +28,8 @@ RAND_52_TEST_QUERIES_IMDB_ASSORTED = [
 RAND_52_TEST_QUERIES_IMDB_ASSORTED_2 = [
 '5a4_ceb3.sql', '9b1_ceb3.sql', '11a3_ceb3.sql', '9b5_ceb3.sql', '2b3_ceb3.sql', '2a2_ceb3.sql', 
 '9a4_ceb3.sql', '2a3_ceb3.sql', '8a1_ceb3.sql', '3b3_ceb3.sql', '2c3_ceb3.sql', '3a2_ceb3.sql', '9b4_ceb3.sql']
+RAND_52_TEST_QUERIES_TPCH_ASSORTED = ['3a.sql', '10d.sql', '8a.sql', '8f.sql', '8b.sql', '13i.sql']
+RAND_52_TEST_QUERIES_TPCH_ASSORTED_2 = ['7c.sql', '14e.sql', '12i.sql', '14h.sql', '7a.sql', '7f.sql']
 
 # 19 most slow-running queries sorted by Postgres latency.
 SLOW_TEST_QUERIES = [
@@ -611,8 +613,49 @@ class Balsa_JOBRandSplit_IMDB_assorted_small_2(Rand52MinCardCostOnPolLrC):
                 
         return p
     
+@balsa.params_registry.Register  
+class Balsa_JOBRandSplit_TPCH10_assorted(Rand52MinCardCostOnPolLrC):
 
+    def Params(self):
+        p = super().Params()
+        p.increment_iter_despite_timeouts = True
+        p = p.Set(**LR_SCHEDULES['C10'])
+        p.db = 'tpch10load'
+        p.init_experience = 'data/TPCH10_assorted/initial_policy_data.pkl'
+        
+        p.test_query_glob = RAND_52_TEST_QUERIES_TPCH_ASSORTED
+        p.sim_checkpoint = 'checkpoints/TPCH10_assorted/epoch=25.ckpt'
+        p.query_dir = 'queries/tpch_assorted'
+                
+        return p
+    
+@balsa.params_registry.Register  
+class Balsa_JOBRandSplit_TPCH10_assorted_2(Rand52MinCardCostOnPolLrC):
 
+    def Params(self):
+        p = super().Params()
+        p.increment_iter_despite_timeouts = True
+        p = p.Set(**LR_SCHEDULES['C10'])
+        p.db = 'tpch10load'
+        # qihan change this
+        p.init_experience = 'data/TPCH10_assorted_2/initial_policy_data.pkl'
+        
+        p.test_query_glob = RAND_52_TEST_QUERIES_TPCH_ASSORTED_2
+        p.sim_checkpoint = 'checkpoints/TPCH_assorted_2/epoch=13.ckpt'
+        p.query_dir = 'queries/tpch_assorted_2'
+                
+        return p  
+       
+@balsa.params_registry.Register
+class Balsa_JOBRandSplit_TPCH10_assorted_Replay(Balsa_JOBRandSplit_TPCH10_assorted):  
+
+    def Params(self):
+        p = super().Params()
+        # Change path to point to the desired buffers:
+        p.use_switching_workload = True
+        p.prev_replay_buffers_glob_refresh = './data/TPCH10_assorted/replay-Balsa_JOBRandSplit*'
+        return p
+    
 @balsa.params_registry.Register  # keep
 class Balsa_JOBRandSplit_IMDB_BAO_changed(Rand52MinCardCostOnPolLrC):
 
