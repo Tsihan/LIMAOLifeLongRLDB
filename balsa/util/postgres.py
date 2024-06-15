@@ -55,15 +55,21 @@ def _SetGeneticOptimizer(flag, cursor):
 
 def DropBufferCache():
     # WARNING: no effect if PG is running on another machine
-    #qihan 
-    pass
-    # subprocess.check_output(['free', '&&', 'sync'])
-    # subprocess.check_output(
-    #     ['sudo', 'sh', '-c', 'echo 3 > /proc/sys/vm/drop_caches'])
-    # subprocess.check_output(['free'])
 
-    # with pg_executor.Cursor() as cursor:
-    #     cursor.execute('DISCARD ALL;')
+    # Run 'free' and 'sync' separately
+    subprocess.check_output(['free'])
+    subprocess.check_output(['sync'])
+
+    # Drop caches
+    subprocess.check_output(
+        ['sudo', 'sh', '-c', 'echo 3 > /proc/sys/vm/drop_caches'])
+
+    # Show free memory again
+    subprocess.check_output(['free'])
+
+    # Execute PostgreSQL command to discard all cached plans and settings
+    with pg_executor.Cursor() as cursor:
+        cursor.execute('DISCARD ALL;')
 
 
 def ExplainAnalyzeSql(sql,
