@@ -529,7 +529,7 @@ class Balsa_JOBRandSplit_IMDB_assorted(Rand52MinCardCostOnPolLrC):
         p.init_experience = 'data/IMDB_assorted/initial_policy_data.pkl'
         
         p.test_query_glob = RAND_52_TEST_QUERIES_IMDB_ASSORTED
-        p.sim_checkpoint = 'checkpoints/IMDB_assorted/epoch=24.ckpt'
+        p.sim_checkpoint = 'checkpoints/IMDB_assorted/epoch=10.ckpt'
         p.query_dir = 'queries/imdb_assorted'
                 
         return p
