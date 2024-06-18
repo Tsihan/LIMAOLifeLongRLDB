@@ -695,7 +695,7 @@ class Balsa_JOBRandSplit_IMDB_assorted_Replay(Balsa_JOBRandSplit_IMDB_assorted):
         return p
     
 @balsa.params_registry.Register
-class Balsa_JOBRandSplit_IMDB_assorted_Replay(Balsa_JOBRandSplit_IMDB_assorted_3):  
+class Balsa_JOBRandSplit_IMDB_assorted_Replay_2(Balsa_JOBRandSplit_IMDB_assorted_3):  
 
     def Params(self):
         p = super().Params()
