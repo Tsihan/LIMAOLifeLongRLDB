@@ -1382,7 +1382,7 @@ class BalsaAgent(object):
     def timeout_label(self):
         # Qihan Zhang  speed up!
         # return 4096 * 1000
-        return 1024 * 1000
+        return 512 * 1000
 
     def LogScalars(self, metrics):
         if not isinstance(metrics, list):
