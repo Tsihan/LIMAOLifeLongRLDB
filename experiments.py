@@ -635,6 +635,15 @@ class Balsa_JOBRandSplit_IMDB_assorted_Replay(Balsa_JOBRandSplit_IMDB_assorted):
         p.prev_replay_buffers_glob_refresh = './data/IMDB_assorted/replay-Balsa_JOBRandSplit*'
         return p
     
+@balsa.params_registry.Register
+class Balsa_JOBRandSplit_IMDB_assorted_Replay_2(Balsa_JOBRandSplit_IMDB_assorted_3):  
+
+    def Params(self):
+        p = super().Params()
+        # Change path to point to the desired buffers:
+        p.use_switching_workload = True
+        p.prev_replay_buffers_glob_refresh = './data/IMDB_assorted/replay-Balsa_JOBRandSplit*'
+        return p
 
 @balsa.params_registry.Register  
 class Balsa_JOBRandSplit_IMDB_assorted_small_2(Rand52MinCardCostOnPolLrC):
