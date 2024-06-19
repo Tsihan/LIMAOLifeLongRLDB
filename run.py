@@ -802,6 +802,8 @@ class BalsaAgent(object):
             #wp = envs.IMDB_assorted_small_2.Params()
             # wp = envs.IMDB_assorted.Params()
             #wp = envs.IMDB_assorted_2.Params()
+            # wp = envs.IMDB_assorted_3.Params()
+            #wp = envs.IMDB_assorted_4.Params()
             # wp = envs.TPCH10_assorted.Params()
             # wp = envs.TPCH10_assorted_2.Params()
             # wp = envs.JoinOrderBenchmark.Params()
@@ -1255,6 +1257,8 @@ class BalsaAgent(object):
         #Save(self.workload, "./data/IMDB_assorted_small_2/initial_policy_data.pkl")
         # Save(self.workload, "./data/IMDB_assorted/initial_policy_data.pkl")
         #Save(self.workload, "./data/IMDB_assorted_2/initial_policy_data.pkl")
+        # Save(self.workload, "./data/IMDB_assorted_3/initial_policy_data.pkl")
+        #Save(self.workload, "./data/IMDB_assorted_4/initial_policy_data.pkl")
         # Save(self.workload, "./data/TPCH10_assorted/initial_policy_data.pkl")
         # Save(self.workload, "./data/TPCH10_assorted_2/initial_policy_data.pkl")
         # Save(self.workload, "./data/JOB/initial_policy_data.pkl")
@@ -1809,6 +1813,25 @@ class BalsaAgent(object):
 
 
         # path = "data/IMDB_assorted_2/replay-{}-{}execs-{}nodes-{}s-{}iters-{}.pkl".format(
+        #     experiment,
+        #     self.num_query_execs,
+        #     len(self.exp.nodes),
+        #     int(iter_total_latency / 1e3),
+        #     self.curr_value_iter,
+        #     self.wandb_logger.experiment.id,
+        # )
+
+        # path = "data/IMDB_assorted_3/replay-{}-{}execs-{}nodes-{}s-{}iters-{}.pkl".format(
+        #     experiment,
+        #     self.num_query_execs,
+        #     len(self.exp.nodes),
+        #     int(iter_total_latency / 1e3),
+        #     self.curr_value_iter,
+        #     self.wandb_logger.experiment.id,
+        # )
+
+
+        # path = "data/IMDB_assorted_4/replay-{}-{}execs-{}nodes-{}s-{}iters-{}.pkl".format(
         #     experiment,
         #     self.num_query_execs,
         #     len(self.exp.nodes),
