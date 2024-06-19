@@ -28,6 +28,15 @@ RAND_52_TEST_QUERIES_IMDB_ASSORTED = [
 RAND_52_TEST_QUERIES_IMDB_ASSORTED_2 = [
 '5a4_ceb3.sql', '9b1_ceb3.sql', '11a3_ceb3.sql', '9b5_ceb3.sql', '2b3_ceb3.sql', '2a2_ceb3.sql', 
 '9a4_ceb3.sql', '2a3_ceb3.sql', '8a1_ceb3.sql', '3b3_ceb3.sql', '2c3_ceb3.sql', '3a2_ceb3.sql', '9b4_ceb3.sql']
+RAND_52_TEST_QUERIES_IMDB_ASSORTED_3 = [
+'26a_job.sql', '3b_job.sql', '12c_job.sql', '17c_job.sql', '27b_job.sql', '8c_job.sql', 
+'17b_job.sql', '4a_job.sql', '33c_bao.sql', '6b_job.sql', '23b_job.sql', '23c_job.sql', 
+'18b_job.sql', '25a_job.sql', '10a_job.sql', '12a_job.sql', '10b_job.sql', '5a_job.sql', 
+'38a_job.sql', '14a_job.sql']
+RAND_52_TEST_QUERIES_IMDB_ASSORTED_4 = [
+'21a_bao.sql', '12b_bao.sql', '11d_bao.sql', '31c_bao.sql', '9d_bao.sql', '27c_bao.sql', 
+'8c_bao.sql', '18b_bao.sql', '5c_bao.sql', '32b_bao.sql', '17f_bao.sql', '13d_bao.sql', 
+'13a_bao.sql', '15b_bao.sql', '10a_bao.sql', '22b_bao.sql', '26b_bao.sql', '14b_bao.sql']
 RAND_52_TEST_QUERIES_TPCH_ASSORTED = ['3a.sql', '10d.sql', '8a.sql', '8f.sql', '8b.sql', '13i.sql']
 RAND_52_TEST_QUERIES_TPCH_ASSORTED_2 = ['7c.sql', '14e.sql', '12i.sql', '14h.sql', '7a.sql', '7f.sql']
 
@@ -557,6 +566,37 @@ class Balsa_JOBRandSplit_IMDB_assorted_2(Rand52MinCardCostOnPolLrC):
                 
         return p
 
+@balsa.params_registry.Register  
+class Balsa_JOBRandSplit_IMDB_assorted_3(Rand52MinCardCostOnPolLrC):
+
+    def Params(self):
+        p = super().Params()
+        p.increment_iter_despite_timeouts = True
+        p = p.Set(**LR_SCHEDULES['C10'])
+        p.db = 'imdbload'
+        p.init_experience = 'data/IMDB_assorted_3/initial_policy_data.pkl'
+        
+        p.test_query_glob = RAND_52_TEST_QUERIES_IMDB_ASSORTED_3
+        p.sim_checkpoint = 'checkpoints/IMDB_assorted_3/epoch=14.ckpt'
+        p.query_dir = 'queries/imdb_assorted_3'
+                
+        return p
+
+@balsa.params_registry.Register  
+class Balsa_JOBRandSplit_IMDB_assorted_4(Rand52MinCardCostOnPolLrC):
+
+    def Params(self):
+        p = super().Params()
+        p.increment_iter_despite_timeouts = True
+        p = p.Set(**LR_SCHEDULES['C10'])
+        p.db = 'imdbload'
+        p.init_experience = 'data/IMDB_assorted_4/initial_policy_data.pkl'
+        
+        p.test_query_glob = RAND_52_TEST_QUERIES_IMDB_ASSORTED_4
+        p.sim_checkpoint = 'checkpoints/IMDB_assorted_4/epoch=14.ckpt'
+        p.query_dir = 'queries/imdb_assorted_4'
+                
+        return p
 
 @balsa.params_registry.Register  
 class Balsa_JOBRandSplit_IMDB_assorted_small(Rand52MinCardCostOnPolLrC):
@@ -594,7 +634,16 @@ class Balsa_JOBRandSplit_IMDB_assorted_Replay(Balsa_JOBRandSplit_IMDB_assorted):
         p.use_switching_workload = True
         p.prev_replay_buffers_glob_refresh = './data/IMDB_assorted/replay-Balsa_JOBRandSplit*'
         return p
-    
+
+@balsa.params_registry.Register
+class Balsa_JOBRandSplit_IMDB_assorted_Replay_2(Balsa_JOBRandSplit_IMDB_assorted_3):  
+
+    def Params(self):
+        p = super().Params()
+        # Change path to point to the desired buffers:
+        p.use_switching_workload = True
+        p.prev_replay_buffers_glob_refresh = './data/IMDB_assorted_3/replay-Balsa_JOBRandSplit*'
+        return p   
 
 @balsa.params_registry.Register  
 class Balsa_JOBRandSplit_IMDB_assorted_small_2(Rand52MinCardCostOnPolLrC):
