@@ -20,8 +20,8 @@ def read_sql_files(directory):
     return all_aliases
 
 def main():
-    current_directory1 = "/home/qihan/balsaLifeLongRLDB/queries/imdb_assorted_3"
-    current_directory2 = "/home/qihan/balsaLifeLongRLDB/queries/imdb_assorted_4"
+    current_directory1 = "/mydata/balsaLifeLongRLDB/queries/imdb_assorted_3"
+    current_directory2 = "/mydata/balsaLifeLongRLDB/queries/imdb_assorted_4"
 
     if not os.path.exists(current_directory1):
         print(f"Directory {current_directory1} does not exist.")

@@ -1,33 +1,42 @@
-SELECT COUNT(*) FROM title as t,
-kind_type as kt,
-info_type as it1,
-movie_info as mi1,
-movie_info as mi2,
-info_type as it2,
-cast_info as ci,
-role_type as rt,
-name as n,
-movie_keyword as mk,
-keyword as k
-WHERE
-t.id = ci.movie_id
-AND t.id = mi1.movie_id
-AND t.id = mi2.movie_id
-AND t.id = mk.movie_id
-AND k.id = mk.keyword_id
-AND mi1.movie_id = mi2.movie_id
-AND mi1.info_type_id = it1.id
-AND mi2.info_type_id = it2.id
-AND (it1.id in ('7'))
-AND (it2.id in ('8'))
-AND t.kind_id = kt.id
-AND ci.person_id = n.id
-AND ci.role_id = rt.id
-AND (mi1.info in ('CAM:Panavision Cameras and Lenses','OFM:16 mm','OFM:35 mm','OFM:Video','PCS:Spherical','PFM:35 mm','RAT:1.33 : 1','RAT:1.37 : 1','RAT:1.66 : 1','RAT:1.78 : 1','RAT:2.35 : 1','RAT:4:3'))
-AND (mi2.info in ('East Germany','Hong Kong','Italy','Taiwan','UK','USA','West Germany'))
-AND (kt.kind in ('episode','movie'))
-AND (rt.role in ('production designer'))
-AND (n.gender in ('f'))
-AND (t.production_year <= 2010)
-AND (t.production_year >= 1950)
-AND (k.keyword IN ('death','father-son-relationship','fight','gay','independent-film','lesbian-sex','mother-daughter-relationship','murder','number-in-title'))
+SELECT MIN(n.name) AS voicing_actress,
+       MIN(t.title) AS voiced_movie
+FROM aka_name AS an,
+     char_name AS chn,
+     cast_info AS ci,
+     company_name AS cn,
+     info_type AS it,
+     movie_companies AS mc,
+     movie_info AS mi,
+     name AS n,
+     role_type AS rt,
+     title AS t
+WHERE ci.note IN ('(voice)',
+                  '(voice: Japanese version)',
+                  '(voice) (uncredited)',
+                  '(voice: English version)')
+  AND cn.country_code ='[us]'
+  AND it.info = 'release dates'
+  AND mc.note IS NOT NULL
+  AND (mc.note LIKE '%(USA)%'
+       OR mc.note LIKE '%(worldwide)%')
+  AND mi.info IS NOT NULL
+  AND (mi.info LIKE 'Japan:%200%'
+       OR mi.info LIKE 'USA:%200%')
+  AND n.gender ='f'
+  AND n.name LIKE '%Ang%'
+  AND rt.role ='actress'
+  AND t.production_year BETWEEN 2005 AND 2009
+  AND t.id = mi.movie_id
+  AND t.id = mc.movie_id
+  AND t.id = ci.movie_id
+  AND mc.movie_id = ci.movie_id
+  AND mc.movie_id = mi.movie_id
+  AND mi.movie_id = ci.movie_id
+  AND cn.id = mc.company_id
+  AND it.id = mi.info_type_id
+  AND n.id = ci.person_id
+  AND rt.id = ci.role_id
+  AND n.id = an.person_id
+  AND ci.person_id = an.person_id
+  AND chn.id = ci.person_role_id;
+

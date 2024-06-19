@@ -1,50 +1,40 @@
-SELECT COUNT(*)
-FROM title as t,
-movie_info as mi1,
-kind_type as kt,
-info_type as it1,
-info_type as it3,
-info_type as it4,
-movie_info_idx as mi_idx1,
-movie_info_idx as mi_idx2,
-aka_name as an,
-name as n,
-info_type as it5,
-person_info as pi1,
-cast_info as ci,
-role_type as rt
-WHERE
-t.id = mi1.movie_id
-AND t.id = ci.movie_id
-AND t.id = mi_idx1.movie_id
-AND t.id = mi_idx2.movie_id
-AND mi_idx2.movie_id = mi_idx1.movie_id
-AND mi1.movie_id = mi_idx1.movie_id
-AND mi1.info_type_id = it1.id
-AND mi_idx1.info_type_id = it3.id
-AND mi_idx2.info_type_id = it4.id
-AND t.kind_id = kt.id
-AND (kt.kind IN ('episode','movie'))
-AND (t.production_year <= 1990)
-AND (t.production_year >= 1950)
-AND (mi1.info IN ('OFM:35 mm','PCS:Spherical','PFM:35 mm','PFM:Video','RAT:1.33 : 1','RAT:1.37 : 1'))
-AND (it1.id IN ('15','7','98'))
-AND it3.id = '100'
-AND it4.id = '101'
-AND (mi_idx2.info ~ '^(?:[1-9]\d*|0)?(?:\.\d+)?$' AND mi_idx2.info::float <= 11.0)
-AND (mi_idx2.info ~ '^(?:[1-9]\d*|0)?(?:\.\d+)?$' AND 7.0 <= mi_idx2.info::float)
-AND (mi_idx1.info ~ '^(?:[1-9]\d*|0)?(?:\.\d+)?$' AND 0.0 <= mi_idx1.info::float)
-AND (mi_idx1.info ~ '^(?:[1-9]\d*|0)?(?:\.\d+)?$' AND mi_idx1.info::float <= 1000.0)
-AND n.id = ci.person_id
-AND ci.person_id = pi1.person_id
-AND it5.id = pi1.info_type_id
-AND n.id = pi1.person_id
-AND n.id = an.person_id
-AND ci.person_id = an.person_id
-AND an.person_id = pi1.person_id
-AND rt.id = ci.role_id
-AND (n.gender in ('m') OR n.gender IS NULL)
-AND (n.name_pcode_nf in ('B6514','D1352','J5163','J5245','M2423','M6126','M6241','M6245','M6252','P3614','V2361','W4125','W4525'))
-AND (ci.note in ('(executive producer)') OR ci.note IS NULL)
-AND (rt.role in ('actor','producer'))
-AND (it5.id in ('19'))
+SELECT MIN(mi_idx.info) AS rating,
+       MIN(t.title) AS northern_dark_movie
+FROM info_type AS it1,
+     info_type AS it2,
+     keyword AS k,
+     kind_type AS kt,
+     movie_info AS mi,
+     movie_info_idx AS mi_idx,
+     movie_keyword AS mk,
+     title AS t
+WHERE it1.info = 'countries'
+  AND it2.info = 'rating'
+  AND k.keyword IN ('murder',
+                    'murder-in-title',
+                    'blood',
+                    'violence')
+  AND kt.kind = 'movie'
+  AND mi.info IN ('Sweden',
+                  'Norway',
+                  'Germany',
+                  'Denmark',
+                  'Swedish',
+                  'Denish',
+                  'Norwegian',
+                  'German',
+                  'USA',
+                  'American')
+  AND mi_idx.info < '8.5'
+  AND t.production_year > 2010
+  AND kt.id = t.kind_id
+  AND t.id = mi.movie_id
+  AND t.id = mk.movie_id
+  AND t.id = mi_idx.movie_id
+  AND mk.movie_id = mi.movie_id
+  AND mk.movie_id = mi_idx.movie_id
+  AND mi.movie_id = mi_idx.movie_id
+  AND k.id = mk.keyword_id
+  AND it1.id = mi.info_type_id
+  AND it2.id = mi_idx.info_type_id;
+
