@@ -815,10 +815,9 @@ class BalsaAgent(object):
             # Filter queries based on the current query_glob.
                 workload.FilterQueries(
                     'queries/imdb_assorted_3', ['*.sql'], [
-'26a_job.sql', '3b_job.sql', '12c_job.sql', '17c_job.sql', '27b_job.sql', '8c_job.sql', 
-'17b_job.sql', '4a_job.sql', '33c_bao.sql', '6b_job.sql', '23b_job.sql', '23c_job.sql', 
-'18b_job.sql', '25a_job.sql', '10a_job.sql', '12a_job.sql', '10b_job.sql', '5a_job.sql', 
-'38a_job.sql', '14a_job.sql'])
+'33a_job.sql', '9d_job.sql', '22a_job.sql', '21c_job.sql', '6c_job.sql', '12c_job.sql', 
+'9c_job.sql', '10a_job.sql', '3b_job.sql', '22b_job.sql', '3a_job.sql', '12b_job.sql', 
+'1c_job.sql', '12a_job.sql', '13a_job.sql', '8b_ceb.sql', '13d_job.sql', '8b_job.sql'])
             else:
 
                 with open('data/IMDB_assorted_4/initial_policy_data.pkl', "rb") as f:
@@ -826,9 +825,9 @@ class BalsaAgent(object):
             # Filter queries based on the current query_glob.
                 workload.FilterQueries(
                     'queries/imdb_assorted_4', ['*.sql'], [
-'21a_bao.sql', '12b_bao.sql', '11d_bao.sql', '31c_bao.sql', '9d_bao.sql', '27c_bao.sql', 
-'8c_bao.sql', '18b_bao.sql', '5c_bao.sql', '32b_bao.sql', '17f_bao.sql', '13d_bao.sql', 
-'13a_bao.sql', '15b_bao.sql', '10a_bao.sql', '22b_bao.sql', '26b_bao.sql', '14b_bao.sql'])
+'23b_ceb.sql', '14b_ceb.sql', '30c_ceb.sql', '11b_ceb.sql', '29c_ceb.sql', '15d_job.sql', 
+'36a_ceb.sql', '12b_ceb.sql', '8c_ceb.sql', '17b_ceb.sql', '17c_ceb.sql', '15b_ceb.sql', 
+'27b_ceb.sql', '3b_ceb.sql'])
 
         return workload
 
@@ -1445,17 +1444,16 @@ class BalsaAgent(object):
             if  self.is_origin_workload:
                 p.init_experience = 'data/IMDB_assorted_3/initial_policy_data.pkl'
                 p.test_query_glob = [
-'26a_job.sql', '3b_job.sql', '12c_job.sql', '17c_job.sql', '27b_job.sql', '8c_job.sql', 
-'17b_job.sql', '4a_job.sql', '33c_bao.sql', '6b_job.sql', '23b_job.sql', '23c_job.sql', 
-'18b_job.sql', '25a_job.sql', '10a_job.sql', '12a_job.sql', '10b_job.sql', '5a_job.sql', 
-'38a_job.sql', '14a_job.sql']
+'33a_job.sql', '9d_job.sql', '22a_job.sql', '21c_job.sql', '6c_job.sql', '12c_job.sql', 
+'9c_job.sql', '10a_job.sql', '3b_job.sql', '22b_job.sql', '3a_job.sql', '12b_job.sql', 
+'1c_job.sql', '12a_job.sql', '13a_job.sql', '8b_ceb.sql', '13d_job.sql', '8b_job.sql']
                 p.query_dir = 'queries/imdb_assorted_3'
             else:
                 p.init_experience = 'data/IMDB_assorted_4/initial_policy_data.pkl'
                 p.test_query_glob = [
-'21a_bao.sql', '12b_bao.sql', '11d_bao.sql', '31c_bao.sql', '9d_bao.sql', '27c_bao.sql', 
-'8c_bao.sql', '18b_bao.sql', '5c_bao.sql', '32b_bao.sql', '17f_bao.sql', '13d_bao.sql', 
-'13a_bao.sql', '15b_bao.sql', '10a_bao.sql', '22b_bao.sql', '26b_bao.sql', '14b_bao.sql']
+'23b_ceb.sql', '14b_ceb.sql', '30c_ceb.sql', '11b_ceb.sql', '29c_ceb.sql', '15d_job.sql', 
+'36a_ceb.sql', '12b_ceb.sql', '8c_ceb.sql', '17b_ceb.sql', '17c_ceb.sql', '15b_ceb.sql', 
+'27b_ceb.sql', '3b_ceb.sql']
                 p.query_dir = 'queries/imdb_assorted_4'
 
         model.eval()
