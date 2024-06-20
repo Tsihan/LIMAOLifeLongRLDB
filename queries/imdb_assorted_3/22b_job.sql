@@ -1,34 +1,48 @@
-SELECT COUNT(*) FROM title as t,
-kind_type as kt,
-info_type as it1,
-movie_info as mi1,
-cast_info as ci,
-role_type as rt,
-name as n,
-movie_keyword as mk,
-keyword as k,
-movie_companies as mc,
-company_type as ct,
-company_name as cn
-WHERE
-t.id = ci.movie_id
-AND t.id = mc.movie_id
-AND t.id = mi1.movie_id
-AND t.id = mk.movie_id
-AND mc.company_type_id = ct.id
-AND mc.company_id = cn.id
-AND k.id = mk.keyword_id
-AND mi1.info_type_id = it1.id
-AND t.kind_id = kt.id
-AND ci.person_id = n.id
-AND ci.role_id = rt.id
-AND (it1.id IN ('3'))
-AND (mi1.info in ('Adventure','Animation','Crime','Drama'))
-AND (kt.kind in ('movie'))
-AND (rt.role in ('actor'))
-AND (n.gender in ('m'))
-AND (n.surname_pcode in ('F63','G63','H2','L5','M245','S','S6'))
-AND (t.production_year <= 2000)
-AND (t.production_year >= 1875)
-AND (cn.name in ('Columbia Broadcasting System (CBS)','Metro-Goldwyn-Mayer (MGM)','Paramount Pictures','Pathé Frères','Universal Pictures','Warner Home Video'))
-AND (ct.kind in ('distributors','production companies'))
+SELECT MIN(cn.name) AS movie_company,
+       MIN(mi_idx.info) AS rating,
+       MIN(t.title) AS western_violent_movie
+FROM company_name AS cn,
+     company_type AS ct,
+     info_type AS it1,
+     info_type AS it2,
+     keyword AS k,
+     kind_type AS kt,
+     movie_companies AS mc,
+     movie_info AS mi,
+     movie_info_idx AS mi_idx,
+     movie_keyword AS mk,
+     title AS t
+WHERE cn.country_code != '[us]'
+  AND it1.info = 'countries'
+  AND it2.info = 'rating'
+  AND k.keyword IN ('murder',
+                    'murder-in-title',
+                    'blood',
+                    'violence')
+  AND kt.kind IN ('movie',
+                  'episode')
+  AND mc.note NOT LIKE '%(USA)%'
+  AND mc.note LIKE '%(200%)%'
+  AND mi.info IN ('Germany',
+                  'German',
+                  'USA',
+                  'American')
+  AND mi_idx.info < '7.0'
+  AND t.production_year > 2009
+  AND kt.id = t.kind_id
+  AND t.id = mi.movie_id
+  AND t.id = mk.movie_id
+  AND t.id = mi_idx.movie_id
+  AND t.id = mc.movie_id
+  AND mk.movie_id = mi.movie_id
+  AND mk.movie_id = mi_idx.movie_id
+  AND mk.movie_id = mc.movie_id
+  AND mi.movie_id = mi_idx.movie_id
+  AND mi.movie_id = mc.movie_id
+  AND mc.movie_id = mi_idx.movie_id
+  AND k.id = mk.keyword_id
+  AND it1.id = mi.info_type_id
+  AND it2.id = mi_idx.info_type_id
+  AND ct.id = mc.company_type_id
+  AND cn.id = mc.company_id;
+

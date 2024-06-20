@@ -1,32 +1,53 @@
-SELECT COUNT(*) FROM title as t,
-kind_type as kt,
-info_type as it1,
-movie_info as mi1,
-movie_info as mi2,
-info_type as it2,
-cast_info as ci,
-role_type as rt,
-name as n,
-movie_keyword as mk,
-keyword as k
-WHERE
-t.id = ci.movie_id
-AND t.id = mi1.movie_id
-AND t.id = mi2.movie_id
-AND t.id = mk.movie_id
-AND k.id = mk.keyword_id
-AND mi1.movie_id = mi2.movie_id
-AND mi1.info_type_id = it1.id
-AND mi2.info_type_id = it2.id
-AND (it1.id in ('8'))
-AND (it2.id in ('2'))
-AND t.kind_id = kt.id
-AND ci.person_id = n.id
-AND ci.role_id = rt.id
-AND (mi1.info in ('Austria','Belgium','Brazil','Denmark','France','Mexico','Spain','UK','USA','Yugoslavia'))
-AND (mi2.info in ('Black and White','Color'))
-AND (kt.kind in ('episode','movie','tv movie'))
-AND (rt.role in ('editor','writer'))
-AND (n.gender in ('f','m'))
-AND (t.production_year <= 1975)
-AND (t.production_year >= 1875)
+SELECT MIN(chn.name) AS character_name,
+       MIN(mi_idx.info) AS rating,
+       MIN(n.name) AS playing_actor,
+       MIN(t.title) AS complete_hero_movie
+FROM complete_cast AS cc,
+     comp_cast_type AS cct1,
+     comp_cast_type AS cct2,
+     char_name AS chn,
+     cast_info AS ci,
+     info_type AS it2,
+     keyword AS k,
+     kind_type AS kt,
+     movie_info_idx AS mi_idx,
+     movie_keyword AS mk,
+     name AS n,
+     title AS t
+WHERE cct1.kind = 'cast'
+  AND cct2.kind LIKE '%complete%'
+  AND chn.name IS NOT NULL
+  AND (chn.name LIKE '%man%'
+       OR chn.name LIKE '%Man%')
+  AND it2.info = 'rating'
+  AND k.keyword IN ('superhero',
+                    'marvel-comics',
+                    'based-on-comic',
+                    'tv-special',
+                    'fight',
+                    'violence',
+                    'magnet',
+                    'web',
+                    'claw',
+                    'laser')
+  AND kt.kind = 'movie'
+  AND mi_idx.info > '7.0'
+  AND t.production_year > 2000
+  AND kt.id = t.kind_id
+  AND t.id = mk.movie_id
+  AND t.id = ci.movie_id
+  AND t.id = cc.movie_id
+  AND t.id = mi_idx.movie_id
+  AND mk.movie_id = ci.movie_id
+  AND mk.movie_id = cc.movie_id
+  AND mk.movie_id = mi_idx.movie_id
+  AND ci.movie_id = cc.movie_id
+  AND ci.movie_id = mi_idx.movie_id
+  AND cc.movie_id = mi_idx.movie_id
+  AND chn.id = ci.person_role_id
+  AND n.id = ci.person_id
+  AND k.id = mk.keyword_id
+  AND cct1.id = cc.subject_id
+  AND cct2.id = cc.status_id
+  AND it2.id = mi_idx.info_type_id;
+
