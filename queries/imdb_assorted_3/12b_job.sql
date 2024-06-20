@@ -1,1 +1,30 @@
-SELECT MAX(n.name) AS member_in_charnamed_american_movie, MAX(n.name) AS a1 FROM cast_info AS ci, company_name AS cn, keyword AS k, movie_companies AS mc, movie_keyword AS mk, name AS n, title AS t WHERE cn.country_code ='[us]' AND k.keyword ='character-name-in-title' AND n.name  LIKE 'B%' AND n.id = ci.person_id AND ci.movie_id = t.id AND t.id = mk.movie_id AND mk.keyword_id = k.id AND t.id = mc.movie_id AND mc.company_id = cn.id AND ci.movie_id = mc.movie_id AND ci.movie_id = mk.movie_id AND mc.movie_id = mk.movie_id;
+SELECT MIN(mi.info) AS budget,
+       MIN(t.title) AS unsuccsessful_movie
+FROM company_name AS cn,
+     company_type AS ct,
+     info_type AS it1,
+     info_type AS it2,
+     movie_companies AS mc,
+     movie_info AS mi,
+     movie_info_idx AS mi_idx,
+     title AS t
+WHERE cn.country_code ='[us]'
+  AND ct.kind IS NOT NULL
+  AND (ct.kind ='production companies'
+       OR ct.kind = 'distributors')
+  AND it1.info ='budget'
+  AND it2.info ='bottom 10 rank'
+  AND t.production_year >2000
+  AND (t.title LIKE 'Birdemic%'
+       OR t.title LIKE '%Movie%')
+  AND t.id = mi.movie_id
+  AND t.id = mi_idx.movie_id
+  AND mi.info_type_id = it1.id
+  AND mi_idx.info_type_id = it2.id
+  AND t.id = mc.movie_id
+  AND ct.id = mc.company_type_id
+  AND cn.id = mc.company_id
+  AND mc.movie_id = mi.movie_id
+  AND mc.movie_id = mi_idx.movie_id
+  AND mi.movie_id = mi_idx.movie_id;
+
