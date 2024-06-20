@@ -1,33 +1,37 @@
-SELECT COUNT(*) FROM title as t,
-kind_type as kt,
-info_type as it1,
-movie_info as mi1,
-movie_info as mi2,
-info_type as it2,
-cast_info as ci,
-role_type as rt,
-name as n,
-movie_keyword as mk,
-keyword as k
-WHERE
-t.id = ci.movie_id
-AND t.id = mi1.movie_id
-AND t.id = mi2.movie_id
-AND t.id = mk.movie_id
-AND k.id = mk.keyword_id
-AND mi1.movie_id = mi2.movie_id
-AND mi1.info_type_id = it1.id
-AND mi2.info_type_id = it2.id
-AND (it1.id in ('5'))
-AND (it2.id in ('7'))
-AND t.kind_id = kt.id
-AND ci.person_id = n.id
-AND ci.role_id = rt.id
-AND (mi1.info in ('Argentina:Atp','Canada:G','Iceland:L','UK:X','USA:X'))
-AND (mi2.info in ('OFM:35 mm','PFM:35 mm','RAT:1.33 : 1'))
-AND (kt.kind in ('tv series','video movie'))
-AND (rt.role in ('director','producer'))
-AND (n.gender IS NULL)
-AND (t.production_year <= 2020)
-AND (t.production_year >= 1900)
-AND (k.keyword IN ('based-on-play','dog','family-relationships','father-son-relationship','female-nudity','hardcore','husband-wife-relationship','independent-film','lesbian-sex','love','marriage','mother-daughter-relationship','nudity','one-word-title','police','sequel','sex','singer'))
+SELECT MIN(cn.name) AS company_name,
+       MIN(lt.link) AS link_type,
+       MIN(t.title) AS german_follow_up
+FROM company_name AS cn,
+     company_type AS ct,
+     keyword AS k,
+     link_type AS lt,
+     movie_companies AS mc,
+     movie_info AS mi,
+     movie_keyword AS mk,
+     movie_link AS ml,
+     title AS t
+WHERE cn.country_code !='[pl]'
+  AND (cn.name LIKE '%Film%'
+       OR cn.name LIKE '%Warner%')
+  AND ct.kind ='production companies'
+  AND k.keyword ='sequel'
+  AND lt.link LIKE '%follow%'
+  AND mc.note IS NULL
+  AND mi.info IN ('Germany',
+                  'German')
+  AND t.production_year BETWEEN 2000 AND 2010
+  AND lt.id = ml.link_type_id
+  AND ml.movie_id = t.id
+  AND t.id = mk.movie_id
+  AND mk.keyword_id = k.id
+  AND t.id = mc.movie_id
+  AND mc.company_type_id = ct.id
+  AND mc.company_id = cn.id
+  AND mi.movie_id = t.id
+  AND ml.movie_id = mk.movie_id
+  AND ml.movie_id = mc.movie_id
+  AND mk.movie_id = mc.movie_id
+  AND ml.movie_id = mi.movie_id
+  AND mk.movie_id = mi.movie_id
+  AND mc.movie_id = mi.movie_id;
+

@@ -29,14 +29,13 @@ RAND_52_TEST_QUERIES_IMDB_ASSORTED_2 = [
 '5a4_ceb3.sql', '9b1_ceb3.sql', '11a3_ceb3.sql', '9b5_ceb3.sql', '2b3_ceb3.sql', '2a2_ceb3.sql', 
 '9a4_ceb3.sql', '2a3_ceb3.sql', '8a1_ceb3.sql', '3b3_ceb3.sql', '2c3_ceb3.sql', '3a2_ceb3.sql', '9b4_ceb3.sql']
 RAND_52_TEST_QUERIES_IMDB_ASSORTED_3 = [
-'26a_job.sql', '3b_job.sql', '12c_job.sql', '17c_job.sql', '27b_job.sql', '8c_job.sql', 
-'17b_job.sql', '4a_job.sql', '33c_bao.sql', '6b_job.sql', '23b_job.sql', '23c_job.sql', 
-'18b_job.sql', '25a_job.sql', '10a_job.sql', '12a_job.sql', '10b_job.sql', '5a_job.sql', 
-'38a_job.sql', '14a_job.sql']
+'33a_job.sql', '9d_job.sql', '22a_job.sql', '21c_job.sql', '6c_job.sql', '12c_job.sql', 
+'9c_job.sql', '10a_job.sql', '3b_job.sql', '22b_job.sql', '3a_job.sql', '12b_job.sql', 
+'1c_job.sql', '12a_job.sql', '13a_job.sql', '8b_ceb.sql', '13d_job.sql', '8b_job.sql']
 RAND_52_TEST_QUERIES_IMDB_ASSORTED_4 = [
-'21a_bao.sql', '12b_bao.sql', '11d_bao.sql', '31c_bao.sql', '9d_bao.sql', '27c_bao.sql', 
-'8c_bao.sql', '18b_bao.sql', '5c_bao.sql', '32b_bao.sql', '17f_bao.sql', '13d_bao.sql', 
-'13a_bao.sql', '15b_bao.sql', '10a_bao.sql', '22b_bao.sql', '26b_bao.sql', '14b_bao.sql']
+'23b_ceb.sql', '14b_ceb.sql', '30c_ceb.sql', '11b_ceb.sql', '29c_ceb.sql', '15d_job.sql', 
+'36a_ceb.sql', '12b_ceb.sql', '8c_ceb.sql', '17b_ceb.sql', '17c_ceb.sql', '15b_ceb.sql', 
+'27b_ceb.sql', '3b_ceb.sql']
 RAND_52_TEST_QUERIES_TPCH_ASSORTED = ['3a.sql', '10d.sql', '8a.sql', '8f.sql', '8b.sql', '13i.sql']
 RAND_52_TEST_QUERIES_TPCH_ASSORTED_2 = ['7c.sql', '14e.sql', '12i.sql', '14h.sql', '7a.sql', '7f.sql']
 
