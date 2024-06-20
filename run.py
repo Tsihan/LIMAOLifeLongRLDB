@@ -945,24 +945,24 @@ class BalsaAgent(object):
         # qihan: here we change the workload on the fly
         else:
             if is_origin:
-                with open('data/IMDB_assorted/initial_policy_data.pkl', "rb") as f:
+                with open('data/IMDB_assorted_3/initial_policy_data.pkl', "rb") as f:
                     workload = pickle.load(f)
             # Filter queries based on the current query_glob.
                 workload.FilterQueries(
-                    'queries/imdb_assorted', ['*.sql'], [
-'32c_baochanged.sql', '12a_job.sql', '16a_bao.sql', '30c_baochanged.sql', '7a_bao.sql', 
-'4a_bao.sql', '26c_baochanged.sql', '10a_bao.sql', '19a_bao.sql', '15a_bao.sql', 
-'8b_job.sql', '5b_job.sql', '1a_bao.sql', '5a_bao.sql', '13b_job.sql', 
-'19c_jobchanged.sql', '9a_job.sql', '14a_bao.sql', '39c_baochanged.sql', '30a_bao.sql'])
+                    'queries/imdb_assorted_3', ['*.sql'], [
+'33a_job.sql', '9d_job.sql', '22a_job.sql', '21c_job.sql', '6c_job.sql', '12c_job.sql', 
+'9c_job.sql', '10a_job.sql', '3b_job.sql', '22b_job.sql', '3a_job.sql', '12b_job.sql', 
+'1c_job.sql', '12a_job.sql', '13a_job.sql', '8b_ceb.sql', '13d_job.sql', '8b_job.sql'])
             else:
 
-                with open('data/IMDB_assorted_2/initial_policy_data.pkl', "rb") as f:
+                with open('data/IMDB_assorted_4/initial_policy_data.pkl', "rb") as f:
                     workload = pickle.load(f)
             # Filter queries based on the current query_glob.
                 workload.FilterQueries(
-                    'queries/imdb_assorted_2', ['*.sql'], [
-'5a4_ceb3.sql', '9b1_ceb3.sql', '11a3_ceb3.sql', '9b5_ceb3.sql', '2b3_ceb3.sql', '2a2_ceb3.sql', 
-'9a4_ceb3.sql', '2a3_ceb3.sql', '8a1_ceb3.sql', '3b3_ceb3.sql', '2c3_ceb3.sql', '3a2_ceb3.sql', '9b4_ceb3.sql'])
+                    'queries/imdb_assorted_4', ['*.sql'], [
+'23b_ceb.sql', '14b_ceb.sql', '30c_ceb.sql', '11b_ceb.sql', '29c_ceb.sql', '15d_job.sql', 
+'36a_ceb.sql', '12b_ceb.sql', '8c_ceb.sql', '17b_ceb.sql', '17c_ceb.sql', '15b_ceb.sql', 
+'27b_ceb.sql', '3b_ceb.sql'])
 
         return workload
 
@@ -1713,19 +1713,19 @@ class BalsaAgent(object):
         # qihan change some parameters here
         if p.use_switching_workload:
             if  self.is_origin_workload:
-                p.init_experience = 'data/IMDB_assorted/initial_policy_data.pkl'
+                p.init_experience = 'data/IMDB_assorted_3/initial_policy_data.pkl'
                 p.test_query_glob = [
-'32c_baochanged.sql', '12a_job.sql', '16_bao.sql', '30c_baochanged.sql', '7a_bao.sql', 
-'4a_bao.sql', '26c_baochanged.sql', '10a_bao.sql', '19a_bao.sql', '15a_bao.sql', 
-'8b_job.sql', '5b_job.sql', '1a_bao.sql', '5a_bao.sql', '13b_job.sql', 
-'19c_jobchanged.sql', '9a_job.sql', '14a_bao.sql', '39c_baochanged.sql', '30a_bao.sql']
-                p.query_dir = 'queries/imdb_assorted'
+'33a_job.sql', '9d_job.sql', '22a_job.sql', '21c_job.sql', '6c_job.sql', '12c_job.sql', 
+'9c_job.sql', '10a_job.sql', '3b_job.sql', '22b_job.sql', '3a_job.sql', '12b_job.sql', 
+'1c_job.sql', '12a_job.sql', '13a_job.sql', '8b_ceb.sql', '13d_job.sql', '8b_job.sql']
+                p.query_dir = 'queries/imdb_assorted_3'
             else:
-                p.init_experience = 'data/IMDB_assorted_2/initial_policy_data.pkl'
+                p.init_experience = 'data/IMDB_assorted_4/initial_policy_data.pkl'
                 p.test_query_glob = [
-'5a4_ceb3.sql', '9b1_ceb3.sql', '11a3_ceb3.sql', '9b5_ceb3.sql', '2b3_ceb3.sql', '2a2_ceb3.sql', 
-'9a4_ceb3.sql', '2a3_ceb3.sql', '8a1_ceb3.sql', '3b3_ceb3.sql', '2c3_ceb3.sql', '3a2_ceb3.sql', '9b4_ceb3.sql']
-                p.query_dir = 'queries/imdb_assorted_2'
+'23b_ceb.sql', '14b_ceb.sql', '30c_ceb.sql', '11b_ceb.sql', '29c_ceb.sql', '15d_job.sql', 
+'36a_ceb.sql', '12b_ceb.sql', '8c_ceb.sql', '17b_ceb.sql', '17c_ceb.sql', '15b_ceb.sql', 
+'27b_ceb.sql', '3b_ceb.sql']
+                p.query_dir = 'queries/imdb_assorted_4'
         model.eval()
 
         #qihan make sure model.model is on GPU
