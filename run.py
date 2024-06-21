@@ -2169,16 +2169,16 @@ class BalsaAgent(object):
                 optim.CONV_MODULE_OTHER_0
             )
         )
-        print(
-            "In this iteration, conv_module_other_1 is used {} times".format(
-                optim.CONV_MODULE_OTHER_1
-            )
-        )
-        print(
-            "In this iteration, conv_module_other_2 is used {} times".format(
-                optim.CONV_MODULE_OTHER_2
-            )
-        )
+        # print(
+        #     "In this iteration, conv_module_other_1 is used {} times".format(
+        #         optim.CONV_MODULE_OTHER_1
+        #     )
+        # )
+        # print(
+        #     "In this iteration, conv_module_other_2 is used {} times".format(
+        #         optim.CONV_MODULE_OTHER_2
+        #     )
+        # )
 
         print(
             "In this iteration, conv_module_hash_join_0 is used {} times".format(
@@ -2190,11 +2190,11 @@ class BalsaAgent(object):
                 optim.CONV_MODULE_HASH_JOIN_1
             )
         )
-        print(
-            "In this iteration, conv_module_hash_join_2 is used {} times".format(
-                optim.CONV_MODULE_HASH_JOIN_2
-            )
-        )
+        # print(
+        #     "In this iteration, conv_module_hash_join_2 is used {} times".format(
+        #         optim.CONV_MODULE_HASH_JOIN_2
+        #     )
+        # )
 
         print(
             "In this iteration, conv_module_nested_loop_join_0 is used {} times".format(
@@ -2214,12 +2214,12 @@ class BalsaAgent(object):
 
         # reset to zero
         optim.CONV_MODULE_OTHER_0 = 0
-        optim.CONV_MODULE_OTHER_1 = 0
-        optim.CONV_MODULE_OTHER_2 = 0
+        # optim.CONV_MODULE_OTHER_1 = 0
+        # optim.CONV_MODULE_OTHER_2 = 0
 
         optim.CONV_MODULE_HASH_JOIN_0 = 0
         optim.CONV_MODULE_HASH_JOIN_1 = 0
-        optim.CONV_MODULE_HASH_JOIN_2 = 0
+        # optim.CONV_MODULE_HASH_JOIN_2 = 0
 
         optim.CONV_MODULE_NESTED_LOOP_JOIN_0 = 0
         optim.CONV_MODULE_NESTED_LOOP_JOIN_1 = 0
@@ -2409,16 +2409,16 @@ class BalsaAgent(object):
                 optim.CONV_MODULE_OTHER_0
             )
         )
-        print(
-            "In this iteration, conv_module_other_1 is used {} times".format(
-                optim.CONV_MODULE_OTHER_1
-            )
-        )
-        print(
-            "In this iteration, conv_module_other_2 is used {} times".format(
-                optim.CONV_MODULE_OTHER_2
-            )
-        )
+        # print(
+        #     "In this iteration, conv_module_other_1 is used {} times".format(
+        #         optim.CONV_MODULE_OTHER_1
+        #     )
+        # )
+        # print(
+        #     "In this iteration, conv_module_other_2 is used {} times".format(
+        #         optim.CONV_MODULE_OTHER_2
+        #     )
+        # )
 
         print(
             "In this iteration, conv_module_hash_join_0 is used {} times".format(
@@ -2430,11 +2430,11 @@ class BalsaAgent(object):
                 optim.CONV_MODULE_HASH_JOIN_1
             )
         )
-        print(
-            "In this iteration, conv_module_hash_join_2 is used {} times".format(
-                optim.CONV_MODULE_HASH_JOIN_2
-            )
-        )
+        # print(
+        #     "In this iteration, conv_module_hash_join_2 is used {} times".format(
+        #         optim.CONV_MODULE_HASH_JOIN_2
+        #     )
+        # )
 
         print(
             "In this iteration, conv_module_nested_loop_join_0 is used {} times".format(
@@ -2454,12 +2454,12 @@ class BalsaAgent(object):
 
         # reset to zero
         optim.CONV_MODULE_OTHER_0 = 0
-        optim.CONV_MODULE_OTHER_1 = 0
-        optim.CONV_MODULE_OTHER_2 = 0
+        # optim.CONV_MODULE_OTHER_1 = 0
+        # optim.CONV_MODULE_OTHER_2 = 0
 
         optim.CONV_MODULE_HASH_JOIN_0 = 0
         optim.CONV_MODULE_HASH_JOIN_1 = 0
-        optim.CONV_MODULE_HASH_JOIN_2 = 0
+        # optim.CONV_MODULE_HASH_JOIN_2 = 0
 
         optim.CONV_MODULE_NESTED_LOOP_JOIN_0 = 0
         optim.CONV_MODULE_NESTED_LOOP_JOIN_1 = 0
