@@ -425,8 +425,8 @@ def TrainSim(p, loggers=None):
     if p.sim_checkpoint is None:
         sim.CollectSimulationData()
     # FIXME Qihan Zhang temporary modify to retain simulator p.sim_checkpoint None
-    #sim.Train(load_from_checkpoint=None, loggers=loggers)
-    sim.Train(load_from_checkpoint=p.sim_checkpoint, loggers=loggers)
+    sim.Train(load_from_checkpoint=None, loggers=loggers)
+    #sim.Train(load_from_checkpoint=p.sim_checkpoint, loggers=loggers)
     sim.model.freeze()
     sim.EvaluateCost()
     sim.FreeData()
@@ -950,11 +950,11 @@ class BalsaAgent(object):
             workload.FilterQueries(
                 p.query_dir, p.query_glob, p.test_query_glob)
         elif self.curr_value_iter == 0:
-            wp = envs.IMDB_assorted_small.Params() 
+            #wp = envs.IMDB_assorted_small.Params() 
             #wp = envs.IMDB_assorted_small_2.Params()
             # wp = envs.IMDB_assorted.Params()
             #wp = envs.IMDB_assorted_2.Params()
-            # wp = envs.IMDB_assorted_3.Params()
+            wp = envs.IMDB_assorted_3.Params()
             # wp = envs.IMDB_assorted_4.Params()
             # wp = envs.TPCH10_assorted.Params()
             # wp = envs.TPCH10_assorted_2.Params()
@@ -973,18 +973,24 @@ class BalsaAgent(object):
         # qihan: here we change the workload on the fly
         else:
             if is_origin:
-                with open('data/IMDB_assorted_small/initial_policy_data.pkl', "rb") as f:
+                with open('data/IMDB_assorted_3/initial_policy_data.pkl', "rb") as f:
                     workload = pickle.load(f)
             # Filter queries based on the current query_glob.
                 workload.FilterQueries(
-                    'queries/imdb_assorted_small', ['*.sql'], ['29a_job.sql', '28c_baochanged.sql'])
+                    'queries/imdb_assorted_3', ['*.sql'], [
+'33a_job.sql', '9d_job.sql', '22a_job.sql', '21c_job.sql', '6c_job.sql', '12c_job.sql', 
+'9c_job.sql', '10a_job.sql', '3b_job.sql', '22b_job.sql', '3a_job.sql', '12b_job.sql', 
+'1c_job.sql', '12a_job.sql', '13a_job.sql', '8b_ceb.sql', '13d_job.sql', '8b_job.sql'])
             else:
 
-                with open('data/IMDB_assorted_small_2/initial_policy_data.pkl', "rb") as f:
+                with open('data/IMDB_assorted_4/initial_policy_data.pkl', "rb") as f:
                     workload = pickle.load(f)
             # Filter queries based on the current query_glob.
                 workload.FilterQueries(
-                    'queries/imdb_assorted_small_2', ['*.sql'], ['28a_bao.sql', '23b_jobchanged.sql'])
+                    'queries/imdb_assorted_4', ['*.sql'], [
+'23b_ceb.sql', '14b_ceb.sql', '30c_ceb.sql', '11b_ceb.sql', '29c_ceb.sql', '15d_job.sql', 
+'36a_ceb.sql', '12b_ceb.sql', '8c_ceb.sql', '17b_ceb.sql', '17c_ceb.sql', '15b_ceb.sql', 
+'27b_ceb.sql', '3b_ceb.sql'])
 
         return workload
 
@@ -1527,11 +1533,11 @@ class BalsaAgent(object):
             print("Execution time: {}".format(real_cost))
         # NOTE: if engine != pg, we're still saving PG plans but with target
         # engine's latencies.  This mainly affects debug strings.
-        Save(self.workload, "./data/IMDB_assorted_small/initial_policy_data.pkl")
+        #Save(self.workload, "./data/IMDB_assorted_small/initial_policy_data.pkl")
         # Save(self.workload, "./data/IMDB_assorted_small_2/initial_policy_data.pkl")
         #Save(self.workload, "./data/IMDB_assorted/initial_policy_data.pkl")
         #Save(self.workload, "./data/IMDB_assorted_2/initial_policy_data.pkl")
-        # Save(self.workload, "./data/IMDB_assorted_3/initial_policy_data.pkl")
+        Save(self.workload, "./data/IMDB_assorted_3/initial_policy_data.pkl")
         # Save(self.workload, "./data/IMDB_assorted_4/initial_policy_data.pkl")
         # Save(self.workload, "./data/TPCH10_assorted/initial_policy_data.pkl")
         # Save(self.workload, "./data/TPCH10_assorted_2/initial_policy_data.pkl")
@@ -1751,13 +1757,19 @@ class BalsaAgent(object):
         # qihan change some parameters here
         if p.use_switching_workload:
             if not self.is_origin_workload:
-                p.init_experience = 'data/IMDB_assorted_small_2/initial_policy_data.pkl'
-                p.test_query_glob = ['28a_bao.sql', '23b_jobchanged.sql']
-                p.query_dir = 'queries/imdb_assorted_small_2'
+                p.init_experience = 'data/IMDB_assorted_3/initial_policy_data.pkl'
+                p.test_query_glob = [
+'33a_job.sql', '9d_job.sql', '22a_job.sql', '21c_job.sql', '6c_job.sql', '12c_job.sql', 
+'9c_job.sql', '10a_job.sql', '3b_job.sql', '22b_job.sql', '3a_job.sql', '12b_job.sql', 
+'1c_job.sql', '12a_job.sql', '13a_job.sql', '8b_ceb.sql', '13d_job.sql', '8b_job.sql']
+                p.query_dir = 'queries/imdb_assorted_3'
             else:
-                p.init_experience = 'data/IMDB_assorted_small/initial_policy_data.pkl'
-                p.test_query_glob = ['29a_job.sql', '28c_baochanged.sql']
-                p.query_dir = 'queries/imdb_assorted_small'
+                p.init_experience = 'data/IMDB_assorted_4/initial_policy_data.pkl'
+                p.test_query_glob = [
+'23b_ceb.sql', '14b_ceb.sql', '30c_ceb.sql', '11b_ceb.sql', '29c_ceb.sql', '15d_job.sql', 
+'36a_ceb.sql', '12b_ceb.sql', '8c_ceb.sql', '17b_ceb.sql', '17c_ceb.sql', '15b_ceb.sql', 
+'27b_ceb.sql', '3b_ceb.sql']
+                p.query_dir = 'queries/imdb_assorted_4'
         model.eval()
 
         #qihan make sure model.model is on GPU
@@ -2254,14 +2266,14 @@ class BalsaAgent(object):
         # "<class 'experiments.ConfigName'>" -> "ConfigName".
         experiment = str(p.cls).split(".")[-1][:-2]
 
-        path = "data/IMDB_assorted_small/replay-{}-{}execs-{}nodes-{}s-{}iters-{}.pkl".format(
-            experiment,
-            self.num_query_execs,
-            len(self.exp.nodes),
-            int(iter_total_latency / 1e3),
-            self.curr_value_iter,
-            self.wandb_logger.experiment.id,
-        )
+        # path = "data/IMDB_assorted_small/replay-{}-{}execs-{}nodes-{}s-{}iters-{}.pkl".format(
+        #     experiment,
+        #     self.num_query_execs,
+        #     len(self.exp.nodes),
+        #     int(iter_total_latency / 1e3),
+        #     self.curr_value_iter,
+        #     self.wandb_logger.experiment.id,
+        # )
 
 
 
@@ -2294,14 +2306,14 @@ class BalsaAgent(object):
         # )
 
 
-        # path = "data/IMDB_assorted_3/replay-{}-{}execs-{}nodes-{}s-{}iters-{}.pkl".format(
-        #     experiment,
-        #     self.num_query_execs,
-        #     len(self.exp.nodes),
-        #     int(iter_total_latency / 1e3),
-        #     self.curr_value_iter,
-        #     self.wandb_logger.experiment.id,
-        # )
+        path = "data/IMDB_assorted_3/replay-{}-{}execs-{}nodes-{}s-{}iters-{}.pkl".format(
+            experiment,
+            self.num_query_execs,
+            len(self.exp.nodes),
+            int(iter_total_latency / 1e3),
+            self.curr_value_iter,
+            self.wandb_logger.experiment.id,
+        )
 
 
         # path = "data/IMDB_assorted_4/replay-{}-{}execs-{}nodes-{}s-{}iters-{}.pkl".format(
@@ -2527,7 +2539,7 @@ class BalsaAgent(object):
                                self.curr_value_iter))
             self.LogScalars(to_log)
         self.SaveBestPlans()
-        if (self.curr_value_iter + 1) % 2 == 0:
+        if (self.curr_value_iter + 1) % 5 == 0:
             self.SaveAgent(model, iter_total_latency)
         # Run and log test queries.
         self.EvaluateTestSet(model, planner)
@@ -2778,7 +2790,7 @@ class BalsaAgent(object):
             # qihan: switch the workload here
             
             #Qihan add p.use_switching_workload, if it's false then the same as balsa
-            if p.use_switching_workload and self.curr_value_iter % 2 == 0 and self.curr_value_iter != 0:
+            if p.use_switching_workload and self.curr_value_iter % 5 == 0 and self.curr_value_iter != 0:
                 print("Switching workload ... ...")
                 self.is_origin_workload = not self.is_origin_workload
                 if self.is_origin_workload is True:
