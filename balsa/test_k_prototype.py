@@ -44,11 +44,11 @@ class Kproto_DataProcessor:
         self.query_path = query_path
         self.matrix_size = matrix_size
         self.kproto_hashjoin = KPrototypes(
-            n_clusters=3, init='Huang', random_state=42)
+            n_clusters=2, init='Huang', random_state=42)
         self.kproto_nestedloop = KPrototypes(
             n_clusters=3, init='Huang', random_state=42)
         self.kproto_other = KPrototypes(
-            n_clusters=3, init='Huang', random_state=42)
+            n_clusters=1, init='Huang', random_state=42)
         self.max_lengths = [0, 0, 0, 0]
         self.categorical_indices = []
         self.load_data()

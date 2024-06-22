@@ -48,7 +48,7 @@ class TreeConvolution(nn.Module):
         self.conv_module_list_other = nn.ModuleList()
         self.conv_module_list_hash_join = nn.ModuleList()
         self.conv_module_list_nested_loop_join = nn.ModuleList()
-        for i in range(3):
+        for i in range(1):
             self.conv_module_list_other.append(nn.Sequential(
                 TreeConv1d(32 + plan_size, 512),
                 TreeStandardize(),
@@ -61,6 +61,7 @@ class TreeConvolution(nn.Module):
                 TreeAct(nn.LeakyReLU()),
                 TreeMaxPool(),
             ))
+        for i in range(2):
             self.conv_module_list_hash_join.append(nn.Sequential(
                 TreeConv1d(32 + plan_size, 512),
                 TreeStandardize(),
@@ -73,6 +74,7 @@ class TreeConvolution(nn.Module):
                 TreeAct(nn.LeakyReLU()),
                 TreeMaxPool(),
             ))
+        for i in range(3):
             self.conv_module_list_nested_loop_join.append(nn.Sequential(
                 TreeConv1d(32 + plan_size, 512),
                 TreeStandardize(),

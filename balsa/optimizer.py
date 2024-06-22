@@ -28,12 +28,12 @@ from balsa.test_k_prototype import Kproto_DataProcessor
 
 
 CONV_MODULE_OTHER_0 = 0
-CONV_MODULE_OTHER_1 = 0
-CONV_MODULE_OTHER_2 = 0
+# CONV_MODULE_OTHER_1 = 0
+# CONV_MODULE_OTHER_2 = 0
 
 CONV_MODULE_HASH_JOIN_0 = 0
 CONV_MODULE_HASH_JOIN_1 = 0   
-CONV_MODULE_HASH_JOIN_2 = 0
+# CONV_MODULE_HASH_JOIN_2 = 0
 
 CONV_MODULE_NESTED_LOOP_JOIN_0 = 0
 CONV_MODULE_NESTED_LOOP_JOIN_1 = 0
@@ -624,12 +624,12 @@ class Optimizer(object):
             costs = self.infer(query_node,[join for join, _, _ in possible_plans],chosen_idx_other,chosen_idx_hash_join, chosen_idx_nested_loop_join)
 
             global CONV_MODULE_OTHER_0 
-            global CONV_MODULE_OTHER_1
-            global CONV_MODULE_OTHER_2
+            # global CONV_MODULE_OTHER_1
+            # global CONV_MODULE_OTHER_2
         
             global CONV_MODULE_HASH_JOIN_0 
             global CONV_MODULE_HASH_JOIN_1 
-            global CONV_MODULE_HASH_JOIN_2 
+            # global CONV_MODULE_HASH_JOIN_2 
       
             global CONV_MODULE_NESTED_LOOP_JOIN_0 
             global CONV_MODULE_NESTED_LOOP_JOIN_1 
@@ -640,12 +640,12 @@ class Optimizer(object):
             if first_iteration and chosen_idx_other == 0:
                 CONV_MODULE_OTHER_0 += 1
                 SQL_DICT_OTHER[query_node.info['query_name']] = 0
-            elif first_iteration and chosen_idx_other == 1:
-                CONV_MODULE_OTHER_1 += 1
-                SQL_DICT_OTHER[query_node.info['query_name']] = 1
-            elif first_iteration and chosen_idx_other == 2:
-                CONV_MODULE_OTHER_2 += 1
-                SQL_DICT_OTHER[query_node.info['query_name']] = 2    
+            # elif first_iteration and chosen_idx_other == 1:
+            #     CONV_MODULE_OTHER_1 += 1
+            #     SQL_DICT_OTHER[query_node.info['query_name']] = 1
+            # elif first_iteration and chosen_idx_other == 2:
+            #     CONV_MODULE_OTHER_2 += 1
+            #     SQL_DICT_OTHER[query_node.info['query_name']] = 2    
 
                        
 
@@ -657,9 +657,9 @@ class Optimizer(object):
                 CONV_MODULE_HASH_JOIN_1 += 1
                 SQL_DICT_HASH_JOIN[query_node.info['query_name']] = 1
                 
-            elif first_iteration and chosen_idx_hash_join == 2:
-                CONV_MODULE_HASH_JOIN_2 += 1
-                SQL_DICT_HASH_JOIN[query_node.info['query_name']] = 2
+            # elif first_iteration and chosen_idx_hash_join == 2:
+            #     CONV_MODULE_HASH_JOIN_2 += 1
+            #     SQL_DICT_HASH_JOIN[query_node.info['query_name']] = 2
                
 
                 
