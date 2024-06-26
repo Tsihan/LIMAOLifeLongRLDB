@@ -16,7 +16,7 @@
 set -ex
 
 DATA_DIR=$1
-DBNAME=${2:-imdbload}
+DBNAME=${2:-imdbload_after2000}
 
 createdb $DBNAME
 
@@ -51,6 +51,9 @@ popd
 
 # Declare FK constraints.
 psql $DBNAME -f "$DIR/add_fks.sql"
+# Perform the deletions
 
+psql $DBNAME -c "DELETE FROM aka_title WHERE production_year < 2000;"
+psql $DBNAME -c "DELETE FROM title WHERE production_year < 2000;"
 # Create histograms.
 psql $DBNAME -c "ANALYZE VERBOSE;"

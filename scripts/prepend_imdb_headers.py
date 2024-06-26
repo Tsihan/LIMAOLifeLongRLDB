@@ -20,7 +20,7 @@ from absl import logging
 
 FLAGS = flags.FLAGS
 
-flags.DEFINE_string('csv_dir', 'datasets/job', 'Directory to IMDB CSVs.')
+flags.DEFINE_string('csv_dir', '/mydata/datasets/job', 'Directory to IMDB CSVs.')
 
 
 def PrependLine(filename, line):

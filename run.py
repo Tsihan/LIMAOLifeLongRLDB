@@ -386,8 +386,8 @@ def TrainSim(p, loggers=None):
     if p.sim_checkpoint is None:
         sim.CollectSimulationData()
     # FIXME Qihan Zhang temporary modify to retain simulator p.sim_checkpoint None
-    #sim.Train(load_from_checkpoint=None, loggers=loggers)
-    sim.Train(load_from_checkpoint=p.sim_checkpoint, loggers=loggers)
+    sim.Train(load_from_checkpoint=None, loggers=loggers)
+    #sim.Train(load_from_checkpoint=p.sim_checkpoint, loggers=loggers)
     sim.model.freeze()
     sim.EvaluateCost()
     sim.FreeData()
@@ -798,11 +798,11 @@ class BalsaAgent(object):
             workload.FilterQueries(
                 p.query_dir, p.query_glob, p.test_query_glob)
         else:
-            wp = envs.IMDB_assorted_small.Params() 
+            #wp = envs.IMDB_assorted_small.Params() 
             #wp = envs.IMDB_assorted_small_2.Params()
             # wp = envs.IMDB_assorted.Params()
             #wp = envs.IMDB_assorted_2.Params()
-            # wp = envs.IMDB_assorted_3.Params()
+            wp = envs.IMDB_assorted_3.Params()
             #wp = envs.IMDB_assorted_4.Params()
             # wp = envs.TPCH10_assorted.Params()
             # wp = envs.TPCH10_assorted_2.Params()
@@ -1253,11 +1253,11 @@ class BalsaAgent(object):
             print('Execution time: {}'.format(real_cost))
         # NOTE: if engine != pg, we're still saving PG plans but with target
         # engine's latencies.  This mainly affects debug strings.
-        Save(self.workload, "./data/IMDB_assorted_small/initial_policy_data.pkl")
+        #Save(self.workload, "./data/IMDB_assorted_small/initial_policy_data.pkl")
         #Save(self.workload, "./data/IMDB_assorted_small_2/initial_policy_data.pkl")
         # Save(self.workload, "./data/IMDB_assorted/initial_policy_data.pkl")
         #Save(self.workload, "./data/IMDB_assorted_2/initial_policy_data.pkl")
-        # Save(self.workload, "./data/IMDB_assorted_3/initial_policy_data.pkl")
+        Save(self.workload, "./data/IMDB_assorted_3/initial_policy_data.pkl")
         #Save(self.workload, "./data/IMDB_assorted_4/initial_policy_data.pkl")
         # Save(self.workload, "./data/TPCH10_assorted/initial_policy_data.pkl")
         # Save(self.workload, "./data/TPCH10_assorted_2/initial_policy_data.pkl")
@@ -1782,14 +1782,14 @@ class BalsaAgent(object):
         # "<class 'experiments.ConfigName'>" -> "ConfigName".
         experiment = str(p.cls).split(".")[-1][:-2]
 
-        path = "data/IMDB_assorted_small/replay-{}-{}execs-{}nodes-{}s-{}iters-{}.pkl".format(
-            experiment,
-            self.num_query_execs,
-            len(self.exp.nodes),
-            int(iter_total_latency / 1e3),
-            self.curr_value_iter,
-            self.wandb_logger.experiment.id,
-        )
+        # path = "data/IMDB_assorted_small/replay-{}-{}execs-{}nodes-{}s-{}iters-{}.pkl".format(
+        #     experiment,
+        #     self.num_query_execs,
+        #     len(self.exp.nodes),
+        #     int(iter_total_latency / 1e3),
+        #     self.curr_value_iter,
+        #     self.wandb_logger.experiment.id,
+        # )
 
 
 
@@ -1821,14 +1821,14 @@ class BalsaAgent(object):
         #     self.wandb_logger.experiment.id,
         # )
 
-        # path = "data/IMDB_assorted_3/replay-{}-{}execs-{}nodes-{}s-{}iters-{}.pkl".format(
-        #     experiment,
-        #     self.num_query_execs,
-        #     len(self.exp.nodes),
-        #     int(iter_total_latency / 1e3),
-        #     self.curr_value_iter,
-        #     self.wandb_logger.experiment.id,
-        # )
+        path = "data/IMDB_assorted_3/replay-{}-{}execs-{}nodes-{}s-{}iters-{}.pkl".format(
+            experiment,
+            self.num_query_execs,
+            len(self.exp.nodes),
+            int(iter_total_latency / 1e3),
+            self.curr_value_iter,
+            self.wandb_logger.experiment.id,
+        )
 
 
         # path = "data/IMDB_assorted_4/replay-{}-{}execs-{}nodes-{}s-{}iters-{}.pkl".format(
@@ -2035,7 +2035,7 @@ class BalsaAgent(object):
                                self.curr_value_iter))
             self.LogScalars(to_log)
         self.SaveBestPlans()
-        if (self.curr_value_iter + 1) % 2 == 0:
+        if (self.curr_value_iter + 1) % 5 == 0:
             self.SaveAgent(model, iter_total_latency)
         # Run and log test queries.
         self.EvaluateTestSet(model, planner)
@@ -2271,7 +2271,7 @@ class BalsaAgent(object):
 
         
             
-            if p.use_switching_workload and self.curr_value_iter % 2 == 0 and self.curr_value_iter != 0:
+            if p.use_switching_workload and self.curr_value_iter % 5 == 0 and self.curr_value_iter != 0:
                 print("Switching database ... ...")
                 self.is_origin_workload = not self.is_origin_workload
                 
@@ -2333,7 +2333,7 @@ def Main(argv):
     # Override params here for quick debugging.
     # p.sim_checkpoint = None
     # p.epochs = 1
-    p.val_iters = 20
+    p.val_iters = 100
     # p.query_glob = ['7*.sql']
     # p.test_query_glob = ['7c.sql']
     # p.search_until_n_complete_plans = 1
