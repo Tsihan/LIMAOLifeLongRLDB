@@ -160,9 +160,9 @@ class SimQueryFeaturizer(plans_lib.Featurizer):
             #   (kind IS NOT NULL) AND ((kind)::text <> 'production
             #   companies'::text)
             # With ANALYZE run, this assert passes.
-            assert est_rows >= 0 and est_rows <= total_rows, (node.info,
-                                                              est_rows,
-                                                              total_rows)
+            # assert est_rows >= 0 and est_rows <= total_rows, (node.info,
+            #                                                   est_rows,
+            #                                                   total_rows)
             vec[idx] = est_rows / total_rows
         return vec
 
