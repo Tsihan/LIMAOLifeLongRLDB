@@ -3043,7 +3043,7 @@ class BalsaAgent(object):
         self.SaveBestPlans()
         # Qihan in the next iteration, we will switch the workload, so the buffer will be reset
         # before that we will save it
-        if (self.curr_value_iter + 1) % 2 == 0:
+        if (self.curr_value_iter + 1) % 5 == 0:
             self.SaveAgent(model, iter_total_latency)
         # Run and log test queries.
         #  QIHANZHANG This takes time too!!!!!! value_iter=0
@@ -3299,7 +3299,7 @@ class BalsaAgent(object):
             # qihan: switch the workload here
             need_refresh = False
             #Qihan add p.use_switching_workload, if it's false then the same as balsa
-            if p.use_switching_workload and self.curr_value_iter % 2 == 0 and self.curr_value_iter != 0:
+            if p.use_switching_workload and self.curr_value_iter % 5 == 0 and self.curr_value_iter != 0:
                 print("Switching database ... ...")
                 self.is_origin_workload = not self.is_origin_workload
                 if self.is_origin_workload is True:
@@ -3382,7 +3382,7 @@ def Main(argv):
     # Override params here for quick debugging.
     # p.sim_checkpoint = None
     # p.epochs = 1
-    p.val_iters = 20
+    p.val_iters = 100
 
     # p.query_glob = ['7*.sql']
     # p.test_query_glob = ['7c.sql']
