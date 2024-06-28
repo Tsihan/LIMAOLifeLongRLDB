@@ -19,4 +19,3 @@ from balsa import models
 from balsa import params_registry
 from balsa import plan_analysis
 from balsa import utils
-from balsa import test_k_prototype
