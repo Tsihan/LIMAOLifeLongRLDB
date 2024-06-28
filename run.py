@@ -1897,16 +1897,16 @@ class BalsaAgent(object):
                 optim.CONV_MODULE_OTHER_0
             )
         )
-        print(
-            "In this iteration, conv_module_other_1 is used {} times".format(
-                optim.CONV_MODULE_OTHER_1
-            )
-        )
-        print(
-            "In this iteration, conv_module_other_2 is used {} times".format(
-                optim.CONV_MODULE_OTHER_2
-            )
-        )
+        # print(
+        #     "In this iteration, conv_module_other_1 is used {} times".format(
+        #         optim.CONV_MODULE_OTHER_1
+        #     )
+        # )
+        # print(
+        #     "In this iteration, conv_module_other_2 is used {} times".format(
+        #         optim.CONV_MODULE_OTHER_2
+        #     )
+        # )
 
         print(
             "In this iteration, conv_module_hash_join_0 is used {} times".format(
@@ -1918,11 +1918,11 @@ class BalsaAgent(object):
                 optim.CONV_MODULE_HASH_JOIN_1
             )
         )
-        print(
-            "In this iteration, conv_module_hash_join_2 is used {} times".format(
-                optim.CONV_MODULE_HASH_JOIN_2
-            )
-        )
+        # print(
+        #     "In this iteration, conv_module_hash_join_2 is used {} times".format(
+        #         optim.CONV_MODULE_HASH_JOIN_2
+        #     )
+        # )
 
         print(
             "In this iteration, conv_module_nested_loop_join_0 is used {} times".format(
@@ -1942,12 +1942,12 @@ class BalsaAgent(object):
 
         # reset to zero
         optim.CONV_MODULE_OTHER_0 = 0
-        optim.CONV_MODULE_OTHER_1 = 0
-        optim.CONV_MODULE_OTHER_2 = 0
+        # optim.CONV_MODULE_OTHER_1 = 0
+        # optim.CONV_MODULE_OTHER_2 = 0
 
         optim.CONV_MODULE_HASH_JOIN_0 = 0
         optim.CONV_MODULE_HASH_JOIN_1 = 0
-        optim.CONV_MODULE_HASH_JOIN_2 = 0
+        # optim.CONV_MODULE_HASH_JOIN_2 = 0
 
         optim.CONV_MODULE_NESTED_LOOP_JOIN_0 = 0
         optim.CONV_MODULE_NESTED_LOOP_JOIN_1 = 0
@@ -2503,7 +2503,7 @@ class BalsaAgent(object):
                                self.curr_value_iter))
             self.LogScalars(to_log)
         self.SaveBestPlans()
-        if (self.curr_value_iter + 1) % 2 == 0:
+        if (self.curr_value_iter + 1) % 5 == 0:
             self.SaveAgent(model, iter_total_latency)
         # Run and log test queries.
         self.EvaluateTestSet(model, planner)
@@ -2754,7 +2754,7 @@ class BalsaAgent(object):
             # qihan: switch the workload here
             
             #Qihan add p.use_switching_workload, if it's false then the same as balsa
-            if p.use_switching_workload and self.curr_value_iter % 2 == 0 and self.curr_value_iter != 0:
+            if p.use_switching_workload and self.curr_value_iter % 5 == 0 and self.curr_value_iter != 0:
                 print("Switching database ... ...")
                 self.is_origin_workload = not self.is_origin_workload
                 if self.is_origin_workload is True:
@@ -2818,7 +2818,7 @@ def Main(argv):
     # Override params here for quick debugging.
     # p.sim_checkpoint = None
     # p.epochs = 1
-    p.val_iters = 20
+    p.val_iters = 100
 
     # p.query_glob = ['7*.sql']
     # p.test_query_glob = ['7c.sql']
