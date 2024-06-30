@@ -675,6 +675,7 @@ class Balsa_JOBRandSplit_TPCH10_assorted(Rand52MinCardCostOnPolLrC):
         p.test_query_glob = RAND_52_TEST_QUERIES_TPCH_ASSORTED
         p.sim_checkpoint = 'checkpoints/TPCH10_assorted/epoch=25.ckpt'
         p.query_dir = 'queries/tpch_assorted'
+        p.planner_config = 'HashJoinMergeJoin'
                 
         return p
     
@@ -702,6 +703,7 @@ class Balsa_JOBRandSplit_TPCH10_assorted_2(Rand52MinCardCostOnPolLrC):
         p.test_query_glob = RAND_52_TEST_QUERIES_TPCH_ASSORTED_2
         p.sim_checkpoint = 'checkpoints/TPCH_assorted_2/epoch=13.ckpt'
         p.query_dir = 'queries/tpch_assorted_2'
+        p.planner_config = 'HashJoinMergeJoin'
                 
         return p    
 
