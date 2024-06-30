@@ -48,6 +48,7 @@ class PlannerConfig(
     def Get(cls, name):
         return {
             'NestLoopHashJoin': PlannerConfig.NestLoopHashJoin(),
+            'HashJoinMergeJoin':PlannerConfig.HashJoinMergeJoin(),
             'LeftDeepNestLoop': PlannerConfig.LeftDeepNestLoop(),
             'LeftDeepNestLoopHashJoin':
                 PlannerConfig.LeftDeepNestLoopHashJoin(),
@@ -68,6 +69,13 @@ class PlannerConfig(
                    enable_nestloop=True,
                    enable_hashjoin=True,
                    enable_mergejoin=False)
+
+    @classmethod
+    def HashJoinMergeJoin(cls):
+        return cls(search_space='bushy',
+                   enable_nestloop=False,
+                   enable_hashjoin=True,
+                   enable_mergejoin=True)
 
     @classmethod
     def LeftDeepNestLoop(cls):
