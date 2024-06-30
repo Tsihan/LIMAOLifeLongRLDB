@@ -383,6 +383,19 @@ def GetAllTableNumRows(rel_names, dbname='imdbload'):
     }
     # Qihan now this one may differ
     # CACHE = {}
+    #tpch sf=10
+    # CACHE = {
+    #     'part':2000000,
+    #     'customer':1500000,
+    #     'orders':15000000,
+    #     'nation':25,
+    #     'region':5,
+    #     'supplier':100000,
+    #     'partsupp':8000000,
+    #     'part':2000000,
+    #     'lineitem':59986052,
+        
+    # } 
 
     d = {}
     with pg_executor.Cursor(f"host=/tmp dbname={dbname}") as cursor:
