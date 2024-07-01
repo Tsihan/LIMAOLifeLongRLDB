@@ -750,7 +750,7 @@ class SimpleReplayBuffer(Experience):
         t1 = time.time()
         assert len(subplans) == len(self.nodes), (len(subplans),
                                                   len(self.nodes))
-        self.prepare(rewrite_generic, verbose)
+        self.prepare(rewrite_generic, verbose,dbname=CURRENT_DATABASE)
         all_query_vecs = [None] * len(self.nodes)
         all_feat_vecs = [None] * len(self.nodes)
         all_pa_pos_vecs = [None] * len(self.nodes)
