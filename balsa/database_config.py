@@ -6,7 +6,7 @@ CURRENT_DATABASE = None
 def initialize_current_database():
     global CURRENT_DATABASE, CURRENT_DATABASE_INITIALIZED
     if not CURRENT_DATABASE_INITIALIZED:
-        CURRENT_DATABASE = "imdbload" 
+        CURRENT_DATABASE = "tpch10load" 
         CURRENT_DATABASE_INITIALIZED = True
 
 
