@@ -185,6 +185,8 @@ def ExecuteSql(
 
     assert engine in ("postgres", "dbmsx"), engine
     if engine == "postgres":
+        if curr_timeout_ms is None or curr_timeout_ms > 512000:
+            curr_timeout_ms = 512000
         return postgres.ExplainAnalyzeSql(
             sql_str,
             comment=hint_str,
