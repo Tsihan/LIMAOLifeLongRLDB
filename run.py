@@ -791,9 +791,9 @@ class BalsaAgent(object):
             #wp = envs.IMDB_assorted_small_2.Params()
             #wp = envs.IMDB_assorted.Params()
             #wp = envs.IMDB_assorted_2.Params()
-            #wp = envs.IMDB_assorted_3.Params()
+            wp = envs.IMDB_assorted_3.Params()
             # wp = envs.IMDB_assorted_4.Params()
-            wp = envs.TPCH10_assorted.Params()
+            #wp = envs.TPCH10_assorted.Params()
             #wp = envs.TPCH10_assorted_2.Params()
             # wp = envs.JoinOrderBenchmark.Params()
             # wp = envs.TPCH10.Params()
@@ -810,18 +810,24 @@ class BalsaAgent(object):
         # qihan: here we change the workload on the fly
         else:
             if is_origin:
-                with open('data/TPCH10_assorted/initial_policy_data.pkl', "rb") as f:
+                with open('data/IMDB_assorted_3/initial_policy_data.pkl', "rb") as f:
                     workload = pickle.load(f)
             # Filter queries based on the current query_glob.
                 workload.FilterQueries(
-                    'queries/tpch_assorted', ['*.sql'], ['3a.sql', '10d.sql', '8a.sql', '8f.sql', '8b.sql', '13i.sql'])
+                    'queries/imdb_assorted_3', ['*.sql'],  [
+'33a_job.sql', '9d_job.sql', '22a_job.sql', '21c_job.sql', '6c_job.sql', '12c_job.sql', 
+'9c_job.sql', '10a_job.sql', '3b_job.sql', '22b_job.sql', '3a_job.sql', '12b_job.sql', 
+'1c_job.sql', '12a_job.sql', '13a_job.sql', '8b_ceb.sql', '13d_job.sql', '8b_job.sql'])
             else:
 
-                with open('data/TPCH10_assorted_2/initial_policy_data.pkl', "rb") as f:
+                with open('data/IMDB_assorted_4/initial_policy_data.pkl', "rb") as f:
                     workload = pickle.load(f)
             # Filter queries based on the current query_glob.
                 workload.FilterQueries(
-                    'queries/tpch_assorted_2', ['*.sql'], ['7c.sql', '14e.sql', '12i.sql', '14h.sql', '7a.sql', '7f.sql'])
+                    'queries/imdb_assorted_4', ['*.sql'], [
+'23b_ceb.sql', '14b_ceb.sql', '30c_ceb.sql', '11b_ceb.sql', '29c_ceb.sql', '15d_job.sql', 
+'36a_ceb.sql', '12b_ceb.sql', '8c_ceb.sql', '17b_ceb.sql', '17c_ceb.sql', '15b_ceb.sql', 
+'27b_ceb.sql', '3b_ceb.sql'])
 
         return workload
 
@@ -1259,9 +1265,9 @@ class BalsaAgent(object):
         #Save(self.workload, "./data/IMDB_assorted_small_2/initial_policy_data.pkl")
         #Save(self.workload, "./data/IMDB_assorted/initial_policy_data.pkl")
         #Save(self.workload, "./data/IMDB_assorted_2/initial_policy_data.pkl")
-        #Save(self.workload, "./data/IMDB_assorted_3/initial_policy_data.pkl")
+        Save(self.workload, "./data/IMDB_assorted_3/initial_policy_data.pkl")
         # Save(self.workload, "./data/IMDB_assorted_4/initial_policy_data.pkl")
-        Save(self.workload, "./data/TPCH10_assorted/initial_policy_data.pkl")
+        #Save(self.workload, "./data/TPCH10_assorted/initial_policy_data.pkl")
         #Save(self.workload, "./data/TPCH10_assorted_2/initial_policy_data.pkl")
         # Save(self.workload, "./data/JOB/initial_policy_data.pkl")
         # Save(self.workload, './data/JOB_changed/initial_policy_data.pkl')
@@ -1436,13 +1442,19 @@ class BalsaAgent(object):
         # qihan change some parameters here
         if p.use_switching_workload:
             if  self.is_origin_workload:
-                p.init_experience = 'data/TPCH10_assorted/initial_policy_data.pkl'
-                p.test_query_glob = ['3a.sql', '10d.sql', '8a.sql', '8f.sql', '8b.sql', '13i.sql']
-                p.query_dir = 'queries/tpch_assorted'
+                p.init_experience = 'data/IMDB_assorted_3/initial_policy_data.pkl'
+                p.test_query_glob = [
+'33a_job.sql', '9d_job.sql', '22a_job.sql', '21c_job.sql', '6c_job.sql', '12c_job.sql', 
+'9c_job.sql', '10a_job.sql', '3b_job.sql', '22b_job.sql', '3a_job.sql', '12b_job.sql', 
+'1c_job.sql', '12a_job.sql', '13a_job.sql', '8b_ceb.sql', '13d_job.sql', '8b_job.sql']
+                p.query_dir = 'queries/imdb_assorted_3'
             else:
-                p.init_experience = 'data/TPCH10_assorted_2/initial_policy_data.pkl'
-                p.test_query_glob = ['7c.sql', '14e.sql', '12i.sql', '14h.sql', '7a.sql', '7f.sql']
-                p.query_dir = 'queries/tpch_assorted_2'
+                p.init_experience = 'data/IMDB_assorted_4/initial_policy_data.pkl'
+                p.test_query_glob = [
+'23b_ceb.sql', '14b_ceb.sql', '30c_ceb.sql', '11b_ceb.sql', '29c_ceb.sql', '15d_job.sql', 
+'36a_ceb.sql', '12b_ceb.sql', '8c_ceb.sql', '17b_ceb.sql', '17c_ceb.sql', '15b_ceb.sql', 
+'27b_ceb.sql', '3b_ceb.sql']
+                p.query_dir = 'queries/imdb_assorted_4'
 
         model.eval()
         to_execute = []
@@ -1831,14 +1843,14 @@ class BalsaAgent(object):
         # )
 
 
-        # path = "data/IMDB_assorted_3/replay-{}-{}execs-{}nodes-{}s-{}iters-{}.pkl".format(
-        #     experiment,
-        #     self.num_query_execs,
-        #     len(self.exp.nodes),
-        #     int(iter_total_latency / 1e3),
-        #     self.curr_value_iter,
-        #     self.wandb_logger.experiment.id,
-        # )
+        path = "data/IMDB_assorted_3/replay-{}-{}execs-{}nodes-{}s-{}iters-{}.pkl".format(
+            experiment,
+            self.num_query_execs,
+            len(self.exp.nodes),
+            int(iter_total_latency / 1e3),
+            self.curr_value_iter,
+            self.wandb_logger.experiment.id,
+        )
 
 
         # path = "data/IMDB_assorted_4/replay-{}-{}execs-{}nodes-{}s-{}iters-{}.pkl".format(
@@ -1850,14 +1862,14 @@ class BalsaAgent(object):
         #     self.wandb_logger.experiment.id,
         # )
 
-        path = "data/TPCH10_assorted/replay-{}-{}execs-{}nodes-{}s-{}iters-{}.pkl".format(
-            experiment,
-            self.num_query_execs,
-            len(self.exp.nodes),
-            int(iter_total_latency / 1e3),
-            self.curr_value_iter,
-            self.wandb_logger.experiment.id,
-        )
+        # path = "data/TPCH10_assorted/replay-{}-{}execs-{}nodes-{}s-{}iters-{}.pkl".format(
+        #     experiment,
+        #     self.num_query_execs,
+        #     len(self.exp.nodes),
+        #     int(iter_total_latency / 1e3),
+        #     self.curr_value_iter,
+        #     self.wandb_logger.experiment.id,
+        # )
 
 
         # path = "data/TPCH10_assorted_2/replay-{}-{}execs-{}nodes-{}s-{}iters-{}.pkl".format(
