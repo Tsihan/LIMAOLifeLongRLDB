@@ -26,12 +26,12 @@ import ray
 
 # JOB/IMDB.
 # LOCAL_DSN = "postgres://psycopg:psycopg@localhost/imdb"
-# LOCAL_DSN = "host=/tmp dbname=imdbload"
-# REMOTE_DSN = "postgres://psycopg:psycopg@localhost/imdbload"
+LOCAL_DSN = "host=/tmp dbname=imdbload"
+REMOTE_DSN = "postgres://psycopg:psycopg@localhost/imdbload"
 
 # TPC-H.
-LOCAL_DSN = "host=/tmp dbname=tpch10load"
-REMOTE_DSN = "postgres://psycopg:psycopg@localhost/tpch10load"
+# LOCAL_DSN = "host=/tmp dbname=tpch10load"
+# REMOTE_DSN = "postgres://psycopg:psycopg@localhost/tpch10load"
 
 # A simple class holding an execution result.
 #   result: a list, outputs from cursor.fetchall().  E.g., the textual outputs
