@@ -2290,8 +2290,11 @@ class BalsaAgent(object):
         while self.curr_value_iter < p.val_iters:
 
         
-            
-            if p.use_switching_workload and self.curr_value_iter % 5 == 0 and self.curr_value_iter != 0:
+            if p.use_switching_workload and (self.curr_value_iter == 20 or self.curr_value_iter == 40 or self.curr_value_iter == 50 
+            or self.curr_value_iter == 60 or self.curr_value_iter == 70 or self.curr_value_iter == 75
+            or self.curr_value_iter == 80 or self.curr_value_iter == 85 or self.curr_value_iter == 90
+            or self.curr_value_iter == 95) and self.curr_value_iter != 0 :
+            #if p.use_switching_workload and self.curr_value_iter % 5 == 0 and self.curr_value_iter != 0:
                 print("Switching workload ... ...")
                 self.is_origin_workload = not self.is_origin_workload
                 if self.is_origin_workload is True:
