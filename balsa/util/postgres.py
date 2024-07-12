@@ -23,21 +23,21 @@ from balsa.util import plans_lib
 import pg_executor
 import balsa.database_config
 #done
-def GetServerVersion(dbname = 'imdbload'):
+def GetServerVersion(dbname = 'tpch10load'):
     with pg_executor.Cursor(f"host=/tmp dbname={dbname}") as cursor:
         cursor.execute('show server_version;')
         row = cursor.fetchone()
         return row[0]
 
 #done
-def GetServerConfigs(dbname = 'imdbload'):
+def GetServerConfigs(dbname = 'tpch10load'):
     """Returns all live configs as [(param, value, help)]."""
     with pg_executor.Cursor(f"host=/tmp dbname={dbname}") as cursor:
         cursor.execute('show all;')
         return cursor.fetchall()
 
 #done
-def GetServerConfigsAsDf(dbname = 'imdbload'):
+def GetServerConfigsAsDf(dbname = 'tpch10load'):
     """Returns all live configs as [(param, value, help)]."""
     data = GetServerConfigs(dbname = dbname)
     return pd.DataFrame(data, columns=['param', 'value', 'help']).drop('help',
@@ -52,7 +52,7 @@ def _SetGeneticOptimizer(flag, cursor):
     cursor.execute('set geqo = {};'.format(flag))
     assert cursor.statusmessage == 'SET'
 
-def DropBufferCache(dbname='imdbload'):
+def DropBufferCache(dbname='tpch10load'):
     # WARNING: no effect if PG is running on another machine
 
     # Run 'free' and 'sync' separately
@@ -78,7 +78,7 @@ def ExplainAnalyzeSql(sql,
                       timeout_ms=None,
                       is_test=False,
                       remote=False,
-                      dbname='imdbload'):
+                      dbname='tpch10load'):
     """Runs EXPLAIN ANALYZE.
 
     Returns:
@@ -103,7 +103,7 @@ def SqlToPlanNode(sql,
                   verbose=False,
                   keep_scans_joins_only=False,
                   cursor=None,
-                  dbname='imdbload'):
+                  dbname='tpch10load'):
     """Issues EXPLAIN(format json) on a SQL string; parse into our AST node."""
     # Use of 'verbose' would alias-qualify all column names in pushed-down
     # filters, which are beneficial for us (e.g., this ensures that
@@ -124,7 +124,7 @@ def SqlToPlanNode(sql,
     return plans_lib.FilterScansOrJoins(node), json_dict
 
 #done
-def ExecuteSql(sql, hint=None, check_hint=False, verbose=False, dbname='imdbload'):
+def ExecuteSql(sql, hint=None, check_hint=False, verbose=False, dbname='tpch10load'):
     geqo_off = hint is not None and len(hint) > 0
     result = _run_explain('explain (verbose, analyze, format json)',
                           sql,
@@ -153,7 +153,7 @@ def ContainsPhysicalHints(hint_str):
     return False
 
 #done
-def GetCostFromPg(sql, hint, verbose=False, check_hint_used=False, dbname='imdbload'):
+def GetCostFromPg(sql, hint, verbose=False, check_hint_used=False, dbname='tpch10load'):
     with pg_executor.Cursor(f"host=/tmp dbname={dbname}") as cursor:
         # GEQO must be disabled for hinting larger joins to work.
         _SetGeneticOptimizer('off', cursor)
@@ -173,7 +173,7 @@ def GetCostFromPg(sql, hint, verbose=False, check_hint_used=False, dbname='imdbl
     return node.cost
 
 #done
-def GetLatencyFromPg(sql, hint, verbose=False, check_hint_used=False, dbname='imdbload'):
+def GetLatencyFromPg(sql, hint, verbose=False, check_hint_used=False, dbname='tpch10load'):
     with pg_executor.Cursor(f"host=/tmp dbname={dbname}") as cursor:
         # GEQO must be disabled for hinting larger joins to work.
         # Why 'verbose': makes ParsePostgresPlanJson() able to access required
@@ -200,7 +200,7 @@ def GetLatencyFromPg(sql, hint, verbose=False, check_hint_used=False, dbname='im
     return latency
 
 #done
-def GetCardinalityEstimateFromPg(sql, verbose=False, dbname='imdbload'):
+def GetCardinalityEstimateFromPg(sql, verbose=False, dbname='tpch10load'):
     _, json_dict = SqlToPlanNode(sql, verbose=verbose, dbname=dbname)
     return json_dict['Plan']['Plan Rows']
 
@@ -214,7 +214,7 @@ def _run_explain(explain_str,
                  cursor=None,
                  is_test=False,
                  remote=False,
-                 dbname='imdbload'):
+                 dbname='tpch10load'):
     """
     Run the given SQL statement with appropriate EXPLAIN commands.
 
@@ -322,7 +322,7 @@ def ParsePostgresPlanJson(json_dict):
     return _parse_pg(curr)
 
 #done
-def EstimateFilterRows(nodes, dbname='imdbload'):
+def EstimateFilterRows(nodes, dbname='tpch10load'):
     """For each node, issues an EXPLAIN to estimates #rows of unary preds.
 
     Writes result back into node.info['all_filters_est_rows'], as { relation
@@ -351,7 +351,7 @@ def EstimateFilterRows(nodes, dbname='imdbload'):
         node.info['all_filters_est_rows'] = d
 
 #done
-def GetAllTableNumRows(rel_names, dbname='imdbload'):
+def GetAllTableNumRows(rel_names, dbname='tpch10load'):
     """Ask PG how many number of rows each rel in rel_names has.
 
     Returns:
@@ -384,55 +384,32 @@ def GetAllTableNumRows(rel_names, dbname='imdbload'):
     #     'lineitem':6001215,
         
     # } 
-    if  balsa.database_config.CURRENT_DATABASE == "imdbload":
+    if  balsa.database_config.CURRENT_DATABASE == "tpch10load":
         CACHE = {
-        'aka_name': 901343,
-        'aka_title': 361472,
-        'cast_info': 36244344,
-        'char_name': 3140339,
-        'comp_cast_type': 4,
-        'company_name': 234997,
-        'company_type': 4,
-        'complete_cast': 135086,
-        'info_type': 113,
-        'keyword': 134170,
-        'kind_type': 7,
-        'link_type': 18,
-        'movie_companies': 2609129,
-        'movie_info': 14835720,
-        'movie_info_idx': 1380035,
-        'movie_keyword': 4523930,
-        'movie_link': 29997,
-        'name': 4167491,
-        'person_info': 2963664,
-        'role_type': 12,
-        'title': 2528312,
-    }
+        'part':2000000,
+        'customer':1500000,
+        'orders':15000000,
+        'nation':25,
+        'region':5,
+        'supplier':100000,
+        'partsupp':8000000,
+        'part':2000000,
+        'lineitem':59986052,
+        
+    } 
     else:
-         CACHE = {
-        'aka_name': 901343,
-        'aka_title': 98887,
-        'cast_info': 22443861,
-        'char_name': 3140569,
-        'comp_cast_type': 4,
-        'company_name': 234997,
-        'company_type': 4,
-        'complete_cast': 42448,
-        'info_type': 113,
-        'keyword': 134170,
-        'kind_type': 7,
-        'link_type': 18,
-        'movie_companies': 1241656,
-        'movie_info': 7362458,
-        'movie_info_idx': 698743,
-        'movie_keyword': 2103130,
-        'movie_link': 17110,
-        'name': 4167638,
-        'person_info': 2958819,
-        'role_type': 12,
-        'title': 1506148,
-
-        }
+        CACHE = {
+        'part':2000000,
+        'customer':150000,
+        'orders':1500000,
+        'nation':25,
+        'region':5,
+        'supplier':10000,
+        'partsupp':8000000,
+        'part':200000,
+        'lineitem':6001215,
+        
+    } 
 
     d = {}
     with pg_executor.Cursor(f"host=/tmp dbname={dbname}") as cursor:

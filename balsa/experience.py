@@ -206,7 +206,7 @@ class Experience(object):
             into_table[query_name] = into.union(unique_plans)
         return sum([len(s) for s in into_table.values()])
 
-    def prepare(self, rewrite_generic=False, verbose=False, dbname = "imdbload"):
+    def prepare(self, rewrite_generic=False, verbose=False, dbname = "tpch10load"):
         #### Affects plan featurization.
         if rewrite_generic:
             print('Rewriting all joins -> Join, all scans -> Scan')
@@ -334,7 +334,7 @@ class Experience(object):
                          use_last_n_iters=-1,
                          use_new_data_only=False,
                          skip_training_on_timeouts=False,
-                         dbname = "imdbload"):
+                         dbname = "tpch10load"):
         if use_last_n_iters > 0 and use_new_data_only:
             print('Both use_last_n_iters > 0 and use_new_data_only are set: '\
                   'letting the latter take precedence.')
@@ -592,7 +592,7 @@ class Experience(object):
                   use_last_n_iters=-1,
                   use_new_data_only=False,
                   skip_training_on_timeouts=False,
-                  dbname = "imdbload"):
+                  dbname = "tpch10load"):
         if physical_execution_hindsight:
             assert deduplicate
             return self._featurize_hindsight_relabeling(
