@@ -16,8 +16,8 @@ AND t.kind_id = kt.id
 AND ci.person_id = n.id
 AND ci.movie_id = mi1.movie_id
 AND ci.role_id = rt.id
-AND n.id = pi.person_id
-AND pi.info_type_id = it2.id
+AND n.id = pi1.person_id
+AND pi1.info_type_id = it2.id
 AND (it1.id IN ('3','6','8'))
 AND (it2.id IN ('24'))
 AND (mi1.info IN ('Animation','Belgium','Brazil','Comedy','Crime','Documentary','Family','France','Italy','Mexico','Mono','Musical','Mystery','Netherlands','Romance','Sport','Stereo','Thriller','UK'))

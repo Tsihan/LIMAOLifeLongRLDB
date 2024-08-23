@@ -22,16 +22,16 @@ AND kt.id = t.kind_id
 AND ci.person_id = n.id
 AND ci.role_id = rt.id
 AND mi1.info_type_id = it1.id
-AND n.id = pi.person_id
-AND pi.info_type_id = it2.id
-AND ci.person_id = pi.person_id
+AND n.id = pi1.person_id
+AND pi1.info_type_id = it2.id
+AND ci.person_id = pi1.person_id
 AND (kt.kind IN ('episode','movie','tv mini series','tv movie','tv series','video game','video movie'))
 AND (rt.role IN ('actor','actress','cinematographer','costume designer','director','editor','miscellaneous crew','producer','writer'))
 AND (t.production_year <= 1945)
 AND (t.production_year >= 1875)
 AND (it1.id IN ('5'))
 AND (mi1.info ILIKE '%r%')
-AND (pi.info ILIKE '%1914%')
+AND (pi1.info ILIKE '%1914%')
 AND (it2.id IN ('21'))
 GROUP BY n.gender, rt.role, cn.name
 ORDER BY COUNT(*) DESC

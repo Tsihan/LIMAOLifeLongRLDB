@@ -22,13 +22,13 @@ AND mi1.info_type_id = it1.id
 AND t.kind_id = kt.id
 AND ci.person_id = n.id
 AND ci.role_id = rt.id
-AND (it1.id IN ('6'))
-AND (mi1.info in ('Mono'))
-AND (kt.kind in ('episode','movie'))
-AND (rt.role in ('actor','producer'))
-AND (n.gender in ('m'))
-AND (n.name_pcode_cf in ('A5362','B6261','D1232','O4252','R363','W5165'))
-AND (t.production_year <= 1975)
-AND (t.production_year >= 1875)
-AND (cn.name in ('Columbia Broadcasting System (CBS)','Metro-Goldwyn-Mayer (MGM)','Paramount Pictures','Pathé Frères'))
+AND (it1.id IN ('1'))
+AND (mi1.info in ('30'))
+AND (kt.kind in ('episode'))
+AND (rt.role in ('miscellaneous crew'))
+AND (n.gender in ('f') OR n.gender IS NULL)
+AND (n.name_pcode_cf in ('A3654','B4353','B6156','C6264','D4253','D4262','L2562','L5326','M5323','R2461','S4362','S5236','S5245'))
+AND (t.production_year <= 2015)
+AND (t.production_year >= 1990)
+AND (cn.name in ('ABS-CBN','American Broadcasting Company (ABC)','British Broadcasting Corporation (BBC)'))
 AND (ct.kind in ('distributors','production companies'))

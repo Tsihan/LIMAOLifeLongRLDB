@@ -1,4 +1,4 @@
-SELECT mi1.info, pi.info, COUNT(*)
+SELECT mi1.info, pi1.info, COUNT(*)
 FROM title as t,
 kind_type as kt,
 movie_info as mi1,
@@ -16,12 +16,12 @@ AND t.kind_id = kt.id
 AND ci.person_id = n.id
 AND ci.movie_id = mi1.movie_id
 AND ci.role_id = rt.id
-AND n.id = pi.person_id
-AND pi.info_type_id = it2.id
+AND n.id = pi1.person_id
+AND pi1.info_type_id = it2.id
 AND (it1.id IN ('16'))
 AND (it2.id IN ('21'))
 AND (mi1.info ILIKE '%spai%')
-AND (pi.info ILIKE '%196%')
+AND (pi1.info ILIKE '%196%')
 AND (kt.kind IN ('episode','movie','tv mini series','tv movie','video game','video movie'))
 AND (rt.role IN ('actor','actress','cinematographer','composer','costume designer','director','guest','miscellaneous crew','producer','production designer','writer'))
-GROUP BY mi1.info, pi.info
+GROUP BY mi1.info, pi1.info

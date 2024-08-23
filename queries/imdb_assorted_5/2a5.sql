@@ -18,15 +18,15 @@ AND k.id = mk.keyword_id
 AND mi1.movie_id = mi2.movie_id
 AND mi1.info_type_id = it1.id
 AND mi2.info_type_id = it2.id
-AND (it1.id in ('7'))
+AND (it1.id in ('2'))
 AND (it2.id in ('4'))
 AND t.kind_id = kt.id
 AND ci.person_id = n.id
 AND ci.role_id = rt.id
-AND (mi1.info in ('MET:','MET:15.2 m','OFM:16 mm','OFM:35 mm','PCS:CinemaScope','PCS:Kinescope','PFM:35 mm','RAT:1.20 : 1','RAT:1.37 : 1','RAT:1.66 : 1'))
-AND (mi2.info in ('Danish','English','Japanese','Mandarin','Portuguese','Russian'))
-AND (kt.kind in ('episode','movie','tv movie'))
-AND (rt.role in ('cinematographer','miscellaneous crew'))
+AND (mi1.info in ('Black and White','Color'))
+AND (mi2.info in ('Bengali','Italian','Malayalam','Romanian','Spanish'))
+AND (kt.kind in ('episode','movie','video movie'))
+AND (rt.role in ('production designer'))
 AND (n.gender IS NULL)
-AND (t.production_year <= 1975)
-AND (t.production_year >= 1875)
+AND (t.production_year <= 2015)
+AND (t.production_year >= 1990)

@@ -14,8 +14,8 @@ AND it1.id = 3
 AND it1.id = mi.info_type_id
 AND (mi.info ILIKE '%adult%')
 AND it2.info ILIKE '%birth%'
-AND pi.person_id = n.id
-AND pi.info_type_id = it2.id
-AND pi.info ILIKE '%japan%'
+AND pi1.person_id = n.id
+AND pi1.info_type_id = it2.id
+AND pi1.info ILIKE '%japan%'
 group by n.name
 order by count(*) DESC
