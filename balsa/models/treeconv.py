@@ -29,6 +29,7 @@ class TreeConvolution(nn.Module):
 
     def __init__(self, feature_size, plan_size, label_size, version=None):
         super(TreeConvolution, self).__init__()
+        self.lamda = 40
         # None: default
         assert version is None, version
         self.query_mlp = nn.Sequential(
@@ -100,7 +101,64 @@ class TreeConvolution(nn.Module):
         out = self.conv((concat, indexes))
         out = self.out_mlp(out)
         return out
+    # Qihan: add the following three methods
+    def estimate_fisher(self, dataset, sample_size, batch_size=32):
+        # Initialize dictionary to hold squared gradients sum
+        fisher_diagonals = {n.replace('.', '__'): torch.zeros_like(p) for n, p in self.named_parameters()}
+        data_loader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
+        total_data = 0
+        for query_feats, trees, indexes, targets in data_loader:
+            query_feats = Variable(query_feats).to(DEVICE)
+            trees = Variable(trees).to(DEVICE)
+            indexes = Variable(indexes).to(DEVICE)
+            targets = Variable(targets).to(DEVICE)
+            preds = self(query_feats, trees, indexes)
+            loss = self.loss_fn(preds, targets)
+            self.zero_grad()
+            loss.backward()
+            for n, p in self.named_parameters():
+                n = n.replace('.', '__')
+                if p.grad is not None:
+                    fisher_diagonals[n] += p.grad.data.clone() ** 2
+            total_data += 1
+            if total_data * batch_size >= sample_size:
+                break
+        # Average the squared gradients
+        for n in fisher_diagonals:
+            fisher_diagonals[n] /= total_data
+        return {n: f for n, f in fisher_diagonals.items()}
 
+    def consolidate(self, fisher):
+        for n, p in self.named_parameters():
+            n = n.replace('.', '__')
+            self.register_buffer('{}_mean'.format(n), p.data.clone())
+            self.register_buffer('{}_fisher'.format(n), fisher[n].data.clone())
+
+    def ewc_loss(self):
+        try:
+            losses = []
+            for n, p in self.named_parameters():
+                n = n.replace('.', '__')
+                mean = getattr(self, '{}_mean'.format(n))
+                fisher = getattr(self, '{}_fisher'.format(n))
+                losses.append((fisher * (p - mean) ** 2).sum())
+            return (self.lamda / 2) * sum(losses)
+        except AttributeError:
+            # ewc loss is 0 if there's no consolidated parameters.
+            return torch.tensor(0.0, device=DEVICE)
+
+# Qihan: here is a using example should be used in the main.py
+# Usage example:
+# After training on Task A
+
+# fisher = model.estimate_fisher(dataset_A, sample_size=1000, batch_size=32)
+# model.consolidate(fisher)
+
+# During training on Task B, include EWC loss
+# for query_feats, trees, indexes, targets in data_loader_B:
+#     preds = model(query_feats, trees, indexes)
+#     loss = model.loss_fn(preds, targets) + model.ewc_loss()
+    # ... optimization steps ...
 
 class TreeConv1d(nn.Module):
     """Conv1d adapted to tree data."""
