@@ -90,6 +90,7 @@ class TreeConvolution(nn.Module):
         Returns:
         Predicted costs: Tensor of float, sized [batch size, 1].
         """
+
         
 
         query_embs = self.query_mlp(query_feats.unsqueeze(1))

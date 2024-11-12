@@ -862,11 +862,11 @@ class BalsaAgent(object):
             workload.FilterQueries(
                 p.query_dir, p.query_glob, p.test_query_glob)
         elif self.curr_value_iter == 0:
-            #wp = envs.IMDB_assorted_small.Params() 
+            wp = envs.IMDB_assorted_small.Params() 
             #wp = envs.IMDB_assorted_small_2.Params()
             #wp = envs.IMDB_assorted.Params()
             #wp = envs.IMDB_assorted_2.Params()
-            wp = envs.IMDB_assorted_3.Params()
+            #wp = envs.IMDB_assorted_3.Params()
             # wp = envs.IMDB_assorted_4.Params()
             #wp = envs.TPCH10_assorted.Params()
             #wp = envs.TPCH10_assorted_2.Params()
@@ -1335,11 +1335,11 @@ class BalsaAgent(object):
             print('Execution time: {}'.format(real_cost))
         # NOTE: if engine != pg, we're still saving PG plans but with target
         # engine's latencies.  This mainly affects debug strings.
-        #Save(self.workload, "./data/IMDB_assorted_small/initial_policy_data.pkl")
+        Save(self.workload, "./data/IMDB_assorted_small/initial_policy_data.pkl")
         #Save(self.workload, "./data/IMDB_assorted_small_2/initial_policy_data.pkl")
         #Save(self.workload, "./data/IMDB_assorted/initial_policy_data.pkl")
         #Save(self.workload, "./data/IMDB_assorted_2/initial_policy_data.pkl")
-        Save(self.workload, "./data/IMDB_assorted_3/initial_policy_data.pkl")
+        #Save(self.workload, "./data/IMDB_assorted_3/initial_policy_data.pkl")
         # Save(self.workload, "./data/IMDB_assorted_4/initial_policy_data.pkl")
         #Save(self.workload, "./data/TPCH10_assorted/initial_policy_data.pkl")
         #Save(self.workload, "./data/TPCH10_assorted_2/initial_policy_data.pkl")
@@ -1386,12 +1386,12 @@ class BalsaAgent(object):
             # This condition only affects the first ever call to Train().
             # Iteration 0 doesn't have a timeout limit, so during the second
             # call to Train() we would always have self.curr_value_iter == 1.
-            trainer.fit(model, train_loader, val_loader)
-            self.model = model.model
             # 在训练结束后，估计 Fisher 信息并巩固参数
             model.consolidate_qihan()
             sample_size = len(train_loader.dataset)
             model.estimate_fisher(train_loader,sample_size)
+            trainer.fit(model, train_loader, val_loader)
+            self.model = model.model
             
             # Optimizer state dict now available.
             self.prev_optimizer_state_dict = None
@@ -1886,14 +1886,14 @@ class BalsaAgent(object):
         # "<class 'experiments.ConfigName'>" -> "ConfigName".
         experiment = str(p.cls).split(".")[-1][:-2]
 
-        # path = "data/IMDB_assorted_small/replay-{}-{}execs-{}nodes-{}s-{}iters-{}.pkl".format(
-        #     experiment,
-        #     self.num_query_execs,
-        #     len(self.exp.nodes),
-        #     int(iter_total_latency / 1e3),
-        #     self.curr_value_iter,
-        #     self.wandb_logger.experiment.id,
-        # )
+        path = "data/IMDB_assorted_small/replay-{}-{}execs-{}nodes-{}s-{}iters-{}.pkl".format(
+            experiment,
+            self.num_query_execs,
+            len(self.exp.nodes),
+            int(iter_total_latency / 1e3),
+            self.curr_value_iter,
+            self.wandb_logger.experiment.id,
+        )
 
 
 
@@ -1926,14 +1926,14 @@ class BalsaAgent(object):
         # )
 
 
-        path = "data/IMDB_assorted_3/replay-{}-{}execs-{}nodes-{}s-{}iters-{}.pkl".format(
-            experiment,
-            self.num_query_execs,
-            len(self.exp.nodes),
-            int(iter_total_latency / 1e3),
-            self.curr_value_iter,
-            self.wandb_logger.experiment.id,
-        )
+        # path = "data/IMDB_assorted_3/replay-{}-{}execs-{}nodes-{}s-{}iters-{}.pkl".format(
+        #     experiment,
+        #     self.num_query_execs,
+        #     len(self.exp.nodes),
+        #     int(iter_total_latency / 1e3),
+        #     self.curr_value_iter,
+        #     self.wandb_logger.experiment.id,
+        # )
 
 
         # path = "data/IMDB_assorted_4/replay-{}-{}execs-{}nodes-{}s-{}iters-{}.pkl".format(
