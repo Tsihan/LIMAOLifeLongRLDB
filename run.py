@@ -652,8 +652,10 @@ class BalsaModel(pl.LightningModule):
             else:
                 loss = F.mse_loss(output.reshape(-1,), target.reshape(-1,))
         # 添加 EWC 损失
-        ewc_loss = self.ewc_loss()
-        loss += ewc_loss
+        # 检查是否需要添加 EWC 损失
+        if self.mean and self.fisher:
+            ewc_loss = self.ewc_loss()
+            loss += ewc_loss
         
         if self.l2_lambda > 0:
             l2_loss = torch.tensor(0., device=loss.device, requires_grad=True)
@@ -668,37 +670,30 @@ class BalsaModel(pl.LightningModule):
     def estimate_fisher(self, data_loader, sample_size, batch_size=32):
         # 估计 Fisher 信息
         self.eval()
-        loglikelihoods = []
-        for i, batch in enumerate(data_loader):
+        fisher = {n: torch.zeros_like(p) for n, p in self.named_parameters()}
+        data_loader_iter = iter(data_loader)
+        for i in range(sample_size):
+            try:
+                batch = next(data_loader_iter)
+            except StopIteration:
+                data_loader_iter = iter(data_loader)
+                batch = next(data_loader_iter)
             x, y = batch.query_feats, batch.costs
             x = x.cuda() if next(self.parameters()).is_cuda else x
             y = y.cuda() if next(self.parameters()).is_cuda else y
-            outputs = self.forward(x)
-            log_probs = F.log_softmax(outputs, dim=1)
-            # 根据实际情况选择正确的索引
-            loglikelihoods.append(log_probs[range(len(y)), y.long()])
-            if (i + 1) * batch_size >= sample_size:
-                break
-        loglikelihoods = torch.cat(loglikelihoods)
-        loglikelihood_grads = []
-        for loglikelihood in loglikelihoods:
             self.zero_grad()
-            loglikelihood.backward(retain_graph=True)
-            grads = []
-            for param in self.parameters():
-                if param.grad is not None:
-                    grads.append(param.grad.view(-1))
-                else:
-                    grads.append(torch.zeros_like(param.data.view(-1)))
-            loglikelihood_grads.append(torch.cat(grads))
-        loglikelihood_grads = torch.stack(loglikelihood_grads)
-        fisher_diagonals = torch.mean(loglikelihood_grads ** 2, dim=0)
-        # 将 Fisher 信息保存到 self.fisher 中
-        idx = 0
-        for n, p in self.named_parameters():
-            num_params = p.numel()
-            self.fisher[n] = fisher_diagonals[idx:idx + num_params].view_as(p).detach()
-            idx += num_params
+            outputs = self.forward(x)
+            # 使用回归损失，例如 MSE
+            loss = F.mse_loss(outputs.reshape(-1,), y.reshape(-1,))
+            loss.backward()
+            for n, p in self.named_parameters():
+                if p.grad is not None:
+                    fisher[n] += p.grad.data ** 2
+        for n in fisher.keys():
+            fisher[n] = fisher[n] / sample_size
+        self.fisher = fisher
+
+        
 
     def consolidate_qihan(self):
         # 保存模型参数的均值到 self.mean 中
@@ -706,6 +701,9 @@ class BalsaModel(pl.LightningModule):
             self.mean[n] = p.data.clone()
 
     def ewc_loss(self):
+        # 如果没有保存的参数，返回零损失
+        if not self.mean or not self.fisher:
+            return 0.0
         # 计算 EWC 损失
         loss = 0
         for n, p in self.named_parameters():
@@ -1363,9 +1361,7 @@ class BalsaAgent(object):
                 self.curr_value_iter))
         trainer = self._MakeTrainer(train_loader)
         
-        model.consolidate_qihan()
-        sample_size = len(train_loader.dataset)
-        model.estimate_fisher(train_loader,sample_size)
+        
         
         if train_from_scratch:
             trainer.fit(model, train_loader, val_loader)
@@ -1377,6 +1373,11 @@ class BalsaAgent(object):
             # call to Train() we would always have self.curr_value_iter == 1.
             trainer.fit(model, train_loader, val_loader)
             self.model = model.model
+            # 在训练结束后，估计 Fisher 信息并巩固参数
+            model.consolidate_qihan()
+            sample_size = len(train_loader.dataset)
+            model.estimate_fisher(train_loader,sample_size)
+            
             # Optimizer state dict now available.
             self.prev_optimizer_state_dict = None
             if p.inherit_optimizer_state:
