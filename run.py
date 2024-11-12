@@ -383,8 +383,8 @@ def TrainSim(p, loggers=None):
     if p.sim_checkpoint is None:
         sim.CollectSimulationData()
     # FIXME Qihan Zhang temporary modify to retain simulator p.sim_checkpoint None
-    sim.Train(load_from_checkpoint=None, loggers=loggers)
-    #sim.Train(load_from_checkpoint=p.sim_checkpoint, loggers=loggers)
+    #sim.Train(load_from_checkpoint=None, loggers=loggers)
+    sim.Train(load_from_checkpoint=p.sim_checkpoint, loggers=loggers)
     sim.model.freeze()
     sim.EvaluateCost()
     sim.FreeData()
@@ -673,31 +673,42 @@ class BalsaModel(pl.LightningModule):
 
     def estimate_fisher(self, data_loader, sample_size, batch_size=32):
         # 估计 Fisher 信息
-        self.eval()
+        self.eval()  # 设置模型为评估模式
         fisher = {n: torch.zeros_like(p) for n, p in self.named_parameters()}
         data_loader_iter = iter(data_loader)
+        device = next(self.parameters()).device  # 获取模型设备
+
         for i in range(sample_size):
             try:
                 batch = next(data_loader_iter)
             except StopIteration:
                 data_loader_iter = iter(data_loader)
                 batch = next(data_loader_iter)
-            x, y = batch.query_feats, batch.costs
-            x = x.cuda() if next(self.parameters()).is_cuda else x
-            y = y.cuda() if next(self.parameters()).is_cuda else y
+            
+            # 获取输入和标签
+            x_q, x_p, x_i, y = batch.query_feats, batch.plans, batch.indexes, batch.costs
+
+            # 将数据移动到模型设备
+            x_q = x_q.to(device)
+            x_p = x_p.to(device)
+            x_i = x_i.to(device)
+            y = y.to(device)
+
             self.zero_grad()
-            outputs = self.forward(x)
+            outputs = self.forward(x_q, x_p, x_i)
             # 使用回归损失，例如 MSE
             loss = F.mse_loss(outputs.reshape(-1,), y.reshape(-1,))
             loss.backward()
             for n, p in self.named_parameters():
                 if p.grad is not None:
                     fisher[n] += p.grad.data ** 2
+
         for n in fisher.keys():
             fisher[n] = fisher[n] / sample_size
         self.fisher = fisher
+        self.train()  # 恢复模型为训练模式
 
-        
+            
 
     def consolidate_qihan(self):
         # 保存模型参数的均值到 self.mean 中
@@ -723,14 +734,14 @@ class BalsaModel(pl.LightningModule):
             norm_dict = self.grad_norm(norm_type=2)
             total_grad_norm = norm_dict['grad_2.0_norm_total']
             total_norm = torch.stack([
-                torch.norm(param) for param in self.parameters()
-            ]).sum().detach()
+                    torch.norm(param) for param in self.parameters()
+                ]).sum().detach()
             self.logger.log_metrics(
-                {
-                    'total_grad_norm': total_grad_norm,
-                    'total_norm': total_norm,
-                },
-                step=self.global_step)
+                    {
+                        'total_grad_norm': total_grad_norm,
+                        'total_norm': total_norm,
+                    },
+                    step=self.global_step)
 
 
 class BalsaAgent(object):
