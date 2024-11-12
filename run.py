@@ -653,6 +653,7 @@ class BalsaModel(pl.LightningModule):
             l2_loss = self.l2_lambda * 0.5 * l2_loss
             loss += l2_loss
             return loss, l2_loss
+        # TODO Qihan Zhang: add EWC loss here
         return loss, None
 
     def on_after_backward(self):
@@ -918,7 +919,6 @@ class BalsaAgent(object):
         if do_replay_training and self.curr_value_iter == 0:
             # Reloading replay buffers: let's train on all data.
             on_policy = False
-        # TODO: avoid repeatedly featurizing already-featurized nodes.
         tup = self.exp.featurize(
             rewrite_generic=not p.plan_physical,
             verbose=False,
@@ -1280,6 +1280,7 @@ class BalsaAgent(object):
     def Train(self, train_from_scratch=False):
         p = self.params
         self.timer.Start('train')
+        # TODO Qihan Zhang: pay attention to the train loader, need to estimate_fisher information here
         train_ds, train_loader, _, val_loader = self._MakeDatasetAndLoader(
             log=not train_from_scratch)
         # Fields accessed: 'costs' (for p.cross_entropy; unused);
@@ -1635,7 +1636,6 @@ class BalsaAgent(object):
                         result_tup = ray.get(new_ref)
                     except psycopg2.errors.DiskFull:
                         # Catch double DiskFull errors and treat as a timeout.
-                        # TODO: what if a test query triggered this?
                         assert is_disk_full, 'DiskFull should happen twice.'
                         print('DiskFull happens twice; treating as a timeout.'
                               '  *NOTE* The agent will train on the timeout '
@@ -2017,7 +2017,7 @@ class BalsaAgent(object):
         p = self.params
         self.curr_iter_skipped_queries = 0
         # Train the model.
-        
+        # TODO Qihan Zhang, here the model is class BalsaModel
         model, dataset = self.Train()
 
         # Replay buffer reset (if enabled).
@@ -2148,11 +2148,11 @@ class BalsaAgent(object):
 
     def SaveAgent(self, model, iter_total_latency):
         """Saves the complete execution state of the agent."""
-        # TODO: not complete state, currently missing:
+  
         #  - query exec cache
         #  - moving averages
         #  - a bunch of fields (see Run())
-        # TODO: support reloading & resume.
+        
 
         # Model weights.  Saved under <wandb dir>/checkpoint.pt.
         #
@@ -2218,7 +2218,7 @@ class BalsaAgent(object):
             avg_buffer.copy_(tmp)
 
     def EvaluateTestSet(self, model, planner, tag='latency_test'):
-        # TODO: exclude running time for evaluating test set.
+        
         p = self.params
         num_iters_done = self.curr_value_iter + 1
         if p.test_query_glob is None or \
