@@ -163,13 +163,17 @@ def ExecuteSql(query_name,
         predicted_costs, silent, is_test, plan_physical
 
     assert engine in ('postgres', 'dbmsx'), engine
-    if engine == 'postgres':
-        return postgres.ExplainAnalyzeSql(sql_str,
-                                          comment=hint_str,
-                                          verbose=False,
-                                          geqo_off=True,
-                                          timeout_ms=curr_timeout_ms,
-                                          remote=not use_local_execution)
+    if engine == "postgres":
+        if curr_timeout_ms is None or curr_timeout_ms > 512000:
+            curr_timeout_ms = 512000
+        return postgres.ExplainAnalyzeSql(
+            sql_str,
+            comment=hint_str,
+            verbose=False,
+            geqo_off=True,
+            timeout_ms=curr_timeout_ms,
+            remote=not use_local_execution,
+        )
     else:
         return DbmsxExecuteSql(sql_str,
                                comment=hint_str,
