@@ -676,7 +676,7 @@ class BalsaModel(pl.LightningModule):
         self.eval()  # 设置模型为评估模式
         fisher = {n: torch.zeros_like(p) for n, p in self.named_parameters()}
         data_loader_iter = iter(data_loader)
-        device = next(self.parameters()).device  # 获取模型设备
+        device =  GetDevice()
 
         for i in range(sample_size):
             try:

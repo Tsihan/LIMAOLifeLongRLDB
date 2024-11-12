@@ -90,12 +90,7 @@ class TreeConvolution(nn.Module):
         Returns:
         Predicted costs: Tensor of float, sized [batch size, 1].
         """
-        device = next(self.parameters()).device  # 获取模型参数所在的设备
-
-        # 将输入数据移动到设备上
-        query_feats = query_feats.to(device)
-        trees = trees.to(device)
-        indexes = indexes.to(device)
+        
 
         query_embs = self.query_mlp(query_feats.unsqueeze(1))
         query_embs = query_embs.transpose(1, 2)
