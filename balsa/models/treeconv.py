@@ -81,49 +81,33 @@ class TreeConvolution(nn.Module):
         """Forward pass.
 
         Args:
-          query_feats: Query encoding vectors.  Shaped as
+        query_feats: Query encoding vectors.  Shaped as
             [batch size, query dims].
-          trees: The input plan features.  Shaped as
+        trees: The input plan features.  Shaped as
             [batch size, plan dims, max tree nodes].
-          indexes: For Tree convolution.
+        indexes: For Tree convolution.
 
         Returns:
-          Predicted costs: Tensor of float, sized [batch size, 1].
+        Predicted costs: Tensor of float, sized [batch size, 1].
         """
-        query_embs = self.query_mlp(query_feats.unsqueeze(1))
+        device = next(self.parameters()).device  # 获取模型参数所在的设备
 
+        # 将输入数据移动到设备上
+        query_feats = query_feats.to(device)
+        trees = trees.to(device)
+        indexes = indexes.to(device)
+
+        query_embs = self.query_mlp(query_feats.unsqueeze(1))
         query_embs = query_embs.transpose(1, 2)
         max_subtrees = trees.shape[-1]
         query_embs = query_embs.expand(query_embs.shape[0], query_embs.shape[1],
-                                       max_subtrees)
+                                    max_subtrees)
         concat = torch.cat((query_embs, trees), axis=1)
 
         out = self.conv((concat, indexes))
         out = self.out_mlp(out)
         return out
-    # Qihan: add the following three methods
-    def estimate_fisher():
-       pass
-        
 
-    def consolidate(self, fisher):
-        pass
-
-    def ewc_loss(self):
-        pass
-
-# Qihan: here is a using example should be used in the main.py
-# Usage example:
-# After training on Task A
-
-# fisher = model.estimate_fisher(dataset_A, sample_size=1000, batch_size=32)
-# model.consolidate(fisher)
-
-# During training on Task B, include EWC loss
-# for query_feats, trees, indexes, targets in data_loader_B:
-#     preds = model(query_feats, trees, indexes)
-#     loss = model.loss_fn(preds, targets) + model.ewc_loss()
-    # ... optimization steps ...
 
 class TreeConv1d(nn.Module):
     """Conv1d adapted to tree data."""
