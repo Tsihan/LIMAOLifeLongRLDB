@@ -548,7 +548,7 @@ class BalsaModel(pl.LightningModule):
         # EWC 相关属性
         self.mean = {}
         self.fisher = {}
-        self.lamda = 1000  # EWC 损失的权重，需根据实际情况调整
+        self.lamda = 100  # EWC 损失的权重，需根据实际情况调整
 
     def SetLoggingPrefix(self, prefix):
         """Useful for prepending value iteration numbers."""
