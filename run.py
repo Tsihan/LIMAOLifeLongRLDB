@@ -587,6 +587,11 @@ class BalsaModel(pl.LightningModule):
         # Optionally, reduce within each trainer.fit() call (i.e., an iter).
         self.reduce_lr_within_val_iter = reduce_lr_within_val_iter
 
+        # EWC 相关属性
+        self.mean = {}
+        self.fisher = {}
+        self.lamda = 10  # EWC 损失的权重，需根据实际情况调整
+
     def SetLoggingPrefix(self, prefix):
         """Useful for prepending value iteration numbers."""
         self.logging_prefix = prefix
@@ -783,6 +788,13 @@ class BalsaModel(pl.LightningModule):
                         -1,
                     ),
                 )
+
+        # 添加 EWC 损失
+        # 检查是否需要添加 EWC 损失
+        if self.mean and self.fisher:
+            ewc_loss = self.ewc_loss()
+            loss += ewc_loss
+
         if self.l2_lambda > 0:
             l2_loss = torch.tensor(0.0, device=loss.device, requires_grad=True)
             for param in self.parameters():
@@ -792,6 +804,63 @@ class BalsaModel(pl.LightningModule):
             # qihan return from this
             return loss, l2_loss
         return loss, None
+
+    def estimate_fisher(self, data_loader, sample_size, batch_size=32):
+        # 估计 Fisher 信息
+        self.eval()  # 设置模型为评估模式
+        fisher = {n: torch.zeros_like(p) for n, p in self.named_parameters()}
+        data_loader_iter = iter(data_loader)
+        device =  GetDevice()
+
+        for i in range(sample_size):
+            try:
+                batch = next(data_loader_iter)
+            except StopIteration:
+                data_loader_iter = iter(data_loader)
+                batch = next(data_loader_iter)
+            
+            # 获取输入和标签
+            x_q, x_p, x_i, y = batch.query_feats, batch.plans, batch.indexes, batch.costs
+
+            # 将数据移动到模型设备
+            x_q = x_q.to(device)
+            x_p = x_p.to(device)
+            x_i = x_i.to(device)
+            y = y.to(device)
+
+            self.zero_grad()
+            outputs = self.forward(x_q, x_p, x_i)
+            # 使用回归损失，例如 MSE
+            loss = F.mse_loss(outputs.reshape(-1,), y.reshape(-1,))
+            loss.backward()
+            for n, p in self.named_parameters():
+                if p.grad is not None:
+                    fisher[n] += p.grad.data ** 2
+
+        for n in fisher.keys():
+            fisher[n] = fisher[n] / sample_size
+        self.fisher = fisher
+        self.train()  # 恢复模型为训练模式
+
+            
+
+    def consolidate_qihan(self):
+        # 保存模型参数的均值到 self.mean 中
+        for n, p in self.named_parameters():
+            self.mean[n] = p.data.clone()
+
+    def ewc_loss(self):
+        # 如果没有保存的参数，返回零损失
+        if not self.mean or not self.fisher:
+            return 0.0
+        # 计算 EWC 损失
+        loss = 0
+        for n, p in self.named_parameters():
+            if n in self.mean:
+                mean = self.mean[n]
+                fisher = self.fisher[n]
+                loss += (fisher * (p - mean) ** 2).sum()
+        return (self.lamda / 2) * loss
 
     def on_after_backward(self):
         if self.global_step % 10 == 0:
@@ -1740,6 +1809,10 @@ class BalsaAgent(object):
             # This condition only affects the first ever call to Train().
             # Iteration 0 doesn't have a timeout limit, so during the second
             # call to Train() we would always have self.curr_value_iter == 1.
+            # 在训练结束后，估计 Fisher 信息并巩固参数
+            model.consolidate_qihan()
+            sample_size = len(train_loader.dataset)
+            model.estimate_fisher(train_loader,sample_size)
             trainer.fit(model, train_loader, val_loader)
             self.model = model.model
             # Optimizer state dict now available.
