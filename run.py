@@ -423,8 +423,8 @@ def TrainSim(p, loggers=None):
     if p.sim_checkpoint is None:
         sim.CollectSimulationData()
     # FIXME Qihan Zhang temporary modify to retain simulator p.sim_checkpoint None
-    sim.Train(load_from_checkpoint=None, loggers=loggers)
-    #sim.Train(load_from_checkpoint=p.sim_checkpoint, loggers=loggers)
+    # sim.Train(load_from_checkpoint=None, loggers=loggers)
+    sim.Train(load_from_checkpoint=p.sim_checkpoint, loggers=loggers)
     sim.model.freeze()
     sim.EvaluateCost()
     sim.FreeData()
@@ -805,42 +805,91 @@ class BalsaModel(pl.LightningModule):
             return loss, l2_loss
         return loss, None
 
-    def estimate_fisher(self, data_loader, sample_size, batch_size=32):
-        # 估计 Fisher 信息
-        self.eval()  # 设置模型为评估模式
+    def estimate_fisher(self, data_loader, sample_size):
+        def get_three_indexes(names):
+            list_other = []
+            list_hash_join = []
+            list_nested_loop_join = []
+            # name will not contain the directory, just the name of the sql file
+            for name in names:
+                idx_other = optim.SQL_DICT_OTHER[name]
+                list_other.append(idx_other)
+                idx_hash_join = optim.SQL_DICT_HASH_JOIN[name]
+                list_hash_join.append(idx_hash_join)
+                idx_nested_loop_join = optim.SQL_DICT_NESTED_LOOP_JOIN[name]
+                list_nested_loop_join.append(idx_nested_loop_join)
+
+            return list_other, list_hash_join, list_nested_loop_join
+        
+        """Estimate the Fisher Information for EWC."""
+        self.eval()  # Set model to evaluation mode
         fisher = {n: torch.zeros_like(p) for n, p in self.named_parameters()}
         data_loader_iter = iter(data_loader)
-        device =  GetDevice()
+        device = GetDevice()
 
-        for i in range(sample_size):
+        total_samples = 0
+
+        while total_samples < sample_size:
             try:
                 batch = next(data_loader_iter)
             except StopIteration:
                 data_loader_iter = iter(data_loader)
                 batch = next(data_loader_iter)
-            
-            # 获取输入和标签
-            x_q, x_p, x_i, y = batch.query_feats, batch.plans, batch.indexes, batch.costs
 
-            # 将数据移动到模型设备
-            x_q = x_q.to(device)
-            x_p = x_p.to(device)
-            x_i = x_i.to(device)
-            y = y.to(device)
+            # Move batch data to device
+            query_feat = batch.query_feats.to(device)
+            tree_feat = batch.plans.to(device)
+            hash_join_feat = batch.plans_hash_join.to(device)
+            nested_loop_join_feat = batch.plans_nested_loop_join.to(device)
+            pos_feat = batch.indexes.to(device)
+            hash_join_pos_feat = batch.indexes_hash_join.to(device)
+            nested_loop_join_pos_feat = batch.indexes_nested_loop_join.to(device)
+            target = batch.costs.to(device)
+            names = batch.names
 
+            # Get the indexes using get_three_indexes
+            idx_other_module_list, idx_hash_join_module_list, idx_nested_loop_join_module_list = get_three_indexes(names)
+
+            # Zero gradients
             self.zero_grad()
-            outputs = self.forward(x_q, x_p, x_i)
-            # 使用回归损失，例如 MSE
-            loss = F.mse_loss(outputs.reshape(-1,), y.reshape(-1,))
+
+            # Forward pass
+            outputs = self.forward(
+                idx_other_module_list,
+                idx_hash_join_module_list,
+                idx_nested_loop_join_module_list,
+                query_feat,
+                tree_feat,
+                hash_join_feat,
+                nested_loop_join_feat,
+                pos_feat,
+                hash_join_pos_feat,
+                nested_loop_join_pos_feat,
+            )
+
+            # Compute loss, assuming MSE loss
+            loss = F.mse_loss(
+                outputs.reshape(-1,),
+                target.reshape(-1,),
+            )
+
+            # Backward pass
             loss.backward()
+
+            # Accumulate the squared gradients
+            batch_size = query_feat.size(0)
             for n, p in self.named_parameters():
                 if p.grad is not None:
-                    fisher[n] += p.grad.data ** 2
+                    fisher[n] += p.grad.data ** 2 * batch_size
 
+            total_samples += batch_size
+
+        # Normalize the fisher information
         for n in fisher.keys():
-            fisher[n] = fisher[n] / sample_size
+            fisher[n] = fisher[n] / total_samples
         self.fisher = fisher
-        self.train()  # 恢复模型为训练模式
+        self.train()  # Switch back to training mode
+
 
             
 
@@ -3533,7 +3582,7 @@ def Main(argv):
     # Override params here for quick debugging.
     # p.sim_checkpoint = None
     # p.epochs = 1
-    p.val_iters = 20
+    p.val_iters = 100
 
     # p.query_glob = ['7*.sql']
     # p.test_query_glob = ['7c.sql']
