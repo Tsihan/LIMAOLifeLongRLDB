@@ -117,7 +117,7 @@ class PlansDataset(torch.utils.data.Dataset):
     def _transform_fn(self, transform_name):
 
         def log1p(xs):
-            return np.log(np.asarray(xs) + 1.0)
+            return np.log(np.asarray(xs, dtype=np.float32) + 1.0)
 
         def standardize(xs):
             self._EPS = 1e-6
