@@ -1,5 +1,6 @@
 import socketserver
 import json
+import torch
 import struct
 import sys
 import time
@@ -106,9 +107,6 @@ class BaoJSONHandler(JSONTCPHandler):
 
             if message_type == "query":
                 result = self.server.bao_model.select_plan(self.__messages)
-                # write the result to a file
-                with open("/mydata/arm_result.txt", "a") as f:
-                    f.write("arm: " + str(result) + "\n")
                 self.request.sendall(struct.pack("I", result))
                 self.request.close()
             elif message_type == "predict":
@@ -122,6 +120,7 @@ class BaoJSONHandler(JSONTCPHandler):
             elif message_type == "load model":
                 path = self.__messages[0]["path"]
                 self.server.bao_model.load_model(path)
+                
             else:
                 print("Unknown message type:", message_type)
             
@@ -159,5 +158,6 @@ if __name__ == "__main__":
     server = Process(target=start_server, args=(listen_on, port))
     
     print("Spawning server process...")
+    print("CUDA available:", torch.cuda.is_available())
     server.start()
     server.join()

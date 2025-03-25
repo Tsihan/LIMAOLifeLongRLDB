@@ -360,6 +360,9 @@ def should_replace_model(old_model, new_model):
     # Check the trained model for regressions on experimental queries.
     new_num_reg, new_reg_amnt = compute_regressions(new_model)
     cur_num_reg, cur_reg_amnt = compute_regressions(old_model)
+    
+    with open("/mydata/arm_result.txt", "a") as f:
+                    f.write("load model: \n")
 
     print("Old model # regressions:", cur_num_reg,
           "regression amount:", cur_reg_amnt)
