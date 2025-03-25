@@ -18,39 +18,178 @@ _ALL_OPTIONS = [
     "enable_nestloop", "enable_hashjoin", "enable_mergejoin",
     "enable_seqscan", "enable_indexscan", "enable_indexonlyscan"
 ]
+# Example definition of BaoException for completeness:
+class BaoException(Exception):
+    pass
+
+# Each short name below maps directly to the corresponding enable_* name.
+# For example, "hashjoin" -> "enable_hashjoin", etc.
+# Order them exactly as you want them indexed (0 to 48).
+_ARMS = [
+    #  0 (all six on)
+    ["hashjoin", "indexonlyscan", "indexscan", "mergejoin", "nestloop", "seqscan"],
+    #  1
+    ["hashjoin", "indexonlyscan", "indexscan"],
+    #  2
+    ["hashjoin", "indexonlyscan", "indexscan", "mergejoin"],
+    #  3
+    ["hashjoin", "indexonlyscan", "indexscan", "mergejoin", "nestloop"],
+    #  4
+    ["hashjoin", "indexonlyscan", "indexscan", "mergejoin", "seqscan"],
+    #  5
+    ["hashjoin", "indexonlyscan", "indexscan", "nestloop"],
+    #  6
+    ["hashjoin", "indexonlyscan", "indexscan", "nestloop", "seqscan"],
+    #  7
+    ["hashjoin", "indexonlyscan", "indexscan", "seqscan"],
+    #  8
+    ["hashjoin", "indexonlyscan", "mergejoin"],
+    #  9
+    ["hashjoin", "indexonlyscan", "mergejoin", "nestloop"],
+    # 10
+    ["hashjoin", "indexonlyscan", "mergejoin", "nestloop", "seqscan"],
+    # 11
+    ["hashjoin", "indexonlyscan", "mergejoin", "seqscan"],
+    # 12
+    ["hashjoin", "indexonlyscan", "nestloop"],
+    # 13
+    ["hashjoin", "indexonlyscan", "nestloop", "seqscan"],
+    # 14
+    ["hashjoin", "indexonlyscan", "seqscan"],
+    # 15
+    ["hashjoin", "indexscan"],
+    # 16
+    ["hashjoin", "indexscan", "mergejoin"],
+    # 17
+    ["hashjoin", "indexscan", "mergejoin", "nestloop"],
+    # 18
+    ["hashjoin", "indexscan", "mergejoin", "nestloop", "seqscan"],
+    # 19
+    ["hashjoin", "indexscan", "mergejoin", "seqscan"],
+    # 20
+    ["hashjoin", "indexscan", "nestloop"],
+    # 21
+    ["hashjoin", "indexscan", "nestloop", "seqscan"],
+    # 22
+    ["hashjoin", "indexscan", "seqscan"],
+    # 23
+    ["hashjoin", "mergejoin", "nestloop", "seqscan"],
+    # 24
+    ["hashjoin", "mergejoin", "seqscan"],
+    # 25
+    ["hashjoin", "nestloop", "seqscan"],
+    # 26
+    ["hashjoin", "seqscan"],
+    # 27
+    ["indexonlyscan", "indexscan", "mergejoin"],
+    # 28
+    ["indexonlyscan", "indexscan", "mergejoin", "nestloop"],
+    # 29
+    ["indexonlyscan", "indexscan", "mergejoin", "nestloop", "seqscan"],
+    # 30
+    ["indexonlyscan", "indexscan", "mergejoin", "seqscan"],
+    # 31
+    ["indexonlyscan", "indexscan", "nestloop"],
+    # 32
+    ["indexonlyscan", "indexscan", "nestloop", "seqscan"],
+    # 33
+    ["indexonlyscan", "mergejoin"],
+    # 34
+    ["indexonlyscan", "mergejoin", "nestloop"],
+    # 35
+    ["indexonlyscan", "mergejoin", "nestloop", "seqscan"],
+    # 36
+    ["indexonlyscan", "mergejoin", "seqscan"],
+    # 37
+    ["indexonlyscan", "nestloop"],
+    # 38
+    ["indexonlyscan", "nestloop", "seqscan"],
+    # 39
+    ["indexscan", "mergejoin"],
+    # 40
+    ["indexscan", "mergejoin", "nestloop"],
+    # 41
+    ["indexscan", "mergejoin", "nestloop", "seqscan"],
+    # 42
+    ["indexscan", "mergejoin", "seqscan"],
+    # 43
+    ["indexscan", "nestloop"],
+    # 44
+    ["indexscan", "nestloop", "seqscan"],
+    # 45
+    ["mergejoin", "nestloop", "seqscan"],
+    # 46
+    ["mergejoin", "seqscan"],
+    # 47
+    ["nestloop", "seqscan"],
+    # 48
+    ["hashjoin", "indexonlyscan"], 
+]
 
 def _arm_idx_to_hints(arm_idx):
-    hints = []
-    for option in _ALL_OPTIONS:
-        hints.append(f"SET {option} TO off")
+    """
+    Returns a list of Postgres-hint-style settings (e.g. "SET enable_hashjoin TO on")
+    corresponding to the arm_idx-th combination of booleans.
+    """
+    if arm_idx < 0 or arm_idx >= len(_ARMS):
+        raise BaoException(f"RegBlocker only supports 49 arms (0..{len(_ARMS)-1}). Got arm_idx={arm_idx}")
 
-    if arm_idx == 0:
-        for option in _ALL_OPTIONS:
-            hints.append(f"SET {option} TO on")
-    elif arm_idx == 1:
-        hints.append("SET enable_hashjoin TO on")
-        hints.append("SET enable_indexonlyscan TO on")
-        hints.append("SET enable_indexscan TO on")
-        hints.append("SET enable_mergejoin TO on")
-        hints.append("SET enable_seqscan TO on")
-    elif arm_idx == 2:
-        hints.append("SET enable_hashjoin TO on")
-        hints.append("SET enable_indexonlyscan TO on")
-        hints.append("SET enable_nestloop TO on")
-        hints.append("SET enable_seqscan TO on")
-    elif arm_idx == 3:
-        hints.append("SET enable_hashjoin TO on")
-        hints.append("SET enable_indexonlyscan TO on")
-        hints.append("SET enable_seqscan TO on")
-    elif arm_idx == 4:
-        hints.append("SET enable_hashjoin TO on")
-        hints.append("SET enable_indexonlyscan TO on")
-        hints.append("SET enable_indexscan TO on")
-        hints.append("SET enable_nestloop TO on")
-        hints.append("SET enable_seqscan TO on")
-    else:
-        raise BaoException("RegBlocker only supports the first 5 arms")
+    chosen_short_opts = set(_ARMS[arm_idx])  # e.g. {"hashjoin", "indexonlyscan"}
+    hints = []
+
+    # Map from short name to the actual Postgres enable_* setting.
+    short_to_enable = {
+        "hashjoin":       "enable_hashjoin",
+        "indexonlyscan":  "enable_indexonlyscan",
+        "indexscan":      "enable_indexscan",
+        "mergejoin":      "enable_mergejoin",
+        "nestloop":       "enable_nestloop",
+        "seqscan":        "enable_seqscan",
+    }
+
+    # For each of the 6 possible operators, turn them on/off depending on chosen_short_opts.
+    for short_opt in short_to_enable:
+        pg_opt = short_to_enable[short_opt]
+        if short_opt in chosen_short_opts:
+            hints.append(f"SET {pg_opt} TO on")
+        else:
+            hints.append(f"SET {pg_opt} TO off")
+
     return hints
+
+
+# def _arm_idx_to_hints(arm_idx):
+#     hints = []
+#     for option in _ALL_OPTIONS:
+#         hints.append(f"SET {option} TO off")
+
+#     if arm_idx == 0:
+#         for option in _ALL_OPTIONS:
+#             hints.append(f"SET {option} TO on")
+#     elif arm_idx == 1:
+#         hints.append("SET enable_hashjoin TO on")
+#         hints.append("SET enable_indexonlyscan TO on")
+#         hints.append("SET enable_indexscan TO on")
+#         hints.append("SET enable_mergejoin TO on")
+#         hints.append("SET enable_seqscan TO on")
+#     elif arm_idx == 2:
+#         hints.append("SET enable_hashjoin TO on")
+#         hints.append("SET enable_indexonlyscan TO on")
+#         hints.append("SET enable_nestloop TO on")
+#         hints.append("SET enable_seqscan TO on")
+#     elif arm_idx == 3:
+#         hints.append("SET enable_hashjoin TO on")
+#         hints.append("SET enable_indexonlyscan TO on")
+#         hints.append("SET enable_seqscan TO on")
+#     elif arm_idx == 4:
+#         hints.append("SET enable_hashjoin TO on")
+#         hints.append("SET enable_indexonlyscan TO on")
+#         hints.append("SET enable_indexscan TO on")
+#         hints.append("SET enable_nestloop TO on")
+#         hints.append("SET enable_seqscan TO on")
+#     else:
+#         raise BaoException("RegBlocker only supports the first 5 arms")
+#     return hints
         
 class ExperimentRunner:
     def __init__(self):
