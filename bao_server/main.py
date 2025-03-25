@@ -106,6 +106,9 @@ class BaoJSONHandler(JSONTCPHandler):
 
             if message_type == "query":
                 result = self.server.bao_model.select_plan(self.__messages)
+                # write the result to a file
+                with open("/mydata/arm_result.txt", "a") as f:
+                    f.write("arm: " + str(result) + "\n")
                 self.request.sendall(struct.pack("I", result))
                 self.request.close()
             elif message_type == "predict":
