@@ -32,7 +32,7 @@
 
 // Connect to a Bao server, construct plans for each arm, have the server
 // select a plan. Has the same signature as the PG optimizer.
-BaoPlan *plan_query(Query *parse, const char* queryString, int cursorOptions, ParamListInfo boundParams);
+BaoPlan *plan_query(Query *parse, int cursorOptions, ParamListInfo boundParams);
 
 // Translate an arm index into SQL statements to give the hint (used for EXPLAIN).
 char* arm_to_hint(int arm);
@@ -42,193 +42,609 @@ char* arm_to_hint(int arm);
 // Set the planner hint options to the correct one for the passed-in arm
 // index. Should be called with the `save_arm_options` macro so we don't
 // blast-away the user's config.
-static void set_arm_options(int arm) {
-  enable_hashjoin = false;
-  enable_mergejoin = false;
-  enable_nestloop = false;
-  enable_indexscan = false;
-  enable_seqscan = false;
-  enable_indexonlyscan = false;
+// static void set_arm_options(int arm) {
+//   enable_hashjoin = false;
+//   enable_mergejoin = false;
+//   enable_nestloop = false;
+//   enable_indexscan = false;
+//   enable_seqscan = false;
+//   enable_indexonlyscan = false;
   
-  switch (arm) {
-  case 0:
-    enable_hashjoin = true;
-    enable_indexscan = true;
-    enable_mergejoin = true;
-    enable_nestloop = true;
-    enable_seqscan = true;
-    enable_indexonlyscan = true;
-    break;
+//   switch (arm) {
+//   case 0:
+//     enable_hashjoin = true;
+//     enable_indexscan = true;
+//     enable_mergejoin = true;
+//     enable_nestloop = true;
+//     enable_seqscan = true;
+//     enable_indexonlyscan = true;
+//     break;
     
-  case 1: 
-    enable_hashjoin = true; 
-    enable_indexonlyscan = true; 
-    enable_indexscan = true; 
-    enable_mergejoin = true; 
-    enable_seqscan = true; 
-    break;
-  case 2: 
-    enable_hashjoin = true; 
-    enable_indexonlyscan = true; 
-    enable_nestloop = true; 
-    enable_seqscan = true; 
-    break;
-  case 3: 
-    enable_hashjoin = true; 
-    enable_indexonlyscan = true; 
-    enable_seqscan = true; 
-    break;
-  case 4: 
-    enable_hashjoin = true; 
-    enable_indexonlyscan = true; 
-    enable_indexscan = true; 
-    enable_nestloop = true; 
-    enable_seqscan = true; 
-    break;
-  case 5: 
-    enable_hashjoin = true; 
-    enable_indexonlyscan = true; 
-    enable_mergejoin = true; 
-    enable_nestloop = true; 
-    break;
-  case 6:
-    enable_hashjoin = true; 
-    enable_indexscan = true; 
-    enable_mergejoin = true; 
-    enable_nestloop = true; 
-    break;
-  case 7: 
-    enable_indexonlyscan = true; 
-    enable_mergejoin = true; 
-    enable_nestloop = true; 
-    break;
-  case 8: 
-    enable_hashjoin = true; 
-    enable_indexonlyscan = true; 
-    break;
-  case 9: 
-    enable_hashjoin = true; 
-    enable_indexonlyscan = true; 
-    enable_indexscan = true; 
-    enable_nestloop = true; 
-    break;
-  case 10:
-    enable_hashjoin = true; 
-    enable_indexonlyscan = true; 
-    enable_indexscan = true; 
-    enable_seqscan = true; 
-    break;
-  case 11: 
-    enable_hashjoin = true; 
-    enable_indexonlyscan = true; 
-    enable_mergejoin = true; 
-    enable_nestloop = true; 
-    enable_seqscan = true; 
-    break;
-  case 12: 
-    enable_hashjoin = true; 
-    enable_indexonlyscan = true; 
-    enable_mergejoin = true; 
-    enable_seqscan = true; 
-    break;
-  case 13: 
-    enable_hashjoin = true; 
-    enable_indexscan = true; 
-    enable_nestloop = true; 
-    break;
-  case 14: 
-    enable_indexscan = true; 
-    enable_nestloop = true; 
-    break;
-  case 15: 
-    enable_indexscan = true; 
-    enable_mergejoin = true; 
-    enable_nestloop = true; 
-    enable_seqscan = true; 
-    break;
-  case 16: 
-    enable_indexonlyscan = true; 
-    enable_indexscan = true; 
-    enable_nestloop = true; 
-    break;
-  case 17: 
-    enable_hashjoin = true; 
-    enable_indexonlyscan = true; 
-    enable_indexscan = true; 
-    enable_mergejoin = true; 
-    enable_nestloop = true; 
-    break;
-  case 18: 
-    enable_indexscan = true; 
-    enable_mergejoin = true; 
-    enable_nestloop = true; 
-    break;
-  case 19: 
-    enable_indexonlyscan = true; 
-    enable_mergejoin = true; 
-    enable_nestloop = true; 
-    enable_seqscan = true; 
-    break;
-  case 20: 
-    enable_indexonlyscan = true; 
-    enable_indexscan = true; 
-    enable_nestloop = true; 
-    enable_seqscan = true; 
-    break;
-  case 21: 
-    enable_hashjoin = true; 
-    enable_indexonlyscan = true; 
-    enable_indexscan = true; 
-    enable_mergejoin = true; 
-    break;
-  case 22: 
-    enable_hashjoin = true; 
-    enable_indexonlyscan = true; 
-    enable_mergejoin = true; 
-    break;
-  case 23: 
-    enable_hashjoin = true; 
-    enable_indexscan = true; 
-    enable_nestloop = true; 
-    enable_seqscan = true; 
-    break;
-  case 24: 
-    enable_hashjoin = true; 
-    enable_indexscan = true; 
-    break;
-  case 25: 
-    enable_hashjoin = true; 
-    enable_indexonlyscan = true; 
-    enable_nestloop = true; 
-    break;
-  default:
-    elog(ERROR, "Invalid arm index %d selected.", arm);
-    break;
-  }
+//   case 1: 
+//     enable_hashjoin = true; 
+//     enable_indexonlyscan = true; 
+//     enable_indexscan = true; 
+//     enable_mergejoin = true; 
+//     enable_seqscan = true; 
+//     break;
+//   case 2: 
+//     enable_hashjoin = true; 
+//     enable_indexonlyscan = true; 
+//     enable_nestloop = true; 
+//     enable_seqscan = true; 
+//     break;
+//   case 3: 
+//     enable_hashjoin = true; 
+//     enable_indexonlyscan = true; 
+//     enable_seqscan = true; 
+//     break;
+//   case 4: 
+//     enable_hashjoin = true; 
+//     enable_indexonlyscan = true; 
+//     enable_indexscan = true; 
+//     enable_nestloop = true; 
+//     enable_seqscan = true; 
+//     break;
+//   case 5: 
+//     enable_hashjoin = true; 
+//     enable_indexonlyscan = true; 
+//     enable_mergejoin = true; 
+//     enable_nestloop = true; 
+//     break;
+//   case 6:
+//     enable_hashjoin = true; 
+//     enable_indexscan = true; 
+//     enable_mergejoin = true; 
+//     enable_nestloop = true; 
+//     break;
+//   case 7: 
+//     enable_indexonlyscan = true; 
+//     enable_mergejoin = true; 
+//     enable_nestloop = true; 
+//     break;
+//   case 8: 
+//     enable_hashjoin = true; 
+//     enable_indexonlyscan = true; 
+//     break;
+//   case 9: 
+//     enable_hashjoin = true; 
+//     enable_indexonlyscan = true; 
+//     enable_indexscan = true; 
+//     enable_nestloop = true; 
+//     break;
+//   case 10:
+//     enable_hashjoin = true; 
+//     enable_indexonlyscan = true; 
+//     enable_indexscan = true; 
+//     enable_seqscan = true; 
+//     break;
+//   case 11: 
+//     enable_hashjoin = true; 
+//     enable_indexonlyscan = true; 
+//     enable_mergejoin = true; 
+//     enable_nestloop = true; 
+//     enable_seqscan = true; 
+//     break;
+//   case 12: 
+//     enable_hashjoin = true; 
+//     enable_indexonlyscan = true; 
+//     enable_mergejoin = true; 
+//     enable_seqscan = true; 
+//     break;
+//   case 13: 
+//     enable_hashjoin = true; 
+//     enable_indexscan = true; 
+//     enable_nestloop = true; 
+//     break;
+//   case 14: 
+//     enable_indexscan = true; 
+//     enable_nestloop = true; 
+//     break;
+//   case 15: 
+//     enable_indexscan = true; 
+//     enable_mergejoin = true; 
+//     enable_nestloop = true; 
+//     enable_seqscan = true; 
+//     break;
+//   case 16: 
+//     enable_indexonlyscan = true; 
+//     enable_indexscan = true; 
+//     enable_nestloop = true; 
+//     break;
+//   case 17: 
+//     enable_hashjoin = true; 
+//     enable_indexonlyscan = true; 
+//     enable_indexscan = true; 
+//     enable_mergejoin = true; 
+//     enable_nestloop = true; 
+//     break;
+//   case 18: 
+//     enable_indexscan = true; 
+//     enable_mergejoin = true; 
+//     enable_nestloop = true; 
+//     break;
+//   case 19: 
+//     enable_indexonlyscan = true; 
+//     enable_mergejoin = true; 
+//     enable_nestloop = true; 
+//     enable_seqscan = true; 
+//     break;
+//   case 20: 
+//     enable_indexonlyscan = true; 
+//     enable_indexscan = true; 
+//     enable_nestloop = true; 
+//     enable_seqscan = true; 
+//     break;
+//   case 21: 
+//     enable_hashjoin = true; 
+//     enable_indexonlyscan = true; 
+//     enable_indexscan = true; 
+//     enable_mergejoin = true; 
+//     break;
+//   case 22: 
+//     enable_hashjoin = true; 
+//     enable_indexonlyscan = true; 
+//     enable_mergejoin = true; 
+//     break;
+//   case 23: 
+//     enable_hashjoin = true; 
+//     enable_indexscan = true; 
+//     enable_nestloop = true; 
+//     enable_seqscan = true; 
+//     break;
+//   case 24: 
+//     enable_hashjoin = true; 
+//     enable_indexscan = true; 
+//     break;
+//   case 25: 
+//     enable_hashjoin = true; 
+//     enable_indexonlyscan = true; 
+//     enable_nestloop = true; 
+//     break;
+//   default:
+//     elog(ERROR, "Invalid arm index %d selected.", arm);
+//     break;
+//   }
+// }
+
+
+// // Get a query plan for a particular arm.
+// static PlannedStmt* plan_arm(int arm, Query* parse,
+//                              int cursorOptions, ParamListInfo boundParams) {
+
+//   PlannedStmt* plan = NULL;
+//   Query* query_copy = copyObject(parse); // create a copy of the query plan
+
+//   if (arm == -1) {
+//     // Use whatever the user has set as the current configuration.
+//     plan = standard_planner(query_copy, cursorOptions, boundParams);
+//     return plan;
+//   }
+  
+//   // Preserving the user's options, set the config to match the arm index
+//   // and invoke the PG planner.
+//   save_arm_options({
+//       set_arm_options(arm);
+//       plan = standard_planner(query_copy, cursorOptions, boundParams);
+//     });
+
+//   return plan;
+// }
+static void
+set_arm_options(int arm)
+{
+    /* First disable everything */
+    enable_hashjoin = false;
+    enable_indexonlyscan = false;
+    enable_indexscan = false;
+    enable_mergejoin = false;
+    enable_nestloop = false;
+    enable_seqscan = false;
+
+    /*
+     * We have 49 valid arms (0..48). Each arm number corresponds exactly
+     * to an entry in the Python _ARMS list. The mapping below follows that
+     * list literally.
+     */
+    switch (arm)
+    {
+        /* 0: ["hashjoin", "indexonlyscan", "indexscan", "mergejoin", "nestloop", "seqscan"] */
+        case 0:
+            enable_hashjoin = true;
+            enable_indexonlyscan = true;
+            enable_indexscan = true;
+            enable_mergejoin = true;
+            enable_nestloop = true;
+            enable_seqscan = true;
+            break;
+        
+
+        /*  1: ["hashjoin", "indexonlyscan", "indexscan"] */
+        case 1:
+            enable_hashjoin = true;
+            enable_indexonlyscan = true;
+            enable_indexscan = true;
+            break;
+
+        /*  2: ["hashjoin", "indexonlyscan", "indexscan", "mergejoin"] */
+        case 2:
+            enable_hashjoin = true;
+            enable_indexonlyscan = true;
+            enable_indexscan = true;
+            enable_mergejoin = true;
+            break;
+
+        /*  3: ["hashjoin", "indexonlyscan", "indexscan", "mergejoin", "nestloop"] */
+        case 3:
+            enable_hashjoin = true;
+            enable_indexonlyscan = true;
+            enable_indexscan = true;
+            enable_mergejoin = true;
+            enable_nestloop = true;
+            break;
+
+        /*  4: ["hashjoin", "indexonlyscan", "indexscan", "mergejoin", "seqscan"] */
+        case 4:
+            enable_hashjoin = true;
+            enable_indexonlyscan = true;
+            enable_indexscan = true;
+            enable_mergejoin = true;
+            enable_seqscan = true;
+            break;
+
+        /*  5: ["hashjoin", "indexonlyscan", "indexscan", "nestloop"] */
+        case 5:
+            enable_hashjoin = true;
+            enable_indexonlyscan = true;
+            enable_indexscan = true;
+            enable_nestloop = true;
+            break;
+
+        /*  6: ["hashjoin", "indexonlyscan", "indexscan", "nestloop", "seqscan"] */
+        case 6:
+            enable_hashjoin = true;
+            enable_indexonlyscan = true;
+            enable_indexscan = true;
+            enable_nestloop = true;
+            enable_seqscan = true;
+            break;
+
+        /*  7: ["hashjoin", "indexonlyscan", "indexscan", "seqscan"] */
+        case 7:
+            enable_hashjoin = true;
+            enable_indexonlyscan = true;
+            enable_indexscan = true;
+            enable_seqscan = true;
+            break;
+
+        /*  8: ["hashjoin", "indexonlyscan", "mergejoin"] */
+        case 8:
+            enable_hashjoin = true;
+            enable_indexonlyscan = true;
+            enable_mergejoin = true;
+            break;
+
+        /*  9: ["hashjoin", "indexonlyscan", "mergejoin", "nestloop"] */
+        case 9:
+            enable_hashjoin = true;
+            enable_indexonlyscan = true;
+            enable_mergejoin = true;
+            enable_nestloop = true;
+            break;
+
+        /* 10: ["hashjoin", "indexonlyscan", "mergejoin", "nestloop", "seqscan"] */
+        case 10:
+            enable_hashjoin = true;
+            enable_indexonlyscan = true;
+            enable_mergejoin = true;
+            enable_nestloop = true;
+            enable_seqscan = true;
+            break;
+
+        /* 11: ["hashjoin", "indexonlyscan", "mergejoin", "seqscan"] */
+        case 11:
+            enable_hashjoin = true;
+            enable_indexonlyscan = true;
+            enable_mergejoin = true;
+            enable_seqscan = true;
+            break;
+
+        /* 12: ["hashjoin", "indexonlyscan", "nestloop"] */
+        case 12:
+            enable_hashjoin = true;
+            enable_indexonlyscan = true;
+            enable_nestloop = true;
+            break;
+
+        /* 13: ["hashjoin", "indexonlyscan", "nestloop", "seqscan"] */
+        case 13:
+            enable_hashjoin = true;
+            enable_indexonlyscan = true;
+            enable_nestloop = true;
+            enable_seqscan = true;
+            break;
+
+        /* 14: ["hashjoin", "indexonlyscan", "seqscan"] */
+        case 14:
+            enable_hashjoin = true;
+            enable_indexonlyscan = true;
+            enable_seqscan = true;
+            break;
+
+        /* 15: ["hashjoin", "indexscan"] */
+        case 15:
+            enable_hashjoin = true;
+            enable_indexscan = true;
+            break;
+
+        /* 16: ["hashjoin", "indexscan", "mergejoin"] */
+        case 16:
+            enable_hashjoin = true;
+            enable_indexscan = true;
+            enable_mergejoin = true;
+            break;
+
+        /* 17: ["hashjoin", "indexscan", "mergejoin", "nestloop"] */
+        case 17:
+            enable_hashjoin = true;
+            enable_indexscan = true;
+            enable_mergejoin = true;
+            enable_nestloop = true;
+            break;
+
+        /* 18: ["hashjoin", "indexscan", "mergejoin", "nestloop", "seqscan"] */
+        case 18:
+            enable_hashjoin = true;
+            enable_indexscan = true;
+            enable_mergejoin = true;
+            enable_nestloop = true;
+            enable_seqscan = true;
+            break;
+
+        /* 19: ["hashjoin", "indexscan", "mergejoin", "seqscan"] */
+        case 19:
+            enable_hashjoin = true;
+            enable_indexscan = true;
+            enable_mergejoin = true;
+            enable_seqscan = true;
+            break;
+
+        /* 20: ["hashjoin", "indexscan", "nestloop"] */
+        case 20:
+            enable_hashjoin = true;
+            enable_indexscan = true;
+            enable_nestloop = true;
+            break;
+
+        /* 21: ["hashjoin", "indexscan", "nestloop", "seqscan"] */
+        case 21:
+            enable_hashjoin = true;
+            enable_indexscan = true;
+            enable_nestloop = true;
+            enable_seqscan = true;
+            break;
+
+        /* 22: ["hashjoin", "indexscan", "seqscan"] */
+        case 22:
+            enable_hashjoin = true;
+            enable_indexscan = true;
+            enable_seqscan = true;
+            break;
+
+        /* 23: ["hashjoin", "mergejoin", "nestloop", "seqscan"] */
+        case 23:
+            enable_hashjoin = true;
+            enable_mergejoin = true;
+            enable_nestloop = true;
+            enable_seqscan = true;
+            break;
+
+        /* 24: ["hashjoin", "mergejoin", "seqscan"] */
+        case 24:
+            enable_hashjoin = true;
+            enable_mergejoin = true;
+            enable_seqscan = true;
+            break;
+
+        /* 25: ["hashjoin", "nestloop", "seqscan"] */
+        case 25:
+            enable_hashjoin = true;
+            enable_nestloop = true;
+            enable_seqscan = true;
+            break;
+
+        /* 26: ["hashjoin", "seqscan"] */
+        case 26:
+            enable_hashjoin = true;
+            enable_seqscan = true;
+            break;
+
+        /* 27: ["indexonlyscan", "indexscan", "mergejoin"] */
+        case 27:
+            enable_indexonlyscan = true;
+            enable_indexscan = true;
+            enable_mergejoin = true;
+            break;
+
+        /* 28: ["indexonlyscan", "indexscan", "mergejoin", "nestloop"] */
+        case 28:
+            enable_indexonlyscan = true;
+            enable_indexscan = true;
+            enable_mergejoin = true;
+            enable_nestloop = true;
+            break;
+
+        /* 29: ["indexonlyscan", "indexscan", "mergejoin", "nestloop", "seqscan"] */
+        case 29:
+            enable_indexonlyscan = true;
+            enable_indexscan = true;
+            enable_mergejoin = true;
+            enable_nestloop = true;
+            enable_seqscan = true;
+            break;
+
+        /* 30: ["indexonlyscan", "indexscan", "mergejoin", "seqscan"] */
+        case 30:
+            enable_indexonlyscan = true;
+            enable_indexscan = true;
+            enable_mergejoin = true;
+            enable_seqscan = true;
+            break;
+
+        /* 31: ["indexonlyscan", "indexscan", "nestloop"] */
+        case 31:
+            enable_indexonlyscan = true;
+            enable_indexscan = true;
+            enable_nestloop = true;
+            break;
+
+        /* 32: ["indexonlyscan", "indexscan", "nestloop", "seqscan"] */
+        case 32:
+            enable_indexonlyscan = true;
+            enable_indexscan = true;
+            enable_nestloop = true;
+            enable_seqscan = true;
+            break;
+
+        /* 33: ["indexonlyscan", "mergejoin"] */
+        case 33:
+            enable_indexonlyscan = true;
+            enable_mergejoin = true;
+            break;
+
+        /* 34: ["indexonlyscan", "mergejoin", "nestloop"] */
+        case 34:
+            enable_indexonlyscan = true;
+            enable_mergejoin = true;
+            enable_nestloop = true;
+            break;
+
+        /* 35: ["indexonlyscan", "mergejoin", "nestloop", "seqscan"] */
+        case 35:
+            enable_indexonlyscan = true;
+            enable_mergejoin = true;
+            enable_nestloop = true;
+            enable_seqscan = true;
+            break;
+
+        /* 36: ["indexonlyscan", "mergejoin", "seqscan"] */
+        case 36:
+            enable_indexonlyscan = true;
+            enable_mergejoin = true;
+            enable_seqscan = true;
+            break;
+
+        /* 37: ["indexonlyscan", "nestloop"] */
+        case 37:
+            enable_indexonlyscan = true;
+            enable_nestloop = true;
+            break;
+
+        /* 38: ["indexonlyscan", "nestloop", "seqscan"] */
+        case 38:
+            enable_indexonlyscan = true;
+            enable_nestloop = true;
+            enable_seqscan = true;
+            break;
+
+        /* 39: ["indexscan", "mergejoin"] */
+        case 39:
+            enable_indexscan = true;
+            enable_mergejoin = true;
+            break;
+
+        /* 40: ["indexscan", "mergejoin", "nestloop"] */
+        case 40:
+            enable_indexscan = true;
+            enable_mergejoin = true;
+            enable_nestloop = true;
+            break;
+
+        /* 41: ["indexscan", "mergejoin", "nestloop", "seqscan"] */
+        case 41:
+            enable_indexscan = true;
+            enable_mergejoin = true;
+            enable_nestloop = true;
+            enable_seqscan = true;
+            break;
+
+        /* 42: ["indexscan", "mergejoin", "seqscan"] */
+        case 42:
+            enable_indexscan = true;
+            enable_mergejoin = true;
+            enable_seqscan = true;
+            break;
+
+        /* 43: ["indexscan", "nestloop"] */
+        case 43:
+            enable_indexscan = true;
+            enable_nestloop = true;
+            break;
+
+        /* 44: ["indexscan", "nestloop", "seqscan"] */
+        case 44:
+            enable_indexscan = true;
+            enable_nestloop = true;
+            enable_seqscan = true;
+            break;
+
+        /* 45: ["mergejoin", "nestloop", "seqscan"] */
+        case 45:
+            enable_mergejoin = true;
+            enable_nestloop = true;
+            enable_seqscan = true;
+            break;
+
+        /* 46: ["mergejoin", "seqscan"] */
+        case 46:
+            enable_mergejoin = true;
+            enable_seqscan = true;
+            break;
+
+        /* 47: ["nestloop", "seqscan"] */
+        case 47:
+            enable_nestloop = true;
+            enable_seqscan = true;
+            break;
+
+        /*  48: ["hashjoin", "indexonlyscan"] */
+        case 48:
+            enable_hashjoin = true;
+            enable_indexonlyscan = true;
+            break;
+
+
+
+        default:
+            /* The Python code raises an exception; here we do an elog(ERROR). */
+            elog(ERROR,
+                 "RegBlocker only supports 49 arms (0..48). Got arm_idx=%d",
+                 arm);
+            break;
+    }
 }
 
-
 // Get a query plan for a particular arm.
-static PlannedStmt* plan_arm(int arm, Query* parse, const char* queryString,
-                             int cursorOptions, ParamListInfo boundParams) {
+static PlannedStmt* plan_arm(int arm, Query* parse,
+  int cursorOptions, ParamListInfo boundParams) {
 
-  PlannedStmt* plan = NULL;
-  Query* query_copy = copyObject(parse); // create a copy of the query plan
+PlannedStmt* plan = NULL;
+Query* query_copy = copyObject(parse); // create a copy of the query plan
 
-  if (arm == -1) {
-    // Use whatever the user has set as the current configuration.
-    plan = standard_planner(query_copy, queryString, cursorOptions, boundParams);
-    return plan;
-  }
-  
-  // Preserving the user's options, set the config to match the arm index
-  // and invoke the PG planner.
-  save_arm_options({
-      set_arm_options(arm);
-      plan = standard_planner(query_copy, queryString, cursorOptions, boundParams);
-    });
+if (arm == -1) {
+// Use whatever the user has set as the current configuration.
+plan = standard_planner(query_copy, cursorOptions, boundParams);
+return plan;
+}
 
-  return plan;
+// Preserving the user's options, set the config to match the arm index
+// and invoke the PG planner.
+save_arm_options({
+set_arm_options(arm);
+plan = standard_planner(query_copy, cursorOptions, boundParams);
+});
+
+return plan;
 }
 
 // A struct to represent a query plan before we transform it into JSON.
@@ -353,7 +769,7 @@ static char* plan_to_json(PlannedStmt* plan) {
 // Primary planning function. Invokes the PG planner for each arm, sends the
 // results to the Bao server, gets the response, and returns the corrosponding
 // query plan (as a BaoPlan).
-BaoPlan* plan_query(Query *parse, const char* queryString, int cursorOptions, ParamListInfo boundParams) {
+BaoPlan* plan_query(Query *parse, int cursorOptions, ParamListInfo boundParams) {
   BaoPlan* plan;
   PlannedStmt* plan_for_arm[BAO_MAX_ARMS];
   char* json_for_arm[BAO_MAX_ARMS];
@@ -373,7 +789,7 @@ BaoPlan* plan_query(Query *parse, const char* queryString, int cursorOptions, Pa
     // default PostgreSQL plan. Note that we do *not* use arm 0, as
     // this would ignore the user's settings for things like
     // enable_nestloop.
-    plan->plan = plan_arm(-1, parse, queryString, cursorOptions, boundParams);
+    plan->plan = plan_arm(-1, parse, cursorOptions, boundParams);
     plan->query_info->plan_json = plan_to_json(plan->plan);
     return plan;
   }
@@ -390,7 +806,7 @@ BaoPlan* plan_query(Query *parse, const char* queryString, int cursorOptions, Pa
   for (int i = 0; i < bao_num_arms; i++) {
     // Plan the query for this arm.
     query_copy = copyObject(parse);
-    plan_for_arm[i] = plan_arm(i, query_copy, queryString, cursorOptions, boundParams);
+    plan_for_arm[i] = plan_arm(i, query_copy, cursorOptions, boundParams);
 
     // Transform it into JSON, transmit it to the Bao server.
     json_for_arm[i] = plan_to_json(plan_for_arm[i]);
