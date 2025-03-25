@@ -8,8 +8,8 @@ from email.mime.multipart import MIMEMultipart
 USE_BAO = True
 PG_CONNECTION_STR = "dbname=imdbload user=qihan host=localhost port=5432"
 def send_email(subject, body, to_email):
-    from_email = "xxx"
-    password = "xxx"
+    from_email = "2453939195@qq.com"
+    password = "bajbveysllkjdjbd"
 
     msg = MIMEMultipart()
     msg['From'] = from_email
@@ -79,7 +79,7 @@ def get_all_queries_from_directory(directory):
     return queries
 
 # Assuming the directory containing SQL files is provided as the first argument
-query_directory = "/mydata/LIMAOLifeLongRLDB/imdb_assorted_3"
+query_directory = "/mydata/LIMAOLifeLongRLDB/imdb_assorted_5"
 queries = get_all_queries_from_directory(query_directory)
 
 print("Read", len(queries), "queries.")
@@ -93,7 +93,7 @@ for fp, q in queries:
 
 
 for i in range(10):
-    print(f"Executing queries using BAO optimizer, iteration {i+1}")
+    print(f"===Executing queries using BAO optimizer, iteration {i+1}===")
     if USE_BAO:
         
         os.system("cd bao_server && python3 baoctl.py --retrain")
@@ -102,4 +102,4 @@ for i in range(10):
             q_time = run_query(q, bao_reward=USE_BAO, bao_select=USE_BAO)
             print("BAO", time(), fp, q_time, flush=True)
 # 在程序结束时调用
-send_email("Bao Experiment", "The experiment of IMDB static finished!","email")
+send_email("Bao Experiment", "The experiment of IMDB static finished!","2453939195@qq.com")
