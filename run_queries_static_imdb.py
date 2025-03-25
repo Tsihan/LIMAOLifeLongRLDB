@@ -8,8 +8,8 @@ from email.mime.multipart import MIMEMultipart
 USE_BAO = True
 PG_CONNECTION_STR = "dbname=imdbload user=qihan host=localhost port=5432"
 def send_email(subject, body, to_email):
-    from_email = "2453939195@qq.com"
-    password = "bajbveysllkjdjbd"
+    from_email = "xxx"
+    password = "xxx"
 
     msg = MIMEMultipart()
     msg['From'] = from_email
@@ -102,4 +102,4 @@ for i in range(10):
             q_time = run_query(q, bao_reward=USE_BAO, bao_select=USE_BAO)
             print("BAO", time(), fp, q_time, flush=True)
 # 在程序结束时调用
-send_email("Bao Experiment", "The experiment of IMDB static finished!","2453939195@qq.com")
+send_email("Bao Experiment", "The experiment of IMDB static finished!","q@qq.com")
