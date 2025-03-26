@@ -141,7 +141,7 @@ import json
 import itertools
 
 from common import BaoException
-ROW_LIMIT = 1000
+ROW_LIMIT = 500
 
 def _bao_db():
     conn = sqlite3.connect("bao.db")
