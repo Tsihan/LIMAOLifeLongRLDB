@@ -7,6 +7,9 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 import random
 import math
+from datetime import datetime
+
+
 
 # set the seed for random
 random.seed(42)
@@ -121,7 +124,8 @@ def get_all_queries_from_directory(directory):
     return queries
 
 
-send_email("Bao Experiment", "The experiment of dynamic started!","2453939195@qq.com")
+time_now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+send_email("Bao Experiment", f"The experiment of dynamic started! {time_now}","2453939195@qq.com")
 partitions = random_partition(TOTOAL_ITER, NUM_PHASE)
 print("Partition:", partitions)
 init_queries = get_all_queries_from_directory(init_query_directory)
@@ -170,7 +174,8 @@ for partition in partitions:
                 q_time = run_query(q, PG_CONNECTION_STR, timeout, bao_reward=USE_BAO, bao_select=USE_BAO)
                 print("BAO", fp, q_time, flush=True)
         if global_iter % 10 == 0:
-            send_email("Bao Experiment", f"The experiment of dynamic is current in {global_iter} iters!","2453939195@qq.com")
+            time_now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            send_email("Bao Experiment", f"The experiment of dynamic is current in {global_iter} iters! {time_now}","2453939195@qq.com")
         
-        
-send_email("Bao Experiment", "The experiment of dynamic finished!","2453939195@qq.com")
+time_now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")  
+send_email("Bao Experiment", f"The experiment of dynamic finished! {time_now}","2453939195@qq.com")
