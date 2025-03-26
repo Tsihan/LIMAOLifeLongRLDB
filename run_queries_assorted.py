@@ -6,6 +6,7 @@ import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 import random
+import math
 
 # set the seed for random
 random.seed(42)
@@ -30,10 +31,31 @@ init_query_directory = "/mydata/LIMAOLifeLongRLDB/imdb_assorted_3"
 
 
 def random_partition(total, parts):
-    # generate random partition of total into parts
-    cuts = sorted(random.sample(range(1, total), parts - 1))
-    cuts = [0] + cuts + [total]
-    return [cuts[i+1] - cuts[i] for i in range(parts)]
+    # 计算每一部分的下界和上界（保证整数）
+    lower_bound = math.ceil(total / parts / 2)  # total/parts 的一半向上取整
+    upper_bound = math.floor(2 * total / parts)  # total/parts 的两倍向下取整
+
+    result = []
+    remaining_total = total
+    remaining_parts = parts
+
+    for i in range(parts):
+        # 为了保证剩余部分能满足条件，
+        # 当前部分的最小值不能低于：remaining_total - (remaining_parts-1)*upper_bound
+        # 同时也不能低于下界 lower_bound
+        current_lower = max(lower_bound, remaining_total - (remaining_parts - 1) * upper_bound)
+        # 同理，当前部分的最大值不能超过：remaining_total - (remaining_parts-1)*lower_bound
+        # 同时也不能超过 upper_bound
+        current_upper = min(upper_bound, remaining_total - (remaining_parts - 1) * lower_bound)
+
+        # 从允许的区间内随机选取一个整数
+        value = random.randint(current_lower, current_upper)
+        result.append(value)
+
+        remaining_total -= value
+        remaining_parts -= 1
+
+    return result
 
 def send_email(subject, body, to_email):
     from_email = "2453939195@qq.com"
