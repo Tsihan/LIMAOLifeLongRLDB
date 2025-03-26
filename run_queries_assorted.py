@@ -128,7 +128,7 @@ for partition in partitions:
     elif "tpch" in dbname:
         query_dirs = query_directory_tpch_list
         timeout = TIME_OUT_TPCH
-    elif "solo" in dbname:
+    elif "soload" in dbname:
         query_dirs = query_directory_stack_list
         timeout = TIME_OUT_STACK
     else:
