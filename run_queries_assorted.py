@@ -30,7 +30,7 @@ init_query_directory = "/mydata/LIMAOLifeLongRLDB/imdb_assorted_3"
 
 
 def random_partition(total, parts):
-    # 生成 parts-1 个切割点，将 [1, total-1] 划成 parts 段
+    # generate random partition of total into parts
     cuts = sorted(random.sample(range(1, total), parts - 1))
     cuts = [0] + cuts + [total]
     return [cuts[i+1] - cuts[i] for i in range(parts)]
@@ -66,13 +66,11 @@ def run_query(sql, connection_str, timeout, bao_select=False, bao_reward=False):
         cur.execute(f"SET statement_timeout TO {timeout}")
         cur.execute(sql)
         cur.fetchall()
-        # 提交事务，结束事务块
         conn.commit()
-        # 切换为自动提交模式，以便执行 DISCARD ALL 不在事务块中
         conn.autocommit = True
         cur.execute('DISCARD ALL;')
     except psycopg2.extensions.QueryCanceledError:
-        # 对于超时异常，先回滚，结束事务块
+
         try:
             conn.rollback()
             conn.autocommit = True
@@ -80,9 +78,8 @@ def run_query(sql, connection_str, timeout, bao_select=False, bao_reward=False):
         except Exception:
             pass
         conn.close()
-        return timeout / 1000  # 返回超时时间（30秒）
+        return timeout / 1000  
     except Exception as e:
-        # 其他异常先回滚，再抛出错误
         conn.rollback()
         conn.close()
         raise e
@@ -98,7 +95,6 @@ def get_all_queries_from_directory(directory):
                 fp = os.path.join(root, file)
                 with open(fp) as f:
                     query = f.read()
-                # 只保留文件名
                 queries.append((file, query))
     return queries
 
@@ -115,20 +111,17 @@ for fp, q in init_queries:
 
 global_iter = 0            
 for partition in partitions:
-    # 随机选择一个 PG 连接字符串
     PG_CONNECTION_STR = random.choice(PG_CONNECTION_STR_LIST)
     
-    # 从连接字符串中解析数据库名称
     dbname = None
     for part in PG_CONNECTION_STR.split():
         if part.startswith("dbname="):
             dbname = part.split("=")[1]
             break
     if not dbname:
-        print("无法解析数据库名称，跳过当前 phase")
-        raise Exception("无法解析数据库名称")
+        print("cannot parse database name")
+        raise Exception("cannot parse database name")
 
-    # 根据数据库名称选择对应的 workload 目录列表和超时设置
     if "imdb" in dbname:
         query_dirs = query_directory_imdb_list
         timeout = TIME_OUT_IMDB
@@ -139,13 +132,11 @@ for partition in partitions:
         query_dirs = query_directory_stack_list
         timeout = TIME_OUT_STACK
     else:
-        print("未知数据库类型:", dbname)
-        raise Exception("未知数据库类型")
-    
+        print("unknown database type")
+        raise Exception("unknown database type")
     chosen_directory = random.choice(query_dirs)
     queries = get_all_queries_from_directory(chosen_directory)
 
-    # 针对当前 phase 的每一次迭代
     for i in range(partition):
         global_iter += 1
         print(f"===Executing queries using Bao optimizer, global iteration {global_iter}/100, \
