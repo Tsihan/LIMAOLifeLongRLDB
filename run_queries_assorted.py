@@ -34,24 +34,25 @@ init_query_directory = "/mydata/LIMAOLifeLongRLDB/imdb_assorted_3"
 
 
 def random_partition(total, parts):
-    # 计算每一部分的下界和上界（保证整数）
-    lower_bound = math.ceil(total / parts / 2)  # total/parts 的一半向上取整
-    upper_bound = math.floor(2 * total / parts)  # total/parts 的两倍向下取整
+    # calculate the lower and upper bound for each part
+    lower_bound = math.ceil(total / parts / 2)  # total/parts's half rounded up
+    upper_bound = math.floor(2 * total / parts)  # total/parts's double rounded down
 
     result = []
     remaining_total = total
     remaining_parts = parts
 
     for i in range(parts):
-        # 为了保证剩余部分能满足条件，
-        # 当前部分的最小值不能低于：remaining_total - (remaining_parts-1)*upper_bound
-        # 同时也不能低于下界 lower_bound
+        # to ensure the total sum is correct, we need to calculate the current part's
+        # lower and upper bound
+        # current part's lower bound cannot be lower than: total - (remaining_parts-1)*upper_bound
+        # current part's lower bound cannot be lower than: lower_bound
         current_lower = max(lower_bound, remaining_total - (remaining_parts - 1) * upper_bound)
-        # 同理，当前部分的最大值不能超过：remaining_total - (remaining_parts-1)*lower_bound
-        # 同时也不能超过 upper_bound
+        # in the same way, current part's upper bound cannot be higher than: total - (remaining_parts-1)*lower_bound
+        # current part's upper bound cannot be higher than: upper_bound
         current_upper = min(upper_bound, remaining_total - (remaining_parts - 1) * lower_bound)
 
-        # 从允许的区间内随机选取一个整数
+        # choose a random value between current_lower and current_upper
         value = random.randint(current_lower, current_upper)
         result.append(value)
 
