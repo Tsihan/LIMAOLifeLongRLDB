@@ -159,8 +159,7 @@ for partition in partitions:
 
     for i in range(partition):
         global_iter += 1
-        print(f"=== Executing queries using Bao optimizer, global iteration {global_iter}/100, "
-              f"partition {partition}, phase iteration {i+1} for database {dbname}, query directory {chosen_directory} ===")
+        print(f"=== Executing queries using Bao optimizer, global iteration {global_iter}/100, partition {partition}, phase iteration {i+1} for database {dbname}, query directory {chosen_directory} ===")
         if USE_BAO:
             os.system("cd bao_server && python3 baoctl.py --retrain")
             os.system("sync")
@@ -169,7 +168,7 @@ for partition in partitions:
                 print("BAO", fp, q_time, flush=True)
         if global_iter % 10 == 0:
             time_now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            send_email("Bao Experiment", f"The experiment of dynamic is currently at {global_iter} iters! {time_now}", "2453939195@qq.com")
+            send_email("Bao Experiment", f"The experiment of chaos is currently at {global_iter}/{TOTOAL_ITER} iters! {time_now}", "2453939195@qq.com")
         
 time_now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")  
-send_email("Bao Experiment", f"The experiment of dynamic finished! {time_now}", "2453939195@qq.com")
+send_email("Bao Experiment", f"The experiment of chaos finished! {time_now}", "2453939195@qq.com")
