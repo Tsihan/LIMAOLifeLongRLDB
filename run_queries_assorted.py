@@ -24,7 +24,7 @@ PG_CONNECTION_STR_3 = "dbname=tpch1load user=qihan host=localhost"
 PG_CONNECTION_STR_4 = "dbname=tpch10load user=qihan host=localhost"
 PG_CONNECTION_STR_5 = "dbname=soload user=qihan host=localhost"
 TIME_OUT_IMDB = 32000
-TIME_OUT_TPCH = 30000
+TIME_OUT_TPCH = 100000
 TIME_OUT_STACK = 512000
 TOTOAL_ITER = 200
 NUM_PHASE = 40

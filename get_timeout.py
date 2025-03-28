@@ -88,22 +88,22 @@ def run_experiment(name, connection_str, directories):
 def main():
     # Define experiments with their corresponding connection strings and SQL directories
     experiments = [
-        {
-            "name": "Stack",
-            "connection_str": "dbname=soload user=qihan host=localhost",
-            "directories": [
-                "/mydata/LIMAOLifeLongRLDB/so_assorted",
-                "/mydata/LIMAOLifeLongRLDB/so_assorted_2"
-            ]
-        },
-        {
-            "name": "imdb",
-            "connection_str": "dbname=imdbload user=qihan host=localhost",
-            "directories": [
-                "/mydata/LIMAOLifeLongRLDB/imdb_assorted_3",
-                "/mydata/LIMAOLifeLongRLDB/imdb_assorted_4"
-            ]
-        },
+        # {
+        #     "name": "Stack",
+        #     "connection_str": "dbname=soload user=qihan host=localhost",
+        #     "directories": [
+        #         "/mydata/LIMAOLifeLongRLDB/so_assorted",
+        #         "/mydata/LIMAOLifeLongRLDB/so_assorted_2"
+        #     ]
+        # },
+        # {
+        #     "name": "imdb",
+        #     "connection_str": "dbname=imdbload user=qihan host=localhost",
+        #     "directories": [
+        #         "/mydata/LIMAOLifeLongRLDB/imdb_assorted_3",
+        #         "/mydata/LIMAOLifeLongRLDB/imdb_assorted_4"
+        #     ]
+        # },
         {
             "name": "tpch",
             "connection_str": "dbname=tpch10load user=qihan host=localhost",
