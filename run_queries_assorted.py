@@ -23,11 +23,11 @@ PG_CONNECTION_STR_2 = "dbname=imdbload_after2000 user=qihan host=localhost"
 PG_CONNECTION_STR_3 = "dbname=tpch1load user=qihan host=localhost"
 PG_CONNECTION_STR_4 = "dbname=tpch10load user=qihan host=localhost"
 PG_CONNECTION_STR_5 = "dbname=soload user=qihan host=localhost"
-TIME_OUT_IMDB = 30000
+TIME_OUT_IMDB = 32000
 TIME_OUT_TPCH = 30000
-TIME_OUT_STACK = 30000
+TIME_OUT_STACK = 512000
 TOTOAL_ITER = 200
-NUM_PHASE = 20
+NUM_PHASE = 40
 query_directory_imdb_list = ["/mydata/LIMAOLifeLongRLDB/imdb_assorted_3", "/mydata/LIMAOLifeLongRLDB/imdb_assorted_4"]
 query_directory_stack_list = ["/mydata/LIMAOLifeLongRLDB/so_assorted", "/mydata/LIMAOLifeLongRLDB/so_assorted_2"]
 query_directory_tpch_list = ["/mydata/LIMAOLifeLongRLDB/tpch_assorted", "/mydata/LIMAOLifeLongRLDB/tpch_assorted_2", "/mydata/LIMAOLifeLongRLDB/tpch_assorted_3"]
