@@ -161,7 +161,7 @@ for partition in partitions:
         global_iter += 1
         print(f"=== Executing queries using Bao optimizer, global iteration {global_iter}/100, partition {partition}, phase iteration {i+1} for database {dbname}, query directory {chosen_directory} ===")
         if USE_BAO:
-            os.system("cd bao_server && python3 baoctl.py --retrain")
+            os.system("cd /mydata/LIMAOLifeLongRLDB/bao_server && python3 baoctl.py --retrain")
             os.system("sync")
             for fp, q in queries:
                 q_time = run_query(q, PG_CONNECTION_STR, timeout, bao_reward=USE_BAO, bao_select=USE_BAO)
