@@ -27,7 +27,7 @@ TOTOAL_ITER = 100
 NUM_PHASE = 10
 query_directory_imdb_list = ["/mydata/LIMAOLifeLongRLDB/imdb_assorted_3","/mydata/LIMAOLifeLongRLDB/imdb_assorted_4"]
 query_directory_stack_list = ["/mydata/LIMAOLifeLongRLDB/so_assorted","/mydata/LIMAOLifeLongRLDB/so_assorted_2"]
-query_directory_tpch_list = ["/mydata/LIMAOLifeLongRLDB/tpch_assorted","/mydata/LIMAOLifeLongRLDB/tpch_assorted_2"]
+query_directory_tpch_list = ["/mydata/LIMAOLifeLongRLDB/tpch_assorted","/mydata/LIMAOLifeLongRLDB/tpch_assorted_2","/mydata/LIMAOLifeLongRLDB/tpch_assorted_3"]
 PG_CONNECTION_STR_LIST = [PG_CONNECTION_STR_1, PG_CONNECTION_STR_2, PG_CONNECTION_STR_3, PG_CONNECTION_STR_4, PG_CONNECTION_STR_5]
 init_query_directory = "/mydata/LIMAOLifeLongRLDB/imdb_assorted_3"
 
