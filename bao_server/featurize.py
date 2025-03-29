@@ -206,6 +206,87 @@ class TreeFeaturizer:
         for t in trees:
             _attach_buf_data(t)
         return [self.__tree_builder.plan_to_feature_tree(x["Plan"]) for x in trees]
+    
+    def transform_subtrees(self, trees):
+        """
+        对于每棵特征树（trees 中的每个元素），返回三个部分：
+        - full_tree_list: 从原树的根节点开始，向下保留上层信息，
+            遇到 Nested Loop 或 Hash Join 时截断（即不展开其子树，但保留该节点），
+            这样保证了上层信息不丢失。
+        - nested_loop_list: 该树中所有最大化的 Nested Loop 子树（遇到一个 Nested Loop 后，不继续收集其内部 Nested Loop 节点）。
+        - hash_join_list: 同理，收集最大化的 Hash Join 子树。
+        """
+        full_tree_list = []
+        nested_loop_list = []
+        hash_join_list = []
+
+        # 辅助函数：根据特征向量判断当前节点的类型
+        def get_node_type(node):
+            if isinstance(node, tuple) and len(node) == 3:
+                vec = node[0]
+                if vec[ALL_TYPES.index("Nested Loop")] == 1:
+                    return "Nested Loop"
+                elif vec[ALL_TYPES.index("Hash Join")] == 1:
+                    return "Hash Join"
+                elif vec[ALL_TYPES.index("Merge Join")] == 1:
+                    return "Merge Join"
+                else:
+                    return "Unknown"
+            # 叶子节点视为 "Scan"
+            return "Scan"
+
+        # 构造截断后的全树：从根开始递归
+        # 当遇到 Nested Loop 或 Hash Join 节点时，不展开其子树（用 None 代替），但仍保留该节点
+        def build_full_tree(node):
+            node_type = get_node_type(node)
+            # 如果是叶子，或者是 Nested Loop / Hash Join 节点，则截断（注意：若 node 为 join 节点，返回时将子树置为空）
+            if node_type in ["Scan", "Nested Loop", "Hash Join"]:
+                if isinstance(node, tuple) and len(node) == 3:
+                    return (node[0], None, None)
+                else:
+                    return node
+            # 如果是 Merge Join，则继续递归构造左右子树
+            if isinstance(node, tuple) and len(node) == 3:
+                left_subtree = build_full_tree(node[1])
+                right_subtree = build_full_tree(node[2])
+                return (node[0], left_subtree, right_subtree)
+            return node
+
+        # 递归收集最大化目标类型的子树
+        # 一旦遇到目标类型的节点，则将其加入列表，并不再向下遍历该分支
+        def collect_maximal_join_subtrees(node, target_type, collected):
+            if isinstance(node, tuple) and len(node) == 3:
+                node_type = get_node_type(node)
+                if node_type == target_type:
+                    collected.append(node)
+                    return  # 不再继续深入该分支
+                else:
+                    collect_maximal_join_subtrees(node[1], target_type, collected)
+                    collect_maximal_join_subtrees(node[2], target_type, collected)
+            # 叶子节点无需处理
+
+        for ft in trees:
+            # full_tree_list 中保留截断后的上层信息（始终以原树根节点为根），包装成单元素列表
+            truncated_tree = build_full_tree(ft)
+            full_tree_list.append([truncated_tree])
+
+            # nested_loop_list：收集最大化的 Nested Loop 子树
+            nl_subtrees = []
+            collect_maximal_join_subtrees(ft, "Nested Loop", nl_subtrees)
+            nested_loop_list.append(nl_subtrees)
+
+            # hash_join_list：收集最大化的 Hash Join 子树
+            hj_subtrees = []
+            collect_maximal_join_subtrees(ft, "Hash Join", hj_subtrees)
+            hash_join_list.append(hj_subtrees)
+            
+        for i in range(len(full_tree_list)):
+            print(f"length of full_tree_list[{i}]:", len(full_tree_list[i]))
+            print(f"length of nested_loop_list[{i}]:", len(nested_loop_list[i]))
+            print(f"length of hash_join_list[{i}]:", len(hash_join_list[i]))
+
+        assert len(full_tree_list) == len(nested_loop_list) == len(hash_join_list)
+        return full_tree_list, nested_loop_list, hash_join_list
 
     def num_operators(self):
         return len(ALL_TYPES)

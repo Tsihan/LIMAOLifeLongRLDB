@@ -38,7 +38,7 @@ def run_query(sql, bao_select=False, bao_reward=False):
         cur.execute(f"SET enable_bao_selection TO {bao_select}")
         cur.execute(f"SET enable_bao_rewards TO {bao_reward}")
         cur.execute("SET bao_num_arms TO 49")
-        cur.execute("SET statement_timeout TO 30000")
+        cur.execute("SET statement_timeout TO 10000")
         cur.execute(sql)
         cur.fetchall()
         # 提交事务，结束事务块

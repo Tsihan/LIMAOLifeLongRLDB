@@ -108,7 +108,7 @@ class BaoRegression:
             joblib.dump(self.__in_channels, f)
         with open(_n_path(path), "wb") as f:
             joblib.dump(self.__n, f)
-
+    # we get data from the history and train the model, from sqlite
     def fit(self, X, y):
         if isinstance(y, list):
             y = np.array(y)
@@ -123,6 +123,14 @@ class BaoRegression:
         
         self.__tree_transform.fit(X)
         X = self.__tree_transform.transform(X)
+        a,b,c = self.__tree_transform.transform_subtrees(X)
+        # print(f"len X fit:",len(X))
+        # print(f"len a fit:",len(a))
+        # print(f"len b fit:",len(b))
+        # print(f"len c fit:",len(c))
+        # print("a in fit func:",a)
+        # print("b in fit func:",b)
+        # print("c in fit func:",c)
 
         pairs = list(zip(X, y))
         dataset = DataLoader(pairs,
@@ -177,13 +185,22 @@ class BaoRegression:
                     break
         else:
             self.__log("Stopped training after max epochs")
-
+    # # 每次会给49个计划，该计划未经过修改。返回49个计划的预测值
     def predict(self, X):
         if not isinstance(X, list):
             X = [X]
         X = [json.loads(x) if isinstance(x, str) else x for x in X]
 
         X = self.__tree_transform.transform(X)
+        
+        a,b,c = self.__tree_transform.transform_subtrees(X)
+        # print(f"len X predict:",len(X))
+        # print(f"len a predict:",len(a))
+        # print(f"len b predict:",len(b))
+        # print(f"len c predict:",len(c))
+        # print("a in predict func:",a)
+        # print("b in predict func:",b)
+        # print("c in predict func:",c)
         
         self.__net.eval()
         pred = self.__net(X).cpu().detach().numpy()
