@@ -210,92 +210,95 @@ class TreeFeaturizer:
             _attach_buf_data(t)
         return [self.__tree_builder.plan_to_feature_tree(x["Plan"]) for x in trees]
     
-    def transform_subtrees(self, trees):
-        """
-        对于每棵特征树（trees 中的每个元素），返回三个部分：
-        - full_tree_list: 从原树的根节点开始，向下保留上层信息，
-            遇到 Nested Loop 或 Hash Join 时截断（即不展开其子树，但保留该节点），
-            这样保证了上层信息不丢失。
-        - nested_loop_list: 该树中所有最大化的 Nested Loop 子树（遇到一个 Nested Loop 后，不继续收集其内部 Nested Loop 节点）。
-        - hash_join_list: 同理，收集最大化的 Hash Join 子树。
-        """
-        full_tree_list = []
-        nested_loop_list = []
-        hash_join_list = []
-
-        # 辅助函数：根据特征向量判断当前节点的类型
-        def get_node_type(node):
-            if isinstance(node, tuple) and len(node) == 3:
-                vec = node[0]
-                if vec[ALL_TYPES.index("Nested Loop")] == 1:
-                    return "Nested Loop"
-                elif vec[ALL_TYPES.index("Hash Join")] == 1:
-                    return "Hash Join"
-                elif vec[ALL_TYPES.index("Merge Join")] == 1:
-                    return "Merge Join"
-                elif vec[ALL_TYPES.index("Seq Scan")] == 1:
-                    return "Seq Scan"
-                elif vec[ALL_TYPES.index("Index Scan")] == 1:
-                    return "Index Scan"
-                elif vec[ALL_TYPES.index("Index Only Scan")] == 1:
-                    return "Index Only Scan"
-                elif vec[ALL_TYPES.index("Bitmap Index Scan")] == 1:
-                    return "Bitmap Index Scan"
-            # 叶子节点视为 "Scan"
-            return "Unknown"
-
-        # 构造截断后的全树：从根开始递归
-        # 当遇到 Nested Loop 或 Hash Join 节点时，不展开其子树（用 None 代替），但仍保留该节点
-        def build_full_tree(node):
-            node_type = get_node_type(node)
-            # 如果是叶子，或者是 Nested Loop / Hash Join 节点，则截断（注意：若 node 为 join 节点，返回时将子树置为空）
-            if node_type in ["Seq Scan", "Index Scan", "Index Only Scan", "Bitmap Index Scan", "Nested Loop", "Hash Join"]:
-                if isinstance(node, tuple) and len(node) == 3:
-                    return (node[0])
-                else:
-                    return node
-            # 如果是 Merge Join，则继续递归构造左右子树
-            if isinstance(node, tuple) and len(node) == 3:
-                left_subtree = build_full_tree(node[1])
-                right_subtree = build_full_tree(node[2])
-                return (node[0], left_subtree, right_subtree)
-            return node
-
-        # 递归收集最大化目标类型的子树
-        # 一旦遇到目标类型的节点，则将其加入列表，并不再向下遍历该分支
-        def collect_maximal_join_subtrees(node, target_type, collected):
-            if isinstance(node, tuple) and len(node) == 3:
-                node_type = get_node_type(node)
-                if node_type == target_type:
-                    collected.append(node)
-                    return  # 不再继续深入该分支
-                else:
-                    collect_maximal_join_subtrees(node[1], target_type, collected)
-                    collect_maximal_join_subtrees(node[2], target_type, collected)
-            # 叶子节点无需处理
-
-        for ft in trees:
-            # full_tree_list 中保留截断后的上层信息（始终以原树根节点为根），包装成单元素列表
-            truncated_tree = build_full_tree(ft)
-            full_tree_list.append([truncated_tree])
-
-            # nested_loop_list：收集最大化的 Nested Loop 子树
-            nl_subtrees = []
-            collect_maximal_join_subtrees(ft, "Nested Loop", nl_subtrees)
-            nested_loop_list.append(nl_subtrees)
-
-            # hash_join_list：收集最大化的 Hash Join 子树
-            hj_subtrees = []
-            collect_maximal_join_subtrees(ft, "Hash Join", hj_subtrees)
-            hash_join_list.append(hj_subtrees)
-            
-        # for i in range(len(full_tree_list)):
-        #     print(f"length of full_tree_list[{i}]:", len(full_tree_list[i]))
-        #     print(f"length of nested_loop_list[{i}]:", len(nested_loop_list[i]))
-        #     print(f"length of hash_join_list[{i}]:", len(hash_join_list[i]))
-
-        assert len(full_tree_list) == len(nested_loop_list) == len(hash_join_list)
-        return full_tree_list, nested_loop_list, hash_join_list
 
     def num_operators(self):
         return len(ALL_TYPES)
+    
+    
+    def transform_subtrees(self, trees):
+        """
+        对于每棵原始计划树（trees 中的每个元素），首先调用 plan_to_feature_tree 得到特征树，
+        然后生成三份：
+        - full_tree_list: 原始特征树（包装为单元素列表）；
+        - nested_loop_list: 对特征树进行 masking，保留从第一个 Nested Loop 节点开始的信息，
+                            在此之前的节点的特征向量全置零，但文本信息保持；
+        - hash_join_list: 类似地，对 Hash Join 节点进行 masking。
+        """
+        # 预处理：先为每棵树调用 _attach_buf_data
+        for t in trees:
+            _attach_buf_data(t)
+        # 通过 plan_to_feature_tree 得到每棵树的特征树（与 transform 一致）
+        feature_trees = [self.__tree_builder.plan_to_feature_tree(x["Plan"]) for x in trees]
+
+        # 定义内部的 masking 函数，递归处理节点
+        def mask_tree(node, target_type, encountered=False):
+            """
+            对节点进行 masking：
+            - 如果 node 是 join 节点（tuple 长度==3）：
+                * 若尚未遇到目标且当前节点类型等于 target_type，则：
+                    - 对左右子树递归调用 mask_tree，传入 encountered=True（此节点及其后代保留原始信息）
+                * 若尚未遇到目标且当前节点不是目标，则：
+                    - 将当前节点的特征向量替换为同形状全零数组，再对左右子树递归调用（保持 encountered=False）
+                * 如果已遇到目标，则直接返回原节点
+            - 如果 node 是叶节点（tuple 长度==2），则：  
+                * 未遇到目标时，将特征向量置零；否则返回原节点
+            - 其他情况，原样返回。
+            """
+            if not isinstance(node, tuple):
+                return node
+            # 尝试根据第一元素（假设为特征向量）判断节点类型
+            node_type = "Unknown"
+            if isinstance(node[0], np.ndarray):
+                vec = node[0]
+                if vec[ALL_TYPES.index("Nested Loop")] == 1:
+                    node_type = "Nested Loop"
+                elif vec[ALL_TYPES.index("Hash Join")] == 1:
+                    node_type = "Hash Join"
+                elif vec[ALL_TYPES.index("Merge Join")] == 1:
+                    node_type = "Merge Join"
+                elif vec[ALL_TYPES.index("Seq Scan")] == 1:
+                    node_type = "Seq Scan"
+                elif vec[ALL_TYPES.index("Index Scan")] == 1:
+                    node_type = "Index Scan"
+                elif vec[ALL_TYPES.index("Index Only Scan")] == 1:
+                    node_type = "Index Only Scan"
+                elif vec[ALL_TYPES.index("Bitmap Index Scan")] == 1:
+                    node_type = "Bitmap Index Scan"
+            if len(node) == 3:
+                # join node
+                if not encountered and node_type == target_type:
+                    # 目标节点：保留本节点及其后代信息
+                    return (node[0],
+                            mask_tree(node[1], target_type, encountered=True),
+                            mask_tree(node[2], target_type, encountered=True))
+                elif encountered:
+                    return node
+                else:
+                    # 未遇到目标，mask 当前节点特征向量（置零），继续递归
+                    masked_vec = np.zeros_like(node[0])
+                    left_masked = mask_tree(node[1], target_type, encountered=False)
+                    right_masked = mask_tree(node[2], target_type, encountered=False)
+                    return (masked_vec, left_masked, right_masked)
+            elif len(node) == 2:
+                # 叶节点
+                if not encountered:
+                    masked_vec = np.zeros_like(node[0])
+                    return (masked_vec, node[1])
+                else:
+                    return node
+            else:
+                return node
+
+        full_tree_list = []
+        nested_loop_list = []
+        hash_join_list = []
+        for ft in feature_trees:
+            # full_tree_list 保持原样，但包装为单元素列表
+            full_tree_list.append(ft)
+            # 对 Nested Loop 和 Hash Join 分别调用 mask_tree
+            nested_loop_list.append(mask_tree(ft, "Nested Loop", encountered=False))
+            hash_join_list.append(mask_tree(ft, "Hash Join", encountered=False))
+            
+        assert len(full_tree_list) == len(nested_loop_list) == len(hash_join_list)
+        return full_tree_list, nested_loop_list, hash_join_list
+

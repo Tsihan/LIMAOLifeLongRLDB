@@ -44,49 +44,6 @@ class BaoData:
         return (self.__data[idx]["tree"],
                 self.__data[idx]["target"])
 
-def flatten_tuple_list(features, expected_dim=None):
-    """
-    将嵌套的 features（list/tuple）递归处理，保留其中的 numpy 数组和文本信息，
-    同时保持原有的嵌套结构（即输出看起来像输入的一个子集）。
-    
-    规则如下：
-      - 如果遇到 numpy 数组：若为一维，则转换为 (1, -1) 的二维数组；若为二维则直接返回；
-      - 如果遇到字符串：直接返回，不做处理；
-      - 如果遇到 tuple 或 list：
-            * 若其正好为长度为 2，且第一个元素是 numpy 数组、第二个元素是字符串，
-              则认为这是一个整体（例如 ('keyword')），直接返回该 tuple（并保证数组为二维）。
-            * 否则，递归处理其中每个子项，并以 tuple 形式返回处理结果。
-      - 其他类型直接原样返回。
-    
-    如果最终处理后没有得到任何元素，并且 expected_dim 不为 None，
-    则返回一个形状为 (1, expected_dim) 的全零 numpy 数组。
-    """
-    def recursive_process(item):
-        if isinstance(item, np.ndarray):
-            return item.reshape(1, -1) if item.ndim == 1 else item
-        elif isinstance(item, str):
-            return item
-        elif isinstance(item, (list, tuple)):
-            # 如果是形如 (array, str) 的 tuple，则直接保留
-            if (isinstance(item, tuple) and len(item) == 2 and 
-                isinstance(item[0], np.ndarray) and isinstance(item[1], str)):
-                arr = item[0]
-                arr = arr.reshape(1, -1) if arr.ndim == 1 else arr
-                return (arr, item[1])
-            else:
-                processed = []
-                for sub in item:
-                    processed.append(recursive_process(sub))
-                return tuple(processed)
-        else:
-            # 其他类型直接返回（或按需要忽略）
-            return item
-
-    processed_features = tuple(recursive_process(f) for f in features)
-    # 如果处理后没有提取到任何信息，并且 expected_dim 给定，则返回全零数组
-    if not processed_features and expected_dim is not None:
-        return (np.zeros((1, expected_dim)),)
-    return processed_features
 
 def collate(x):
     trees = []
@@ -178,12 +135,12 @@ class BaoRegression:
         y = self.__pipeline.fit_transform(y.reshape(-1, 1)).astype(np.float32)
         
         self.__tree_transform.fit(X)
-        X = self.__tree_transform.transform(X)
+        X_input = self.__tree_transform.transform(X)
         a,b,c = self.__tree_transform.transform_subtrees(X)
 
 
 
-        pairs = list(zip(X,a,b,c, y))
+        pairs = list(zip(X_input,a,b,c, y))
         dataset = DataLoader(pairs,
                              batch_size=16,
                              shuffle=True,
@@ -216,51 +173,9 @@ class BaoRegression:
             for x, a,b,c,y in dataset:
                 if CUDA:
                     y = y.cuda()
-                    # TODO qihan change this
-                input_a = []
-                input_b = []
-                input_c = []
-                for x_, a_, b_, c_ in zip(x, a, b, c):
-                    
-                    a_flat = flatten_tuple_list(x_, expected_dim= self.__in_channels)
-                    b_flat = flatten_tuple_list(b_, expected_dim= self.__in_channels)
-                    c_flat = flatten_tuple_list(c_, expected_dim= self.__in_channels)
-                    input_a.append(a_flat)
-                    input_b.append(b_flat)
-                    input_c.append(c_flat)
-                
-                with open("/mydata/debug_train.log", "a") as f:
-                    f.write("length of a before flatten:\n")
-                    f.write(f"{len(a)}\n")
-                    f.write("length of b before flatten:\n")
-                    f.write(f"{len(b)}\n")
-                    f.write("length of c before flatten:\n")
-                    f.write(f"{len(c)}\n")
-                    f.write("a before flatten:\n")
-                    f.write(f"{a}\n")
-                    f.write("b before flatten:\n")
-                    f.write(f"{b}\n")
-                    f.write("c before flatten:\n")
-                    f.write(f"{c}\n")
 
-                with open("/mydata/debug_train.log", "a") as f:
-                    f.write("length of x:\n")
-                    f.write(f"{len(x)}\n")
-                    f.write("length of input_a:\n")
-                    f.write(f"{len(input_a)}\n")
-                    f.write("length of input_b:\n")
-                    f.write(f"{len(input_b)}\n")
-                    f.write("length of input_c:\n")
-                    f.write(f"{len(input_c)}\n")
-                    f.write("x:\n")
-                    f.write(f"{x}\n")
-                    f.write("input_a:\n")
-                    f.write(f"{input_a}\n")
-                    f.write("input_b:\n")
-                    f.write(f"{input_b}\n")
-                    f.write("input_c:\n")
-                    f.write(f"{input_c}\n")
-                y_pred = self.__net(x,input_a,input_b,input_c)
+           
+                y_pred = self.__net(x,a,b,c)
                 loss = loss_fn(y_pred, y)
                 loss_accum += loss.item()
         
@@ -287,40 +202,14 @@ class BaoRegression:
             X = [X]
         X = [json.loads(x) if isinstance(x, str) else x for x in X]
 
-        X = self.__tree_transform.transform(X)
+        input_X = self.__tree_transform.transform(X)
         
         a,b,c = self.__tree_transform.transform_subtrees(X)
 
         
         self.__net.eval()
-        input_a = []
-        input_b = []
-        input_c = []
-        for x, a_, b_, c_ in zip(X, a, b, c):
-            a_flat = flatten_tuple_list(x, expected_dim= self.__in_channels)
-            b_flat = flatten_tuple_list(b_, expected_dim= self.__in_channels)
-            c_flat = flatten_tuple_list(c_, expected_dim= self.__in_channels)
-            input_a.append(a_flat)
-            input_b.append(b_flat)
-            input_c.append(c_flat)
-        # save X, a, b, c to a file
-        with open("/mydata/debug_predict.log", "a") as f:
-            f.write("length of x:\n")
-            f.write(f"{len(X)}\n")
-            f.write("length of a:\n")
-            f.write(f"{len(input_a)}\n")
-            f.write("length of b:\n")
-            f.write(f"{len(input_b)}\n")
-            f.write("length of c:\n")
-            f.write(f"{len(input_c)}\n")
-            f.write("X:\n")
-            f.write(f"{X}\n")
-            f.write("a:\n")
-            f.write(f"{input_a}\n")
-            f.write("b:\n")
-            f.write(f"{input_b}\n")
-            f.write("c:\n")
-            f.write(f"{input_c}\n")
-        pred = self.__net(X,input_a,input_b,input_c).cpu().detach().numpy()
+
+
+        pred = self.__net(input_X,a,b,c).cpu().detach().numpy()
         return self.__pipeline.inverse_transform(pred)
 
