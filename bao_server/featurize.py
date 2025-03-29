@@ -219,34 +219,76 @@ class TreeFeaturizer:
         """
         对于每棵原始计划树（trees 中的每个元素），首先调用 plan_to_feature_tree 得到特征树，
         然后生成三份：
-        - full_tree_list: 原始特征树（包装为单元素列表）；
-        - nested_loop_list: 对特征树进行 masking，保留从第一个 Nested Loop 节点开始的信息，
-                            在此之前的节点的特征向量全置零，但文本信息保持；
+        - full_tree_list: 从原树的根节点开始向下遍历，直到遇到 Nested Loop 或 Hash Join 节点，
+                            遇到后，对该节点及其所有子孙节点的 feature vector 用全零数组替换，
+                            文本信息保留。
+        - nested_loop_list: 采用原有策略，对 Nested Loop 节点之后的子树保留信息，其上层 mask 掉。
         - hash_join_list: 类似地，对 Hash Join 节点进行 masking。
         """
-        # 预处理：先为每棵树调用 _attach_buf_data
+        # 预处理：对每棵树先调用 _attach_buf_data
         for t in trees:
             _attach_buf_data(t)
-        # 通过 plan_to_feature_tree 得到每棵树的特征树（与 transform 一致）
+        # 调用 plan_to_feature_tree 得到每棵树的特征树（与 transform 输出一致）
         feature_trees = [self.__tree_builder.plan_to_feature_tree(x["Plan"]) for x in trees]
 
-        # 定义内部的 masking 函数，递归处理节点
-        def mask_tree(node, target_type, encountered=False):
-            """
-            对节点进行 masking：
-            - 如果 node 是 join 节点（tuple 长度==3）：
-                * 若尚未遇到目标且当前节点类型等于 target_type，则：
-                    - 对左右子树递归调用 mask_tree，传入 encountered=True（此节点及其后代保留原始信息）
-                * 若尚未遇到目标且当前节点不是目标，则：
-                    - 将当前节点的特征向量替换为同形状全零数组，再对左右子树递归调用（保持 encountered=False）
-                * 如果已遇到目标，则直接返回原节点
-            - 如果 node 是叶节点（tuple 长度==2），则：  
-                * 未遇到目标时，将特征向量置零；否则返回原节点
-            - 其他情况，原样返回。
-            """
+        # 定义一个辅助函数 mask_all，用于对整个子树进行全零 mask（但保留文本信息）
+        def mask_all(node):
             if not isinstance(node, tuple):
                 return node
-            # 尝试根据第一元素（假设为特征向量）判断节点类型
+            if len(node) == 3:
+                masked_vec = np.zeros_like(node[0])
+                return (masked_vec,
+                        mask_all(node[1]),
+                        mask_all(node[2]))
+            elif len(node) == 2:
+                masked_vec = np.zeros_like(node[0])
+                return (masked_vec, node[1])
+            else:
+                return node
+
+        # 新的 full_tree_list 生成函数：
+        # 从根节点开始向下遍历，一旦遇到 Nested Loop 或 Hash Join 节点，就停止继续向下，
+        # 并将该节点及其所有子孙的 feature vector 全部置零（但文本信息保留）
+        def mask_full_tree(node):
+            if not isinstance(node, tuple):
+                return node
+            # 判断节点类型
+            node_type = "Unknown"
+            if isinstance(node[0], np.ndarray):
+                vec = node[0]
+                if vec[ALL_TYPES.index("Nested Loop")] == 1:
+                    node_type = "Nested Loop"
+                elif vec[ALL_TYPES.index("Hash Join")] == 1:
+                    node_type = "Hash Join"
+                elif vec[ALL_TYPES.index("Merge Join")] == 1:
+                    node_type = "Merge Join"
+                elif vec[ALL_TYPES.index("Seq Scan")] == 1:
+                    node_type = "Seq Scan"
+                elif vec[ALL_TYPES.index("Index Scan")] == 1:
+                    node_type = "Index Scan"
+                elif vec[ALL_TYPES.index("Index Only Scan")] == 1:
+                    node_type = "Index Only Scan"
+                elif vec[ALL_TYPES.index("Bitmap Index Scan")] == 1:
+                    node_type = "Bitmap Index Scan"
+            # 如果当前节点是 Nested Loop 或 Hash Join，则返回全零 mask 整个子树
+            if node_type in ["Nested Loop", "Hash Join"]:
+                return mask_all(node)
+            # 否则，如果是 join 节点，递归处理左右子树
+            if len(node) == 3:
+                return (node[0], mask_full_tree(node[1]), mask_full_tree(node[2]))
+            elif len(node) == 2:
+                # 叶节点直接返回
+                return node
+            else:
+                return node
+
+        # 生成 full_tree_list：对每棵特征树调用 mask_full_tree
+        full_tree_list = [mask_full_tree(ft) for ft in feature_trees]
+
+        # 旧的 mask_tree，用于生成 nested_loop_list 与 hash_join_list
+        def mask_tree(node, target_type, encountered=False):
+            if not isinstance(node, tuple):
+                return node
             node_type = "Unknown"
             if isinstance(node[0], np.ndarray):
                 vec = node[0]
@@ -265,22 +307,18 @@ class TreeFeaturizer:
                 elif vec[ALL_TYPES.index("Bitmap Index Scan")] == 1:
                     node_type = "Bitmap Index Scan"
             if len(node) == 3:
-                # join node
                 if not encountered and node_type == target_type:
-                    # 目标节点：保留本节点及其后代信息
                     return (node[0],
                             mask_tree(node[1], target_type, encountered=True),
                             mask_tree(node[2], target_type, encountered=True))
                 elif encountered:
                     return node
                 else:
-                    # 未遇到目标，mask 当前节点特征向量（置零），继续递归
                     masked_vec = np.zeros_like(node[0])
                     left_masked = mask_tree(node[1], target_type, encountered=False)
                     right_masked = mask_tree(node[2], target_type, encountered=False)
                     return (masked_vec, left_masked, right_masked)
             elif len(node) == 2:
-                # 叶节点
                 if not encountered:
                     masked_vec = np.zeros_like(node[0])
                     return (masked_vec, node[1])
@@ -289,16 +327,9 @@ class TreeFeaturizer:
             else:
                 return node
 
-        full_tree_list = []
-        nested_loop_list = []
-        hash_join_list = []
-        for ft in feature_trees:
-            # full_tree_list 保持原样，但包装为单元素列表
-            full_tree_list.append(ft)
-            # 对 Nested Loop 和 Hash Join 分别调用 mask_tree
-            nested_loop_list.append(mask_tree(ft, "Nested Loop", encountered=False))
-            hash_join_list.append(mask_tree(ft, "Hash Join", encountered=False))
-            
+        nested_loop_list = [mask_tree(ft, "Nested Loop", encountered=False) for ft in feature_trees]
+        hash_join_list = [mask_tree(ft, "Hash Join", encountered=False) for ft in feature_trees]
+
+        # 返回三个列表，每个列表中对应一棵树（full_tree_list 此时是经过新 mask_full_tree 处理后的结果）
         assert len(full_tree_list) == len(nested_loop_list) == len(hash_join_list)
         return full_tree_list, nested_loop_list, hash_join_list
-

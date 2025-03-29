@@ -137,6 +137,16 @@ class BaoRegression:
         self.__tree_transform.fit(X)
         X_input = self.__tree_transform.transform(X)
         a,b,c = self.__tree_transform.transform_subtrees(X)
+        # save the X_input a b c to a file
+        # with open("/mydata/fit_check.txt", "a") as f:
+        #     f.write("X_input: \n")
+        #     f.write(str(X_input))
+        #     f.write("\na: \n")
+        #     f.write(str(a))
+        #     f.write("\nb: \n")
+        #     f.write(str(b))
+        #     f.write("\nc: \n")
+        #     f.write(str(c))
 
 
 
@@ -202,9 +212,20 @@ class BaoRegression:
             X = [X]
         X = [json.loads(x) if isinstance(x, str) else x for x in X]
 
-        # input_X = self.__tree_transform.transform(X)
+        input_X = self.__tree_transform.transform(X)
         
         a,b,c = self.__tree_transform.transform_subtrees(X)
+        
+        # save the input_X a b c to a file
+        # with open("/mydata/predict_check.txt", "a") as f:
+        #     f.write("input_X: \n")
+        #     f.write(str(input_X))
+        #     f.write("\na: \n")
+        #     f.write(str(a))
+        #     f.write("\nb: \n")
+        #     f.write(str(b))
+        #     f.write("\nc: \n")
+        #     f.write(str(c))
 
         
         self.__net.eval()

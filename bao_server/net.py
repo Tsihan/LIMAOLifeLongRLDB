@@ -8,6 +8,7 @@ import numpy as np
 NUM_OTHER_HUB = 1
 NUM_HASHJOIN_HUB = 2
 NUM_NESTEDLOOP_HUB = 3
+NUM_HUB = 3
 
 def left_child(x):
     if x is None or not (isinstance(x, tuple) and len(x)==3):
@@ -68,7 +69,7 @@ class BaoNet(nn.Module):
         self.conv_module_list_hash_join = nn.ModuleList()
         self.conv_module_list_nested_loop_join = nn.ModuleList()
         
-        self.attention_merger = AttentionMerger(64, 3)
+        self.attention_merger = AttentionMerger(64, NUM_HUB)
         
         for i in range(NUM_OTHER_HUB):
             self.conv_module_list_other.append(
