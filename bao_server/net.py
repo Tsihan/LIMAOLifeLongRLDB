@@ -122,11 +122,11 @@ class BaoNet(nn.Module):
         
     # Qihan: don't use a b c for now
     def forward(self, x,a,b,c):
-        trees_other = prepare_trees(x, features, left_child, right_child,
+        trees_other = prepare_trees(a, features, left_child, right_child,
                               cuda=self.__cuda)
-        trees_hash_join = prepare_trees(x, features, left_child, right_child,
+        trees_hash_join = prepare_trees(b, features, left_child, right_child,
                                 cuda=self.__cuda)
-        trees_nested_loop_join = prepare_trees(x, features, left_child, right_child,
+        trees_nested_loop_join = prepare_trees(c, features, left_child, right_child,
                                         cuda=self.__cuda)
         # FIXME hardcoded now
         after_conv_other = self.conv_module_list_other[0](trees_other)

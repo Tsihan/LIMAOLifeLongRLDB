@@ -193,15 +193,25 @@ class BaoRegression:
                     y = y.cuda()
                     # TODO qihan change this
                 # save x, a, b, c to a file
+                input_a = []
+                input_b = []
+                input_c = []
+                for x_, a_, b_, c_ in zip(x, a, b, c):
+                    a_flat = a_[0]
+                    b_flat = flatten_tuple_list(b_)
+                    c_flat = flatten_tuple_list(c_)
+                    input_a.append(a_flat)
+                    input_b.append(b_flat)
+                    input_c.append(c_flat)
 
-                with open("/mydata/debug_train.log", "a") as f:
-                    for x_, a_, b_, c_ in zip(x, a, b, c):
-                        a_flat = a_[0]
-                        print(type(a_flat))
-                        b_flat = flatten_tuple_list(b_)
-                        c_flat = flatten_tuple_list(c_)
-                        f.write(f"original:\n{x_}\n\nother:\n{a_flat}\n\nnestedloop:\n{b_flat}\n\nhashjoin:\n{c_flat}\n\n")
-                y_pred = self.__net(x,a,b,c)
+                # with open("/mydata/debug_train.log", "a") as f:
+                #     for x_, a_, b_, c_ in zip(x, a, b, c):
+                #         a_flat = a_[0]
+                #         print(type(a_flat))
+                #         b_flat = flatten_tuple_list(b_)
+                #         c_flat = flatten_tuple_list(c_)
+                #         f.write(f"original:\n{x_}\n\nother:\n{a_flat}\n\nnestedloop:\n{b_flat}\n\nhashjoin:\n{c_flat}\n\n")
+                y_pred = self.__net(x,input_a,input_b,input_c)
                 loss = loss_fn(y_pred, y)
                 loss_accum += loss.item()
         
@@ -235,14 +245,23 @@ class BaoRegression:
         
         self.__net.eval()
         # save X, a, b, c to a file
-        with open("/mydata/debug_predict.log", "a") as f:
-            for x, a_, b_, c_ in zip(X, a, b, c):
-                a_flat = a_[0]
-                print(type(a_flat))
-                b_flat = flatten_tuple_list(b_)
-                c_flat = flatten_tuple_list(c_)
-                f.write(f"original:\n{x}\n\nother:\n{a_flat}\n\nnestedloop:\n{b_flat}\n\nhashjoin:\n{c_flat}\n\n")
+        input_a = []
+        input_b = []
+        input_c = []
+        for x, a_, b_, c_ in zip(X, a, b, c):
+            a_flat = a_[0]
+            b_flat = flatten_tuple_list(b_)
+            c_flat = flatten_tuple_list(c_)
+            input_a.append(a_flat)
+            input_b.append(b_flat)
+            input_c.append(c_flat)
+        # with open("/mydata/debug_predict.log", "a") as f:
+        #     for x, a_, b_, c_ in zip(X, a, b, c):
+        #         a_flat = a_[0]
+        #         b_flat = flatten_tuple_list(b_)
+        #         c_flat = flatten_tuple_list(c_)
+        #         f.write(f"original:\n{x}\n\nother:\n{a_flat}\n\nnestedloop:\n{b_flat}\n\nhashjoin:\n{c_flat}\n\n")
 
-        pred = self.__net(X,a,b,c).cpu().detach().numpy()
+        pred = self.__net(X,input_a,input_b,input_c).cpu().detach().numpy()
         return self.__pipeline.inverse_transform(pred)
 
