@@ -175,7 +175,7 @@ class BaoRegression:
                     y = y.cuda()
 
            
-                y_pred = self.__net(x,a,b,c)
+                y_pred = self.__net(a,b,c)
                 loss = loss_fn(y_pred, y)
                 loss_accum += loss.item()
         
@@ -202,7 +202,7 @@ class BaoRegression:
             X = [X]
         X = [json.loads(x) if isinstance(x, str) else x for x in X]
 
-        input_X = self.__tree_transform.transform(X)
+        # input_X = self.__tree_transform.transform(X)
         
         a,b,c = self.__tree_transform.transform_subtrees(X)
 
@@ -210,6 +210,6 @@ class BaoRegression:
         self.__net.eval()
 
 
-        pred = self.__net(input_X,a,b,c).cpu().detach().numpy()
+        pred = self.__net(a,b,c).cpu().detach().numpy()
         return self.__pipeline.inverse_transform(pred)
 
