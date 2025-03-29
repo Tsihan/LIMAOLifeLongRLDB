@@ -44,6 +44,25 @@ class BaoData:
         return (self.__data[idx]["tree"],
                 self.__data[idx]["target"])
 
+def flatten_tuple_list(features):
+    """
+    参数:
+      features: 一个列表，其中每个元素都是 tuple，
+                每个 tuple 内部可能包含多个 numpy 数组（可能还有嵌套的 tuple，但不用处理嵌套的数组）
+    返回:
+      一个展开之后的 tuple，里面包含了所有在每个 tuple 中出现的 numpy 数组，
+      忽略其他非数组的元素
+    """
+    result = []
+    
+    for feature_tuple in features:
+        for item in feature_tuple:
+            # 检查是否为 numpy 数组
+
+            result.append(item)
+    
+    return tuple(result)
+
 def collate(x):
     trees = []
     full_batch = []
@@ -174,9 +193,14 @@ class BaoRegression:
                     y = y.cuda()
                     # TODO qihan change this
                 # save x, a, b, c to a file
+
                 with open("/mydata/debug_train.log", "a") as f:
                     for x_, a_, b_, c_ in zip(x, a, b, c):
-                        f.write(f"original:\n{x_}\n\nother:\n{a_}\n\nnestedloop:\n{b_}\n\nhashjoin:\n{c_}\n\n")
+                        a_flat = a_[0]
+                        print(type(a_flat))
+                        b_flat = flatten_tuple_list(b_)
+                        c_flat = flatten_tuple_list(c_)
+                        f.write(f"original:\n{x_}\n\nother:\n{a_flat}\n\nnestedloop:\n{b_flat}\n\nhashjoin:\n{c_flat}\n\n")
                 y_pred = self.__net(x,a,b,c)
                 loss = loss_fn(y_pred, y)
                 loss_accum += loss.item()
@@ -207,12 +231,17 @@ class BaoRegression:
         X = self.__tree_transform.transform(X)
         
         a,b,c = self.__tree_transform.transform_subtrees(X)
+
         
         self.__net.eval()
         # save X, a, b, c to a file
         with open("/mydata/debug_predict.log", "a") as f:
             for x, a_, b_, c_ in zip(X, a, b, c):
-                f.write(f"original:\n{x}\n\nother:\n{a_}\n\nnestedloop:\n{b_}\n\nhashjoin:\n{c_}\n\n")
+                a_flat = a_[0]
+                print(type(a_flat))
+                b_flat = flatten_tuple_list(b_)
+                c_flat = flatten_tuple_list(c_)
+                f.write(f"original:\n{x}\n\nother:\n{a_flat}\n\nnestedloop:\n{b_flat}\n\nhashjoin:\n{c_flat}\n\n")
 
         pred = self.__net(X,a,b,c).cpu().detach().numpy()
         return self.__pipeline.inverse_transform(pred)

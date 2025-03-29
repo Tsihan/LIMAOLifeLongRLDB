@@ -289,10 +289,10 @@ class TreeFeaturizer:
             collect_maximal_join_subtrees(ft, "Hash Join", hj_subtrees)
             hash_join_list.append(hj_subtrees)
             
-        for i in range(len(full_tree_list)):
-            print(f"length of full_tree_list[{i}]:", len(full_tree_list[i]))
-            print(f"length of nested_loop_list[{i}]:", len(nested_loop_list[i]))
-            print(f"length of hash_join_list[{i}]:", len(hash_join_list[i]))
+        # for i in range(len(full_tree_list)):
+        #     print(f"length of full_tree_list[{i}]:", len(full_tree_list[i]))
+        #     print(f"length of nested_loop_list[{i}]:", len(nested_loop_list[i]))
+        #     print(f"length of hash_join_list[{i}]:", len(hash_join_list[i]))
 
         assert len(full_tree_list) == len(nested_loop_list) == len(hash_join_list)
         return full_tree_list, nested_loop_list, hash_join_list
