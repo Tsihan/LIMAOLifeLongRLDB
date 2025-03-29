@@ -211,6 +211,15 @@ class BaoRegression:
                 #         b_flat = flatten_tuple_list(b_)
                 #         c_flat = flatten_tuple_list(c_)
                 #         f.write(f"original:\n{x_}\n\nother:\n{a_flat}\n\nnestedloop:\n{b_flat}\n\nhashjoin:\n{c_flat}\n\n")
+                with open("/mydata/debug_train.log", "a") as f:
+                    f.write("X:\n")
+                    f.write(f"{x}\n")
+                    f.write("a:\n")
+                    f.write(f"{input_a}\n")
+                    f.write("b:\n")
+                    f.write(f"{input_b}\n")
+                    f.write("c:\n")
+                    f.write(f"{input_c}\n")
                 y_pred = self.__net(x,input_a,input_b,input_c)
                 loss = loss_fn(y_pred, y)
                 loss_accum += loss.item()
@@ -261,7 +270,16 @@ class BaoRegression:
         #         b_flat = flatten_tuple_list(b_)
         #         c_flat = flatten_tuple_list(c_)
         #         f.write(f"original:\n{x}\n\nother:\n{a_flat}\n\nnestedloop:\n{b_flat}\n\nhashjoin:\n{c_flat}\n\n")
-
+        # save X, a, b, c to a file
+        with open("/mydata/debug_predict.log", "a") as f:
+            f.write("X:\n")
+            f.write(f"{X}\n")
+            f.write("a:\n")
+            f.write(f"{input_a}\n")
+            f.write("b:\n")
+            f.write(f"{input_b}\n")
+            f.write("c:\n")
+            f.write(f"{input_c}\n")
         pred = self.__net(X,input_a,input_b,input_c).cpu().detach().numpy()
         return self.__pipeline.inverse_transform(pred)
 
