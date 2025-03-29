@@ -44,27 +44,29 @@ class BaoData:
         return (self.__data[idx]["tree"],
                 self.__data[idx]["target"])
 
-# def collate(x):
-#     full_batch = []
-#     nested_batch = []
-#     hash_batch = []
-#     targets = []
-#     for full, nested, hashj, target in x:
-#         full_batch.append(full)
-#         nested_batch.append(nested)
-#         hash_batch.append(hashj)
-#         targets.append(target)
-#     return [full_batch, nested_batch, hash_batch], torch.tensor(targets)
 def collate(x):
     trees = []
+    full_batch = []
+    nested_batch = []
+    hash_batch = []
     targets = []
-
-    for tree, target in x:
+    for tree, full, nested, hashj, target in x:
         trees.append(tree)
+        full_batch.append(full)
+        nested_batch.append(nested)
+        hash_batch.append(hashj)
         targets.append(target)
+    return trees, full_batch, nested_batch, hash_batch, torch.tensor(targets)
+# def collate(x):
+#     trees = []
+#     targets = []
 
-    targets = torch.tensor(targets)
-    return trees, targets
+#     for tree, target in x:
+#         trees.append(tree)
+#         targets.append(target)
+
+#     targets = torch.tensor(targets)
+#     return trees, targets
 class BaoRegression:
     def __init__(self, verbose=False, have_cache_data=False):
         self.__net = None
@@ -133,18 +135,18 @@ class BaoRegression:
         
         self.__tree_transform.fit(X)
         X = self.__tree_transform.transform(X)
-        # a,b,c = self.__tree_transform.transform_subtrees(X)
+        a,b,c = self.__tree_transform.transform_subtrees(X)
 
 
 
-        pairs = list(zip(X, y))
+        pairs = list(zip(X,a,b,c, y))
         dataset = DataLoader(pairs,
                              batch_size=16,
                              shuffle=True,
                              collate_fn=collate)
 
         # determine the initial number of channels
-        for inp, _tar in dataset:
+        for inp, _,_,_,_ in dataset:
             # Qihan: add two dimension to the input
             in_channels = inp[0][0].shape[0]
             break
@@ -167,11 +169,11 @@ class BaoRegression:
         losses = []
         for epoch in range(100):
             loss_accum = 0
-            for x, y in dataset:
+            for x, a,b,c,y in dataset:
                 if CUDA:
                     y = y.cuda()
                     # TODO qihan change this
-                y_pred = self.__net(x)
+                y_pred = self.__net(x,a,b,c)
                 loss = loss_fn(y_pred, y)
                 loss_accum += loss.item()
         
@@ -200,9 +202,9 @@ class BaoRegression:
 
         X = self.__tree_transform.transform(X)
         
-        # a,b,c = self.__tree_transform.transform_subtrees(X)
+        a,b,c = self.__tree_transform.transform_subtrees(X)
         
         self.__net.eval()
-        pred = self.__net(X).cpu().detach().numpy()
+        pred = self.__net(X,a,b,c).cpu().detach().numpy()
         return self.__pipeline.inverse_transform(pred)
 
