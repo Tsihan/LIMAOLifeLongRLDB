@@ -251,7 +251,7 @@ class TreeFeaturizer:
             # 如果是叶子，或者是 Nested Loop / Hash Join 节点，则截断（注意：若 node 为 join 节点，返回时将子树置为空）
             if node_type in ["Seq Scan", "Index Scan", "Index Only Scan", "Bitmap Index Scan", "Nested Loop", "Hash Join"]:
                 if isinstance(node, tuple) and len(node) == 3:
-                    return (node[0], None, None)
+                    return (node[0])
                 else:
                     return node
             # 如果是 Merge Join，则继续递归构造左右子树
