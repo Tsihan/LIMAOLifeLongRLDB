@@ -92,7 +92,7 @@ for fp, q in queries:
     print("x", "x", time(), fp, pg_time, "PG", flush=True)
 
 
-for i in range(50):
+for i in range(2):
     print(f"===Executing queries using BAO optimizer, iteration {i+1}===")
     if USE_BAO:
         
@@ -102,4 +102,4 @@ for i in range(50):
             q_time = run_query(q, bao_reward=USE_BAO, bao_select=USE_BAO)
             print("BAO", time(), fp, q_time, flush=True)
 # 在程序结束时调用
-send_email("Bao Experiment", "The experiment of IMDB static finished!","2453939195@qq.com")
+# send_email("Bao Experiment", "The experiment of IMDB static finished!","2453939195@qq.com")
