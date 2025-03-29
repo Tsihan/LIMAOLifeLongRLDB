@@ -44,6 +44,17 @@ class BaoData:
         return (self.__data[idx]["tree"],
                 self.__data[idx]["target"])
 
+# def collate(x):
+#     full_batch = []
+#     nested_batch = []
+#     hash_batch = []
+#     targets = []
+#     for full, nested, hashj, target in x:
+#         full_batch.append(full)
+#         nested_batch.append(nested)
+#         hash_batch.append(hashj)
+#         targets.append(target)
+#     return [full_batch, nested_batch, hash_batch], torch.tensor(targets)
 def collate(x):
     trees = []
     targets = []
@@ -54,7 +65,6 @@ def collate(x):
 
     targets = torch.tensor(targets)
     return trees, targets
-
 class BaoRegression:
     def __init__(self, verbose=False, have_cache_data=False):
         self.__net = None
@@ -124,13 +134,8 @@ class BaoRegression:
         self.__tree_transform.fit(X)
         X = self.__tree_transform.transform(X)
         a,b,c = self.__tree_transform.transform_subtrees(X)
-        # print(f"len X fit:",len(X))
-        # print(f"len a fit:",len(a))
-        # print(f"len b fit:",len(b))
-        # print(f"len c fit:",len(c))
-        # print("a in fit func:",a)
-        # print("b in fit func:",b)
-        # print("c in fit func:",c)
+
+
 
         pairs = list(zip(X, y))
         dataset = DataLoader(pairs,
@@ -140,6 +145,7 @@ class BaoRegression:
 
         # determine the initial number of channels
         for inp, _tar in dataset:
+            # Qihan: add two dimension to the input
             in_channels = inp[0][0].shape[0]
             break
 
@@ -164,6 +170,7 @@ class BaoRegression:
             for x, y in dataset:
                 if CUDA:
                     y = y.cuda()
+                    # TODO qihan change this
                 y_pred = self.__net(x)
                 loss = loss_fn(y_pred, y)
                 loss_accum += loss.item()
@@ -194,13 +201,6 @@ class BaoRegression:
         X = self.__tree_transform.transform(X)
         
         a,b,c = self.__tree_transform.transform_subtrees(X)
-        # print(f"len X predict:",len(X))
-        # print(f"len a predict:",len(a))
-        # print(f"len b predict:",len(b))
-        # print(f"len c predict:",len(c))
-        # print("a in predict func:",a)
-        # print("b in predict func:",b)
-        # print("c in predict func:",c)
         
         self.__net.eval()
         pred = self.__net(X).cpu().detach().numpy()

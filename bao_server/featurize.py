@@ -43,13 +43,14 @@ class TreeBuilder:
         arr = np.zeros(len(ALL_TYPES))
         arr[ALL_TYPES.index(node["Node Type"])] = 1
         return np.concatenate((arr, self.__stats(node)))
-
+    
     def __featurize_scan(self, node):
         assert is_scan(node)
         arr = np.zeros(len(ALL_TYPES))
         arr[ALL_TYPES.index(node["Node Type"])] = 1
         return (np.concatenate((arr, self.__stats(node))),
                 self.__relation_name(node))
+
 
     def plan_to_feature_tree(self, plan):
         children = plan["Plans"] if "Plans" in plan else []
@@ -69,6 +70,8 @@ class TreeBuilder:
             return self.__featurize_scan(plan)
 
         raise TreeBuilderError("Node wasn't transparent, a join, or a scan: " + str(plan))
+
+
 
 def norm(x, lo, hi):
     return (np.log(x + 1) - lo) / (hi - lo)
