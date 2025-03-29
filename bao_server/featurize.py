@@ -233,17 +233,23 @@ class TreeFeaturizer:
                     return "Hash Join"
                 elif vec[ALL_TYPES.index("Merge Join")] == 1:
                     return "Merge Join"
-                else:
-                    return "Unknown"
+                elif vec[ALL_TYPES.index("Seq Scan")] == 1:
+                    return "Seq Scan"
+                elif vec[ALL_TYPES.index("Index Scan")] == 1:
+                    return "Index Scan"
+                elif vec[ALL_TYPES.index("Index Only Scan")] == 1:
+                    return "Index Only Scan"
+                elif vec[ALL_TYPES.index("Bitmap Index Scan")] == 1:
+                    return "Bitmap Index Scan"
             # 叶子节点视为 "Scan"
-            return "Scan"
+            return "Unknown"
 
         # 构造截断后的全树：从根开始递归
         # 当遇到 Nested Loop 或 Hash Join 节点时，不展开其子树（用 None 代替），但仍保留该节点
         def build_full_tree(node):
             node_type = get_node_type(node)
             # 如果是叶子，或者是 Nested Loop / Hash Join 节点，则截断（注意：若 node 为 join 节点，返回时将子树置为空）
-            if node_type in ["Scan", "Nested Loop", "Hash Join"]:
+            if node_type in ["Seq Scan", "Index Scan", "Index Only Scan", "Bitmap Index Scan", "Nested Loop", "Hash Join"]:
                 if isinstance(node, tuple) and len(node) == 3:
                     return (node[0], None, None)
                 else:

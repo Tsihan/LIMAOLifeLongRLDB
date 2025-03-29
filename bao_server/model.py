@@ -133,7 +133,7 @@ class BaoRegression:
         
         self.__tree_transform.fit(X)
         X = self.__tree_transform.transform(X)
-        a,b,c = self.__tree_transform.transform_subtrees(X)
+        # a,b,c = self.__tree_transform.transform_subtrees(X)
 
 
 
@@ -200,7 +200,7 @@ class BaoRegression:
 
         X = self.__tree_transform.transform(X)
         
-        a,b,c = self.__tree_transform.transform_subtrees(X)
+        # a,b,c = self.__tree_transform.transform_subtrees(X)
         
         self.__net.eval()
         pred = self.__net(X).cpu().detach().numpy()

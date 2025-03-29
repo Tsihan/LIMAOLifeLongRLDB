@@ -120,7 +120,7 @@ class BaoNet(nn.Module):
     def in_channels(self):
         return self.__in_channels
         
-    def forward_new(self, a,b,c):
+    def forward_new(self, x):
         trees_other = prepare_trees(a, features, left_child, right_child,
                               cuda=self.__cuda)
         trees_hash_join = prepare_trees(b, features, left_child, right_child,
