@@ -92,7 +92,7 @@ for fp, q in queries:
     print("x", "x", time(), fp, pg_time, "PG", flush=True)
 
 
-for i in range(2):
+for i in range(1):
     print(f"===Executing queries using BAO optimizer, iteration {i+1}===")
     if USE_BAO:
         
