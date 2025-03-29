@@ -79,7 +79,7 @@ def get_all_queries_from_directory(directory):
     return queries
 
 # Assuming the directory containing SQL files is provided as the first argument
-query_directory = "/mydata/LIMAOLifeLongRLDB/imdb_assorted_5"
+query_directory = "/mydata/LIMAOLifeLongRLDB/imdb_small"
 queries = get_all_queries_from_directory(query_directory)
 
 print("Read", len(queries), "queries.")
