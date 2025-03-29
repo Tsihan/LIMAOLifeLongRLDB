@@ -230,6 +230,12 @@ class BaoRegression:
                     input_c.append(c_flat)
                 
                 with open("/mydata/debug_train.log", "a") as f:
+                    f.write("length of a before flatten:\n")
+                    f.write(f"{len(a)}\n")
+                    f.write("length of b before flatten:\n")
+                    f.write(f"{len(b)}\n")
+                    f.write("length of c before flatten:\n")
+                    f.write(f"{len(c)}\n")
                     f.write("a before flatten:\n")
                     f.write(f"{a}\n")
                     f.write("b before flatten:\n")
