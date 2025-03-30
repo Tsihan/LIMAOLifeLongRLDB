@@ -2,7 +2,7 @@ import torch.nn as nn
 import torch
 from TreeConvolution.tcnn import BinaryTreeConv, TreeLayerNorm
 from TreeConvolution.tcnn import TreeActivation, DynamicPooling
-from TreeConvolution.util import prepare_trees
+from TreeConvolution.util import prepare_trees, prepare_tree
 import numpy as np
 
 NUM_OTHER_HUB = 1
@@ -121,23 +121,43 @@ class BaoNet(nn.Module):
     def in_channels(self):
         return self.__in_channels
         
-    # Qihan: don't use a b c for now
-    def forward(self,a,b,c,otheridx = 0, hashjoinidx = 0, nestedloopidx = 0):
-        assert 0 <= otheridx < NUM_OTHER_HUB and 0 <= hashjoinidx < NUM_HASHJOIN_HUB and 0 <= nestedloopidx < NUM_NESTEDLOOP_HUB
-        trees_other = prepare_trees(a, features, left_child, right_child,
-                              cuda=self.__cuda)
-        trees_hash_join = prepare_trees(b, features, left_child, right_child,
+    def forward(self,a,b,c,otheridx, hashjoinidx, nestedloopidx):
+        if type(otheridx) == int and type(hashjoinidx) == int and type(nestedloopidx) == int:
+            assert 0 <= otheridx < NUM_OTHER_HUB and 0 <= hashjoinidx < NUM_HASHJOIN_HUB and 0 <= nestedloopidx < NUM_NESTEDLOOP_HUB
+            trees_other = prepare_trees(a, features, left_child, right_child,
                                 cuda=self.__cuda)
-        trees_nested_loop_join = prepare_trees(c, features, left_child, right_child,
-                                        cuda=self.__cuda)
-        # FIXME hardcoded now
-        after_conv_other = self.conv_module_list_other[otheridx](trees_other)
-        after_conv_hash_join = self.conv_module_list_hash_join[hashjoinidx](trees_hash_join)
-        after_conv_nested_loop_join = self.conv_module_list_nested_loop_join[nestedloopidx](trees_nested_loop_join)
-        after_conv_output = [after_conv_other, after_conv_hash_join, after_conv_nested_loop_join]
-        after_conv_final = self.attention_merger(after_conv_output)
-        out = self.out_mlp(after_conv_final)
-        return out
+            trees_hash_join = prepare_trees(b, features, left_child, right_child,
+                                    cuda=self.__cuda)
+            trees_nested_loop_join = prepare_trees(c, features, left_child, right_child,
+                                            cuda=self.__cuda)
+            after_conv_other = self.conv_module_list_other[otheridx](trees_other)
+            after_conv_hash_join = self.conv_module_list_hash_join[hashjoinidx](trees_hash_join)
+            after_conv_nested_loop_join = self.conv_module_list_nested_loop_join[nestedloopidx](trees_nested_loop_join)
+            after_conv_output = [after_conv_other, after_conv_hash_join, after_conv_nested_loop_join]
+            after_conv_final = self.attention_merger(after_conv_output)
+            out = self.out_mlp(after_conv_final)
+            return out
+        elif type(otheridx) == list and type(hashjoinidx) == list and type(nestedloopidx) == list:
+            assert len(otheridx) == len(hashjoinidx) == len(nestedloopidx)
+            outputs = []
+            for i in range(len(otheridx)):
+                trees_other = prepare_tree(a[i], features, left_child, right_child, cuda=self.__cuda)
+                trees_hash_join = prepare_tree(b[i], features, left_child, right_child, cuda=self.__cuda)
+                trees_nested_loop_join = prepare_tree(c[i], features, left_child, right_child, cuda=self.__cuda)
+                
+                after_conv_other = self.conv_module_list_other[otheridx[i]](trees_other)
+                after_conv_hash_join = self.conv_module_list_hash_join[hashjoinidx[i]](trees_hash_join)
+                after_conv_nested_loop_join = self.conv_module_list_nested_loop_join[nestedloopidx[i]](trees_nested_loop_join)
+                
+                after_conv_output = [after_conv_other, after_conv_hash_join, after_conv_nested_loop_join]
+                after_conv_final = self.attention_merger(after_conv_output)
+                outputs.append(after_conv_final)
+            
+            merged_output = torch.cat(outputs, dim=0)
+            out = self.out_mlp(merged_output)
+            return out
+        else:
+            raise ValueError("Invalid index type. Expected int or list of ints.")
 
     def cuda(self):
         self.__cuda = True

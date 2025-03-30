@@ -47,18 +47,17 @@ class BaoData:
 
 
 def collate(x):
-    trees = []
+
     full_batch = []
     nested_batch = []
     hash_batch = []
     targets = []
-    for tree, full, nested, hashj, target in x:
-        trees.append(tree)
+    for full, nested, hashj, target in x:
         full_batch.append(full)
         nested_batch.append(nested)
         hash_batch.append(hashj)
         targets.append(target)
-    return trees, full_batch, nested_batch, hash_batch, torch.tensor(targets)
+    return full_batch, nested_batch, hash_batch, torch.tensor(targets)
 # def collate(x):
 #     trees = []
 #     targets = []
@@ -136,30 +135,16 @@ class BaoRegression:
         y = self.__pipeline.fit_transform(y.reshape(-1, 1)).astype(np.float32)
         
         self.__tree_transform.fit(X)
-        X_input = self.__tree_transform.transform(X)
+        # X_input = self.__tree_transform.transform(X)
         a,b,c = self.__tree_transform.transform_subtrees(X)
-        # save the X_input a b c to a file
-        # with open("/mydata/fit_check.txt", "a") as f:
-        #     f.write("X_input: \n")
-        #     f.write(str(X_input))
-        #     f.write("\na: \n")
-        #     f.write(str(a))
-        #     f.write("\nb: \n")
-        #     f.write(str(b))
-        #     f.write("\nc: \n")
-        #     f.write(str(c))
-
-
-
-        pairs = list(zip(X_input,a,b,c, y))
+        pairs = list(zip(a,b,c, y))
         dataset = DataLoader(pairs,
                              batch_size=16,
                              shuffle=True,
                              collate_fn=collate)
 
         # determine the initial number of channels
-        for inp, _,_,_,_ in dataset:
-            # Qihan: add two dimension to the input
+        for inp,_,_,_ in dataset:
             in_channels = inp[0][0].shape[0]
             break
 
@@ -181,18 +166,23 @@ class BaoRegression:
         losses = []
         for epoch in range(100):
             loss_accum = 0
-            for x, a,b,c,y in dataset:
+            for a,b,c,y in dataset:
                 if CUDA:
                     y = y.cuda()
+                    
+                # print("fit a:\n", a)
+                # print("fit b:\n", b)
+                # print("fit c:\n", c)
+                # print("length of a:", len(a)) 4
+                # print("length of b:", len(b)) 4
+                # print("length of c:", len(c)) 4
+                assert len(a) == len(b) == len(c)
+                # TODO use k-prototype algorithm to get the three index lists with a, b, c
+                otheridx_list = [random.randint(0, NUM_OTHER_HUB-1) for _ in range(len(a))]
+                hashjoinidx_list = [random.randint(0, NUM_HASHJOIN_HUB-1) for _ in range(len(a))]
+                nestedloopidx_list = [random.randint(0, NUM_NESTEDLOOP_HUB-1) for _ in range(len(a))]
 
-                otheridx = random.randint(0, NUM_OTHER_HUB-1)
-                hashjoinidx = random.randint(0, NUM_HASHJOIN_HUB-1)
-                nestedloopidx = random.randint(0, NUM_NESTEDLOOP_HUB-1)
-
-                print ("fit otheridx:", otheridx)
-                print ("fit hashjoinidx:", hashjoinidx)
-                print ("fit nestedloopidx:", nestedloopidx)
-                y_pred = self.__net(a,b,c,otheridx, hashjoinidx, nestedloopidx)
+                y_pred = self.__net(a,b,c,otheridx_list, hashjoinidx_list, nestedloopidx_list)
                 loss = loss_fn(y_pred, y)
                 loss_accum += loss.item()
         
@@ -219,30 +209,20 @@ class BaoRegression:
             X = [X]
         X = [json.loads(x) if isinstance(x, str) else x for x in X]
 
-        input_X = self.__tree_transform.transform(X)
-        
-        a,b,c = self.__tree_transform.transform_subtrees(X)
-        
-        # save the input_X a b c to a file
-        # with open("/mydata/predict_check.txt", "a") as f:
-        #     f.write("input_X: \n")
-        #     f.write(str(input_X))
-        #     f.write("\na: \n")
-        #     f.write(str(a))
-        #     f.write("\nb: \n")
-        #     f.write(str(b))
-        #     f.write("\nc: \n")
-        #     f.write(str(c))
-
-        
+        a,b,c = self.__tree_transform.transform_subtrees(X)   
         self.__net.eval()
+        
+        # print("predict a[0]:\n", a[0])
+        # print("predict b[0]:\n", b[0])
+        # print("predict c[0]:\n", c[0])
+        # TODO we need use a[0], b[0], c[0] as the input to the k-prototype algorithm, to get the three indexes for nueral network
 
         otheridx = random.randint(0, NUM_OTHER_HUB-1)
         hashjoinidx = random.randint(0, NUM_HASHJOIN_HUB-1)
         nestedloopidx = random.randint(0, NUM_NESTEDLOOP_HUB-1)
-        print ("predict otheridx:", otheridx)
-        print ("predict hashjoinidx:", hashjoinidx)
-        print ("predict nestedloopidx:", nestedloopidx)
+        # print ("predict otheridx:", otheridx)
+        # print ("predict hashjoinidx:", hashjoinidx)
+        # print ("predict nestedloopidx:", nestedloopidx)
         pred = self.__net(a,b,c,otheridx, hashjoinidx, nestedloopidx).cpu().detach().numpy()
         return self.__pipeline.inverse_transform(pred)
 

@@ -155,3 +155,22 @@ def prepare_trees(trees, transformer, left_child, right_child, cuda=False):
     return (flat_trees, indexes)
                     
 
+def prepare_tree(tree, transformer, left_child, right_child, cuda=False):
+    # 先对单棵树进行 _flatten 操作，然后调用 _pad_and_combine 保持一致性
+    flat_tree = _flatten(tree, transformer, left_child, right_child)
+    flat_tree = _pad_and_combine([flat_tree])  # 单元素列表
+    flat_tree = torch.Tensor(flat_tree)
+    
+    # 按照 prepare_trees 中的处理，转换为 batch x channels x max_tree_nodes
+    flat_tree = flat_tree.transpose(1, 2)
+    if cuda:
+        flat_tree = flat_tree.cuda()
+    
+    # 处理单棵树的 indexes
+    indexes = _tree_conv_indexes(tree, left_child, right_child)
+    indexes = _pad_and_combine([indexes])
+    indexes = torch.Tensor(indexes).long()
+    if cuda:
+        indexes = indexes.cuda()
+    
+    return (flat_tree, indexes)
