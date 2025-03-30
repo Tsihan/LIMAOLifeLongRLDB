@@ -22,6 +22,7 @@ def add_buffer_info_to_plans(buffer_info, plans):
 class BaoModel:
     def __init__(self):
         self.__current_model = None
+        self.__module_assigner = None
 
     def select_plan(self, messages):
         start = time.time()
@@ -34,7 +35,7 @@ class BaoModel:
 
         # if we do have a model, make predictions for each plan.
         arms = add_buffer_info_to_plans(buffers, arms)
-        res = self.__current_model.predict(arms)
+        res = self.__current_model.predict(arms,self.__module_assigner)
         idx = res.argmin()
         stop = time.time()
         print("Selected index", idx,
@@ -53,7 +54,7 @@ class BaoModel:
 
         # if we do have a model, make predictions for each plan.
         plans = add_buffer_info_to_plans(buffers, [plan])
-        res = self.__current_model.predict(plans)
+        res = self.__current_model.predict(plans, self.__module_assigner)
         return res[0][0]
     
     def load_model(self, fp):

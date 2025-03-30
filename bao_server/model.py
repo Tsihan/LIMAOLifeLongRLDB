@@ -204,7 +204,7 @@ class BaoRegression:
         else:
             self.__log("Stopped training after max epochs")
     # # 每次会给49个计划，该计划未经过修改。返回49个计划的预测值
-    def predict(self, X):
+    def predict(self, X, module_assigner):
         if not isinstance(X, list):
             X = [X]
         X = [json.loads(x) if isinstance(x, str) else x for x in X]
@@ -215,6 +215,15 @@ class BaoRegression:
         # print("predict a[0]:\n", a[0])
         # print("predict b[0]:\n", b[0])
         # print("predict c[0]:\n", c[0])
+        # save a[0], b[0], c[0] to a file
+        with open("/mydata/LIMAOLifeLongRLDB/module_assigner_init.txt", "a") as f:
+            f.write("\n")
+            f.write("a[0]:\n")
+            f.write(str(a[0]))
+            f.write("\nb[0]:\n")
+            f.write(str(b[0]))
+            f.write("\nc[0]:\n")
+            f.write(str(c[0]))
         # TODO we need use a[0], b[0], c[0] as the input to the k-prototype algorithm, to get the three indexes for nueral network
 
         otheridx = random.randint(0, NUM_OTHER_HUB-1)
