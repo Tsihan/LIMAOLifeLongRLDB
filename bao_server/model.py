@@ -6,10 +6,11 @@ import joblib
 import os
 from sklearn import preprocessing
 from sklearn.pipeline import Pipeline
-
+import random
 from torch.utils.data import DataLoader
 import net
 from featurize import TreeFeaturizer
+from net import NUM_OTHER_HUB, NUM_HASHJOIN_HUB, NUM_NESTEDLOOP_HUB
 
 CUDA = torch.cuda.is_available()
 
@@ -184,8 +185,14 @@ class BaoRegression:
                 if CUDA:
                     y = y.cuda()
 
-           
-                y_pred = self.__net(a,b,c)
+                otheridx = random.randint(0, NUM_OTHER_HUB-1)
+                hashjoinidx = random.randint(0, NUM_HASHJOIN_HUB-1)
+                nestedloopidx = random.randint(0, NUM_NESTEDLOOP_HUB-1)
+
+                print ("fit otheridx:", otheridx)
+                print ("fit hashjoinidx:", hashjoinidx)
+                print ("fit nestedloopidx:", nestedloopidx)
+                y_pred = self.__net(a,b,c,otheridx, hashjoinidx, nestedloopidx)
                 loss = loss_fn(y_pred, y)
                 loss_accum += loss.item()
         
@@ -230,7 +237,12 @@ class BaoRegression:
         
         self.__net.eval()
 
-
-        pred = self.__net(a,b,c).cpu().detach().numpy()
+        otheridx = random.randint(0, NUM_OTHER_HUB-1)
+        hashjoinidx = random.randint(0, NUM_HASHJOIN_HUB-1)
+        nestedloopidx = random.randint(0, NUM_NESTEDLOOP_HUB-1)
+        print ("predict otheridx:", otheridx)
+        print ("predict hashjoinidx:", hashjoinidx)
+        print ("predict nestedloopidx:", nestedloopidx)
+        pred = self.__net(a,b,c,otheridx, hashjoinidx, nestedloopidx).cpu().detach().numpy()
         return self.__pipeline.inverse_transform(pred)
 

@@ -122,7 +122,8 @@ class BaoNet(nn.Module):
         return self.__in_channels
         
     # Qihan: don't use a b c for now
-    def forward(self,a,b,c):
+    def forward(self,a,b,c,otheridx = 0, hashjoinidx = 0, nestedloopidx = 0):
+        assert 0 <= otheridx < NUM_OTHER_HUB and 0 <= hashjoinidx < NUM_HASHJOIN_HUB and 0 <= nestedloopidx < NUM_NESTEDLOOP_HUB
         trees_other = prepare_trees(a, features, left_child, right_child,
                               cuda=self.__cuda)
         trees_hash_join = prepare_trees(b, features, left_child, right_child,
@@ -130,9 +131,9 @@ class BaoNet(nn.Module):
         trees_nested_loop_join = prepare_trees(c, features, left_child, right_child,
                                         cuda=self.__cuda)
         # FIXME hardcoded now
-        after_conv_other = self.conv_module_list_other[0](trees_other)
-        after_conv_hash_join = self.conv_module_list_hash_join[0](trees_hash_join)
-        after_conv_nested_loop_join = self.conv_module_list_nested_loop_join[0](trees_nested_loop_join)
+        after_conv_other = self.conv_module_list_other[otheridx](trees_other)
+        after_conv_hash_join = self.conv_module_list_hash_join[hashjoinidx](trees_hash_join)
+        after_conv_nested_loop_join = self.conv_module_list_nested_loop_join[nestedloopidx](trees_nested_loop_join)
         after_conv_output = [after_conv_other, after_conv_hash_join, after_conv_nested_loop_join]
         after_conv_final = self.attention_merger(after_conv_output)
         out = self.out_mlp(after_conv_final)
