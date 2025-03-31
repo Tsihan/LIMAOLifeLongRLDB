@@ -6,3 +6,4 @@
 .clangd
 .ipynb*
 logfile
+current_progress.cfg

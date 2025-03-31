@@ -4,6 +4,27 @@ import itertools
 
 from common import BaoException
 ROW_LIMIT = 500
+CFG_FILE_PATH = "/mydata/LIMAOLifeLongRLDB/bao_server/current_progress.cfg"
+
+def read_progress(cfg_file=CFG_FILE_PATH):
+    """
+    读取当前进度配置文件，返回 iteration 和 episode（如果读取失败，则默认返回0, 0）
+    文件格式假定为：
+        iteration=数字
+        episode=数字
+    """
+    iteration = 0
+    episode = 0
+    try:
+        with open(cfg_file, "r") as f:
+            for line in f:
+                if line.startswith("iteration="):
+                    iteration = int(line.split("=")[1].strip())
+                elif line.startswith("episode="):
+                    episode = int(line.split("=")[1].strip())
+    except Exception as e:
+        print(f"读取进度配置文件失败: {e}")
+    return iteration, episode
 
 def _bao_db():
     conn = sqlite3.connect("bao.db")
@@ -38,7 +59,9 @@ CREATE TABLE IF NOT EXISTS experience_for_experimental (
     conn.commit()
     return conn
 
+
 def record_reward(plan, reward, pid):
+    iteration, episode = read_progress()
     with _bao_db() as conn:
         c = conn.cursor()
 
@@ -48,8 +71,8 @@ def record_reward(plan, reward, pid):
 
         if row_count < ROW_LIMIT:
             # 如果行数少于500，正常插入
-            c.execute("INSERT INTO experience (plan, reward, pg_pid) VALUES (?, ?, ?)",
-                      (json.dumps(plan), reward, pid))
+            c.execute("INSERT INTO experience (plan, reward, pg_pid, iteration, episode) VALUES (?, ?, ?, ?, ?)",
+                      (json.dumps(plan), reward, pid, iteration, episode))
         else:
             # 如果行数达到500，替换最旧的记录
             # 找出最旧记录的ID
@@ -57,8 +80,8 @@ def record_reward(plan, reward, pid):
             oldest_id = c.fetchone()[0]
 
             # 更新最旧的记录
-            c.execute("UPDATE experience SET plan = ?, reward = ?, pg_pid = ? WHERE id = ?",
-                      (json.dumps(plan), reward, pid, oldest_id))
+            c.execute("UPDATE experience SET plan = ?, reward = ?, pg_pid = ?, iteration = ?, episode = ? WHERE id = ?",
+                      (json.dumps(plan), reward, pid, iteration, episode, oldest_id))
 
         conn.commit()
 
@@ -132,12 +155,16 @@ def num_experimental_queries():
         c = conn.cursor()
         c.execute("SELECT count(*) FROM experimental_query")
         return c.fetchall()[0][0]
-    
+# FIXME Qihan: never used
 def unexecuted_experiments():
     with _bao_db() as conn:
         c = conn.cursor()
         c.execute("CREATE TEMP TABLE arms (arm_idx INTEGER)")
-        c.execute("INSERT INTO arms (arm_idx) VALUES (0),(1),(2),(3),(4)")
+        # now we have 49 arms
+        c.execute("INSERT INTO arms (arm_idx) VALUES (0),(1),(2),(3),(4),(5),(6),(7),(8),(9),(10),\
+                  (11),(12),(13),(14),(15),(16),(17),(18),(19),(20),(21),(22),(23),(24),(25),(26),\
+                  (27),(28),(29),(30),(31),(32),(33),(34),(35),(36),(37),(38),(39),(40),(41),(42),\
+                  (43),(44),(45),(46),(47), (48)")
 
         c.execute("""
 SELECT eq.id, eq.query, arms.arm_idx 
@@ -163,7 +190,6 @@ ORDER BY eq.id, efe.arm_idx;
         for eq_id, grp in itertools.groupby(c, key=lambda x: x[0]):
             yield ({"reward": x[1], "plan": x[2], "arm": x[3]} for x in grp)
         
-
 def record_experiment(experimental_id, experience_id, arm_idx):
     with _bao_db() as conn:
         c = conn.cursor()
