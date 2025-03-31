@@ -119,9 +119,12 @@ for i in range(1, 3):
             update_progress(i, current_episode)
             queries_part = queries[j:j + EPISODE_LEN]
             print("Executing", len(queries_part), "queries using BAO optimizer")
-            print(f"Episode {current_episode}, iteration {i}")
+            print(f"Iteration {i}, Episode {current_episode}")
             for fp, q in queries_part:
                 q_time = run_query(q, bao_reward=USE_BAO, bao_select=USE_BAO)
                 print("BAO", time(), fp, q_time, flush=True)
+            # light train
+            os.system(f"cd bao_server && python3 baoctl.py --retrain --iteration {i} --episode {current_episode}")
+            os.system("sync")
 # 在程序结束时可选地发送邮件通知
 # send_email("Bao Experiment", "The experiment of IMDB static finished!", "2453939195@qq.com")

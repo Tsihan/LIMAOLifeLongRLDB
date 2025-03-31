@@ -36,6 +36,11 @@ if __name__ == "__main__":
                         help="Print out information about the Bao server.")
     parser.add_argument("--experiment", metavar="SECONDS", type=int,
                         help="Conduct experiments on test queries for (up to) SECONDS seconds.")
+    
+    parser.add_argument("--iteration", type=int,
+                        help="mark the current iteration of the script")
+    parser.add_argument("--episode", type=int,
+                        help="mark the current episode of the script")
     args = parser.parse_args()
 
     if args.train:
@@ -58,10 +63,19 @@ if __name__ == "__main__":
     if args.retrain:
         import train
         from constants import DEFAULT_MODEL_PATH, OLD_MODEL_PATH, TMP_MODEL_PATH
-        train.train_and_swap(DEFAULT_MODEL_PATH, OLD_MODEL_PATH, TMP_MODEL_PATH,
-                             verbose=True)
-        send_model_load(DEFAULT_MODEL_PATH)
-        exit(0)
+        if args.iteration is None and args.episode is None:
+            train.train_and_swap(DEFAULT_MODEL_PATH, OLD_MODEL_PATH, TMP_MODEL_PATH,
+                                verbose=True)
+            send_model_load(DEFAULT_MODEL_PATH)
+            exit(0)
+        elif args.iteration is not None and args.episode is not None:
+            # 训练当前模型并直接更新模型参数，但不进行模型替换过程。
+            train.train_no_swap(DEFAULT_MODEL_PATH, verbose=True)
+            send_model_load(DEFAULT_MODEL_PATH)
+            exit(0)
+        else:
+            print("Error: Please specify both iteration and episode or neither.")
+            exit(1)
 
             
 

@@ -124,7 +124,7 @@ class BaoRegression:
         with open(_n_path(path), "wb") as f:
             joblib.dump(self.__n, f)
     # we get data from the history and train the model, from sqlite
-    def fit(self, X, y):
+    def fit(self, X, y, epochs=100):
         if isinstance(y, list):
             y = np.array(y)
 
@@ -166,7 +166,7 @@ class BaoRegression:
         loss_fn = torch.nn.MSELoss()
         
         losses = []
-        for epoch in range(100):
+        for epoch in range(epochs):
             loss_accum = 0
             for a,b,c,y in dataset:
                 if CUDA:
