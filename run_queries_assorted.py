@@ -159,7 +159,7 @@ for partition in partitions:
 
     for i in range(partition):
         global_iter += 1
-        print(f"=== Executing queries using Bao optimizer, global iteration {global_iter}/100, partition {partition}, phase iteration {i+1} for database {dbname}, query directory {chosen_directory} ===")
+        print(f"=== Executing queries using Bao optimizer, global iteration {global_iter}/{TOTOAL_ITER}, partition {partition}, phase iteration {i+1} for database {dbname}, query directory {chosen_directory} ===")
         if USE_BAO:
             os.system("cd /mydata/LIMAOLifeLongRLDB/bao_server && python3 baoctl.py --retrain")
             os.system("sync")
