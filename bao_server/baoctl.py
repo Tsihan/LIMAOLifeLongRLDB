@@ -73,6 +73,11 @@ if __name__ == "__main__":
             train.train_no_swap(DEFAULT_MODEL_PATH, verbose=True)
             send_model_load(DEFAULT_MODEL_PATH)
             exit(0)
+        elif args.iteration is not None and args.episode is None:
+            train.train_and_swap(DEFAULT_MODEL_PATH, OLD_MODEL_PATH, TMP_MODEL_PATH,
+                                verbose=True, iteration=args.iteration)
+            send_model_load(DEFAULT_MODEL_PATH)
+            exit(0)
         else:
             print("Error: Please specify both iteration and episode or neither.")
             exit(1)

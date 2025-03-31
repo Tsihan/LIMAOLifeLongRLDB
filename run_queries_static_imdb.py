@@ -6,8 +6,10 @@ import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 USE_BAO = True
+ONLY_USE_LAST_ITERATION = True
 PG_CONNECTION_STR = "dbname=imdbload user=qihan host=localhost port=5432"
 EPISODE_LEN = 10
+NUM_ITERATIONS = 3
 PROGRESS_CFG = "/mydata/LIMAOLifeLongRLDB/bao_server/current_progress.cfg"
 
 def update_progress(iteration, episode):
@@ -103,13 +105,18 @@ for fp, q in queries:
     print("x", "x", time(), fp, pg_time, "PG", flush=True)
 
 
-for i in range(1, 3):
+for i in range(1, NUM_ITERATIONS + 1):
     # 每个新的 iteration，更新 cfg 文件，episode 先置为 0
     update_progress(i, 0)
     print(f"===Executing queries using BAO optimizer, iteration {i}===")
     if USE_BAO:
-        os.system(f"cd bao_server && python3 baoctl.py --retrain")
-        os.system("sync")
+        if ONLY_USE_LAST_ITERATION:
+            # use the last iteration data to retrain
+            os.system(f"cd bao_server && python3 baoctl.py --retrain --iteration {i-1}")
+            os.system("sync")
+        else:
+            os.system(f"cd bao_server && python3 baoctl.py --retrain")
+            os.system("sync")
         # 按 EPISODE_LEN 将 queries 分割成若干部分
         num_episodes = (len(queries) + EPISODE_LEN - 1) // EPISODE_LEN
         for j in range(0, len(queries), EPISODE_LEN):

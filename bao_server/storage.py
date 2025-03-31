@@ -110,6 +110,14 @@ def experience_episode(iteration, episode):
         c.execute("SELECT plan, reward FROM experience WHERE iteration = ? AND episode = ?",
                   (iteration, episode))
         return c.fetchall()
+
+def experience_iteration(iteration):
+    with _bao_db() as conn:
+        c = conn.cursor()
+        c.execute("SELECT plan, reward FROM experience WHERE iteration = ?",
+                  (iteration,))
+             
+        return c.fetchall()
     
 def experiment_experience():
     all_experiment_experience = []
