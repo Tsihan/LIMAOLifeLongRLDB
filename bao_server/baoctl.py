@@ -36,7 +36,6 @@ if __name__ == "__main__":
                         help="Print out information about the Bao server.")
     parser.add_argument("--experiment", metavar="SECONDS", type=int,
                         help="Conduct experiments on test queries for (up to) SECONDS seconds.")
-    
     args = parser.parse_args()
 
     if args.train:
@@ -63,6 +62,8 @@ if __name__ == "__main__":
                              verbose=True)
         send_model_load(DEFAULT_MODEL_PATH)
         exit(0)
+
+            
 
     if args.test_connection:
         from reg_blocker import ExperimentRunner

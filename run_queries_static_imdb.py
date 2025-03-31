@@ -7,6 +7,16 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 USE_BAO = True
 PG_CONNECTION_STR = "dbname=imdbload user=qihan host=localhost port=5432"
+EPISODE_LEN = 10
+PROGRESS_CFG = "/mydata/LIMAOLifeLongRLDB/bao_server/current_progress.cfg"
+
+def update_progress(iteration, episode):
+    """write the current progress to a file"""
+    # Check if the directory exists, if not, create it
+    with open(PROGRESS_CFG, "w") as f:
+        f.write(f"iteration={iteration}\n")
+        f.write(f"episode={episode}\n")
+    
 def send_email(subject, body, to_email):
     from_email = "2453939195@qq.com"
     password = "bajbveysllkjdjbd"
@@ -79,27 +89,39 @@ def get_all_queries_from_directory(directory):
     return queries
 
 # Assuming the directory containing SQL files is provided as the first argument
-query_directory = "/mydata/LIMAOLifeLongRLDB/imdb_assorted_5"
+query_directory = "/mydata/LIMAOLifeLongRLDB/imdb_small"
 queries = get_all_queries_from_directory(query_directory)
 
 print("Read", len(queries), "queries.")
 print("Using Bao:", USE_BAO)
 
 print("Executing queries using PG optimizer")
+update_progress(0, 0)
 
 for fp, q in queries:
     pg_time = run_query(q, bao_reward=True)
     print("x", "x", time(), fp, pg_time, "PG", flush=True)
 
 
-for i in range(2):
-    print(f"===Executing queries using BAO optimizer, iteration {i+1}===")
+for i in range(1, 3):
+    # 每个新的 iteration，更新 cfg 文件，episode 先置为 0
+    update_progress(i, 0)
+    print(f"===Executing queries using BAO optimizer, iteration {i}===")
     if USE_BAO:
-        
-        os.system("cd bao_server && python3 baoctl.py --retrain")
+        os.system(f"cd bao_server && python3 baoctl.py --retrain")
         os.system("sync")
-        for fp, q in queries:
-            q_time = run_query(q, bao_reward=USE_BAO, bao_select=USE_BAO)
-            print("BAO", time(), fp, q_time, flush=True)
-# 在程序结束时调用
-# send_email("Bao Experiment", "The experiment of IMDB static finished!","2453939195@qq.com")
+        # 按 EPISODE_LEN 将 queries 分割成若干部分
+        num_episodes = (len(queries) + EPISODE_LEN - 1) // EPISODE_LEN
+        for j in range(0, len(queries), EPISODE_LEN):
+            # 计算当前 episode 序号（从 1 开始）
+            current_episode = j // EPISODE_LEN + 1
+            # 更新 cfg 文件中的 episode 信息
+            update_progress(i, current_episode)
+            queries_part = queries[j:j + EPISODE_LEN]
+            print("Executing", len(queries_part), "queries using BAO optimizer")
+            print(f"Episode {current_episode}, iteration {i}")
+            for fp, q in queries_part:
+                q_time = run_query(q, bao_reward=USE_BAO, bao_select=USE_BAO)
+                print("BAO", time(), fp, q_time, flush=True)
+# 在程序结束时可选地发送邮件通知
+# send_email("Bao Experiment", "The experiment of IMDB static finished!", "2453939195@qq.com")
