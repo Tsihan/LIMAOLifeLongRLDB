@@ -1,6 +1,7 @@
 import argparse
 import socket
 import json
+from module_assigner import Kproto_MultiArrayProcessor
 
 def __json_bytes(obj):
     return (json.dumps(obj) + "\n").encode("UTF-8")

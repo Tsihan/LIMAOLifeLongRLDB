@@ -9,9 +9,9 @@ from sklearn.pipeline import Pipeline
 import random
 from torch.utils.data import DataLoader
 import net
-from featurize import TreeFeaturizer, ALL_TYPES
-from net import NUM_OTHER_HUB, NUM_HASHJOIN_HUB, NUM_NESTEDLOOP_HUB
+from featurize import TreeFeaturizer
 from module_assigner import Kproto_MultiArrayProcessor
+
 CUDA = torch.cuda.is_available()
 
 def _nn_path(base):
@@ -86,8 +86,7 @@ class BaoRegression:
         self.__in_channels = None
         self.__n = 0
         
-        self.module_assigner = Kproto_MultiArrayProcessor("/mydata/LIMAOLifeLongRLDB/module_assigner_init.txt",
-                                                           num_other=NUM_OTHER_HUB, num_hashjoin=NUM_HASHJOIN_HUB, num_nestedloop=NUM_NESTEDLOOP_HUB,num_operator=len(ALL_TYPES))
+        self.module_assigner = Kproto_MultiArrayProcessor.load_from_disk("/mydata/LIMAOLifeLongRLDB/kproto_processor.pkl")
         
     def __log(self, *args):
         if self.__verbose:
