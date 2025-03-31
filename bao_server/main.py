@@ -13,6 +13,7 @@ import math
 import reg_blocker
 from constants import (PG_OPTIMIZER_INDEX, DEFAULT_MODEL_PATH,
                        OLD_MODEL_PATH, TMP_MODEL_PATH)
+from module_assigner import Kproto_MultiArrayProcessor
 
 def add_buffer_info_to_plans(buffer_info, plans):
     for p in plans:

@@ -183,9 +183,9 @@ class BaoRegression:
                 otheridx_list = [self.module_assigner.predict("a",a[i]) for i in range(len(a))]
                 hashjoinidx_list = [self.module_assigner.predict("b",b[i]) for i in range(len(b))]
                 nestedloopidx_list = [self.module_assigner.predict("c",c[i]) for i in range(len(c))]
-                print ("otheridx_list:", otheridx_list)
-                print ("hashjoinidx_list:", hashjoinidx_list)
-                print ("nestedloopidx_list:", nestedloopidx_list)
+                # print ("otheridx_list:", otheridx_list)
+                # print ("hashjoinidx_list:", hashjoinidx_list)
+                # print ("nestedloopidx_list:", nestedloopidx_list)
 
                 y_pred = self.__net(a,b,c,otheridx_list, hashjoinidx_list, nestedloopidx_list)
                 loss = loss_fn(y_pred, y)
@@ -229,8 +229,6 @@ class BaoRegression:
         #     f.write(str(b[0]))
         #     f.write("\nc[0]:\n")
         #     f.write(str(c[0]))
-        # TODO we need use a[0], b[0], c[0] as the input to the k-prototype algorithm, to get the three indexes for nueral network
-
         otheridx = self.module_assigner.predict("a", a[0])
         hashjoinidx = self.module_assigner.predict("b", b[0])
         nestedloopidx = self.module_assigner.predict("c", c[0])

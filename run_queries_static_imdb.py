@@ -79,7 +79,7 @@ def get_all_queries_from_directory(directory):
     return queries
 
 # Assuming the directory containing SQL files is provided as the first argument
-query_directory = "/mydata/LIMAOLifeLongRLDB/imdb_small"
+query_directory = "/mydata/LIMAOLifeLongRLDB/imdb_assorted_5"
 queries = get_all_queries_from_directory(query_directory)
 
 print("Read", len(queries), "queries.")
@@ -92,7 +92,7 @@ for fp, q in queries:
     print("x", "x", time(), fp, pg_time, "PG", flush=True)
 
 
-for i in range(1):
+for i in range(2):
     print(f"===Executing queries using BAO optimizer, iteration {i+1}===")
     if USE_BAO:
         
