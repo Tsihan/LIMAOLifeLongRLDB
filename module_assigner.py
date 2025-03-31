@@ -183,7 +183,6 @@ class Kproto_MultiArrayProcessor:
         flattened = np.concatenate(arrays)
         dp = np.array([flattened])
         label = self.kproto[group].predict(dp, categorical=self.categorical_indices[group])[0]
-        print(f"Prediction for group {group}: ", label)
         return label
 
 # -------------------------
