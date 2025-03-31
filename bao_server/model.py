@@ -9,9 +9,9 @@ from sklearn.pipeline import Pipeline
 import random
 from torch.utils.data import DataLoader
 import net
-from featurize import TreeFeaturizer
+from featurize import TreeFeaturizer, ALL_TYPES
 from net import NUM_OTHER_HUB, NUM_HASHJOIN_HUB, NUM_NESTEDLOOP_HUB
-
+from module_assigner import Kproto_MultiArrayProcessor
 CUDA = torch.cuda.is_available()
 
 def _nn_path(base):
@@ -48,16 +48,16 @@ class BaoData:
 
 def collate(x):
 
-    full_batch = []
+    other_batch = []
     nested_batch = []
     hash_batch = []
     targets = []
-    for full, nested, hashj, target in x:
-        full_batch.append(full)
-        nested_batch.append(nested)
+    for other, nested, hashj, target in x:
+        other_batch.append(other)
         hash_batch.append(hashj)
+        nested_batch.append(nested)
         targets.append(target)
-    return full_batch, nested_batch, hash_batch, torch.tensor(targets)
+    return other_batch, hash_batch, nested_batch, torch.tensor(targets)
 # def collate(x):
 #     trees = []
 #     targets = []
@@ -85,6 +85,9 @@ class BaoRegression:
         self.__have_cache_data = have_cache_data
         self.__in_channels = None
         self.__n = 0
+        
+        self.module_assigner = Kproto_MultiArrayProcessor("/mydata/LIMAOLifeLongRLDB/module_assigner_init.txt",
+                                                           num_other=NUM_OTHER_HUB, num_hashjoin=NUM_HASHJOIN_HUB, num_nestedloop=NUM_NESTEDLOOP_HUB,num_operator=len(ALL_TYPES))
         
     def __log(self, *args):
         if self.__verbose:
@@ -178,9 +181,12 @@ class BaoRegression:
                 # print("length of c:", len(c)) 4
                 assert len(a) == len(b) == len(c)
                 # TODO use k-prototype algorithm to get the three index lists with a, b, c
-                otheridx_list = [random.randint(0, NUM_OTHER_HUB-1) for _ in range(len(a))]
-                hashjoinidx_list = [random.randint(0, NUM_HASHJOIN_HUB-1) for _ in range(len(a))]
-                nestedloopidx_list = [random.randint(0, NUM_NESTEDLOOP_HUB-1) for _ in range(len(a))]
+                otheridx_list = [self.module_assigner.predict("a",a[i]) for i in range(len(a))]
+                hashjoinidx_list = [self.module_assigner.predict("b",b[i]) for i in range(len(b))]
+                nestedloopidx_list = [self.module_assigner.predict("c",c[i]) for i in range(len(c))]
+                print ("otheridx_list:", otheridx_list)
+                print ("hashjoinidx_list:", hashjoinidx_list)
+                print ("nestedloopidx_list:", nestedloopidx_list)
 
                 y_pred = self.__net(a,b,c,otheridx_list, hashjoinidx_list, nestedloopidx_list)
                 loss = loss_fn(y_pred, y)
@@ -216,22 +222,22 @@ class BaoRegression:
         # print("predict b[0]:\n", b[0])
         # print("predict c[0]:\n", c[0])
         # save a[0], b[0], c[0] to a file
-        with open("/mydata/LIMAOLifeLongRLDB/module_assigner_init.txt", "a") as f:
-            f.write("\n")
-            f.write("a[0]:\n")
-            f.write(str(a[0]))
-            f.write("\nb[0]:\n")
-            f.write(str(b[0]))
-            f.write("\nc[0]:\n")
-            f.write(str(c[0]))
+        # with open("/mydata/LIMAOLifeLongRLDB/module_assigner_init.txt", "a") as f:
+        #     f.write("\n")
+        #     f.write("a[0]:\n")
+        #     f.write(str(a[0]))
+        #     f.write("\nb[0]:\n")
+        #     f.write(str(b[0]))
+        #     f.write("\nc[0]:\n")
+        #     f.write(str(c[0]))
         # TODO we need use a[0], b[0], c[0] as the input to the k-prototype algorithm, to get the three indexes for nueral network
 
-        otheridx = random.randint(0, NUM_OTHER_HUB-1)
-        hashjoinidx = random.randint(0, NUM_HASHJOIN_HUB-1)
-        nestedloopidx = random.randint(0, NUM_NESTEDLOOP_HUB-1)
-        # print ("predict otheridx:", otheridx)
-        # print ("predict hashjoinidx:", hashjoinidx)
-        # print ("predict nestedloopidx:", nestedloopidx)
+        otheridx = self.module_assigner.predict("a", a[0])
+        hashjoinidx = self.module_assigner.predict("b", b[0])
+        nestedloopidx = self.module_assigner.predict("c", c[0])
+        print ("predict otheridx:", otheridx)
+        print ("predict hashjoinidx:", hashjoinidx)
+        print ("predict nestedloopidx:", nestedloopidx)
         pred = self.__net(a,b,c,otheridx, hashjoinidx, nestedloopidx).cpu().detach().numpy()
         return self.__pipeline.inverse_transform(pred)
 

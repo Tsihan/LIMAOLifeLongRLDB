@@ -3,7 +3,7 @@ import numpy as np
 from kmodes.kprototypes import KPrototypes
 
 class Kproto_MultiArrayProcessor:
-    def __init__(self, file_path, num_other=1, num_nestedloop=3, num_hashjoin=2, num_operator=7):
+    def __init__(self, file_path, num_other=1, num_hashjoin=2,num_nestedloop=3,  num_operator=7):
         """
         Read data from file, where each data point may span multiple lines.
         Example format:
@@ -19,8 +19,8 @@ class Kproto_MultiArrayProcessor:
         """
         self.file_path = file_path
         self.num_other = num_other
-        self.num_nestedloop = num_nestedloop
         self.num_hashjoin = num_hashjoin
+        self.num_nestedloop = num_nestedloop
         self.num_operator = num_operator
         # Store data for groups a, b, and c (each element is a parsed nested structure)
         self.data_groups = {"a": [], "b": [], "c": []}
@@ -47,8 +47,8 @@ class Kproto_MultiArrayProcessor:
         # Initialize three KPrototypes models (cluster numbers are adjustable)
         self.kproto = {
             "a": KPrototypes(n_clusters=num_other, init='Huang', random_state=42),
-            "b": KPrototypes(n_clusters=num_nestedloop, init='Huang', random_state=42),
-            "c": KPrototypes(n_clusters=num_hashjoin, init='Huang', random_state=42)
+            "b": KPrototypes(n_clusters=num_hashjoin, init='Huang', random_state=42),
+            "c": KPrototypes(n_clusters=num_nestedloop, init='Huang', random_state=42)
         }
         # Train each model using its respective processed data and categorical indices.
         for group in self.processed_data:
@@ -183,6 +183,8 @@ class Kproto_MultiArrayProcessor:
         flattened = np.concatenate(arrays)
         dp = np.array([flattened])
         label = self.kproto[group].predict(dp, categorical=self.categorical_indices[group])[0]
+        # chanege the label from numpy.uint16 to int
+        label = int(label)
         return label
 
 # -------------------------
