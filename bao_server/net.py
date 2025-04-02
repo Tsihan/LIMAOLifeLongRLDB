@@ -5,8 +5,8 @@ from TreeConvolution.tcnn import TreeActivation, DynamicPooling
 from TreeConvolution.util import prepare_trees, prepare_tree
 import numpy as np
 
-NUM_OTHER_HUB = 1
-NUM_HASHJOIN_HUB = 2
+NUM_OTHER_HUB = 2
+NUM_HASHJOIN_HUB = 3
 NUM_NESTEDLOOP_HUB = 3
 NUM_HUB = 3
 
