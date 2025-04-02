@@ -17,3 +17,4 @@ scipy==1.8.1
 protobuf==3.20.0
 joblib
 scikit-learn
+kmodes

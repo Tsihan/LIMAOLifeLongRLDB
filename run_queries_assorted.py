@@ -202,4 +202,4 @@ for partition in partitions:
             send_email("Bao Experiment", f"The experiment of chaos is currently at {global_iter}/{TOTOAL_ITER} iters! {time_now}", "2453939195@qq.com")
         
 time_now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")  
-send_email("Bao Experiment", f"The experiment of chaos finished! {time_now}", "2453939195@qq.com")
+send_email("Bao Experiment", f"The experiment of LIMAO_Bao chaos finished! {time_now}", "2453939195@qq.com")
