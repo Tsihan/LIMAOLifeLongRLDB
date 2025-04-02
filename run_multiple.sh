@@ -4,8 +4,8 @@ source /mydata/anaconda3/bin/activate balsa
 ############################################
 cd /mydata/LIMAOLifeLongRLDB
 rm ./logfile
-rm /mydata/LIMAOLifeLongRLDB/bao_server/bao_default_model
-rm /mydata/LIMAOLifeLongRLDB/bao_server/bao_previous_model
+rm -rf /mydata/LIMAOLifeLongRLDB/bao_server/bao_default_model
+rm -rf /mydata/LIMAOLifeLongRLDB/bao_server/bao_previous_model
 rm /mydata/LIMAOLifeLongRLDB/bao_server/bao.db
 pg_ctl -D /mydata/databases restart -l logfile
 cd /mydata/LIMAOLifeLongRLDB/bao_server
@@ -18,8 +18,8 @@ wait $MAIN_PID 2>/dev/null
 ############################################
 cd /mydata/LIMAOLifeLongRLDB
 rm ./logfile
-rm /mydata/LIMAOLifeLongRLDB/bao_server/bao_default_model
-rm /mydata/LIMAOLifeLongRLDB/bao_server/bao_previous_model
+rm -rf /mydata/LIMAOLifeLongRLDB/bao_server/bao_default_model
+rm -rf /mydata/LIMAOLifeLongRLDB/bao_server/bao_previous_model
 rm /mydata/LIMAOLifeLongRLDB/bao_server/bao.db
 pg_ctl -D /mydata/databases restart -l logfile
 cd /mydata/LIMAOLifeLongRLDB/bao_server
@@ -32,8 +32,8 @@ wait $MAIN_PID 2>/dev/null
 ############################################
 cd /mydata/LIMAOLifeLongRLDB
 rm ./logfile
-rm /mydata/LIMAOLifeLongRLDB/bao_server/bao_default_model
-rm /mydata/LIMAOLifeLongRLDB/bao_server/bao_previous_model
+rm -rf /mydata/LIMAOLifeLongRLDB/bao_server/bao_default_model
+rm -rf /mydata/LIMAOLifeLongRLDB/bao_server/bao_previous_model
 rm /mydata/LIMAOLifeLongRLDB/bao_server/bao.db
 pg_ctl -D /mydata/databases restart -l logfile
 cd /mydata/LIMAOLifeLongRLDB/bao_server
@@ -46,8 +46,8 @@ wait $MAIN_PID 2>/dev/null
 ############################################
 cd /mydata/LIMAOLifeLongRLDB
 rm ./logfile
-rm /mydata/LIMAOLifeLongRLDB/bao_server/bao_default_model
-rm /mydata/LIMAOLifeLongRLDB/bao_server/bao_previous_model
+rm -rf /mydata/LIMAOLifeLongRLDB/bao_server/bao_default_model
+rm -rf /mydata/LIMAOLifeLongRLDB/bao_server/bao_previous_model
 rm /mydata/LIMAOLifeLongRLDB/bao_server/bao.db
 pg_ctl -D /mydata/databases restart -l logfile
 cd /mydata/LIMAOLifeLongRLDB/bao_server
@@ -60,8 +60,8 @@ wait $MAIN_PID 2>/dev/null
 ############################################
 cd /mydata/LIMAOLifeLongRLDB
 rm ./logfile
-rm /mydata/LIMAOLifeLongRLDB/bao_server/bao_default_model
-rm /mydata/LIMAOLifeLongRLDB/bao_server/bao_previous_model
+rm -rf /mydata/LIMAOLifeLongRLDB/bao_server/bao_default_model
+rm -rf /mydata/LIMAOLifeLongRLDB/bao_server/bao_previous_model
 rm /mydata/LIMAOLifeLongRLDB/bao_server/bao.db
 pg_ctl -D /mydata/databases restart -l logfile
 cd /mydata/LIMAOLifeLongRLDB/bao_server
@@ -73,7 +73,7 @@ kill $MAIN_PID
 wait $MAIN_PID 2>/dev/null
 cd /mydata/LIMAOLifeLongRLDB
 rm ./logfile
-rm /mydata/LIMAOLifeLongRLDB/bao_server/bao_default_model
-rm /mydata/LIMAOLifeLongRLDB/bao_server/bao_previous_model
+rm -rf /mydata/LIMAOLifeLongRLDB/bao_server/bao_default_model
+rm -rf /mydata/LIMAOLifeLongRLDB/bao_server/bao_previous_model
 rm /mydata/LIMAOLifeLongRLDB/bao_server/bao.db
 pg_ctl -D /mydata/databases restart -l logfile
