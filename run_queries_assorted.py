@@ -180,9 +180,9 @@ for partition in partitions:
                 os.system("sync")
             else:
                 # normal, use the last iteration data to retrain
-                os.system(f"cd /mydata/LIMAOLifeLongRLDB/bao_server && python3 baoctl.py --retrain --iteration {global_iter-1}")
+                # os.system(f"cd /mydata/LIMAOLifeLongRLDB/bao_server && python3 baoctl.py --retrain --iteration {global_iter-1}")
                 # FIXME or we still use all data to retrain
-                # os.system(f"cd /mydata/LIMAOLifeLongRLDB/bao_server && python3 baoctl.py --retrain")
+                os.system(f"cd /mydata/LIMAOLifeLongRLDB/bao_server && python3 baoctl.py --retrain")
                 os.system("sync")
 
             num_episodes = (len(queries) + EPISODE_LEN - 1) // EPISODE_LEN
