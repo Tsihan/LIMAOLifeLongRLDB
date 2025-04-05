@@ -24,8 +24,8 @@ PG_CONNECTION_STR_3 = "dbname=tpch1load user=qihan host=localhost"
 PG_CONNECTION_STR_4 = "dbname=tpch10load user=qihan host=localhost"
 PG_CONNECTION_STR_5 = "dbname=soload user=qihan host=localhost"
 TIME_OUT_IMDB = 32000
-TIME_OUT_TPCH = 100000
-TIME_OUT_STACK = 512000
+TIME_OUT_TPCH = 60000
+TIME_OUT_STACK = 60000
 EPISODE_LEN = 10
 PROGRESS_CFG = "/mydata/LIMAOLifeLongRLDB/bao_server/current_progress.cfg"
 
@@ -60,7 +60,8 @@ def random_partition(total, parts):
         result.append(value)
         remaining_total -= value
         remaining_parts -= 1
-
+    
+    random.shuffle(result)
     return result
 
 def send_email(subject, body, to_email):

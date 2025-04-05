@@ -49,7 +49,11 @@ def execute_sql_files(directory, connection_str):
         
         start_time = time.time()
         try:
+            # 设置超时时间
+            cur.execute("SET statement_timeout = 60000")
             cur.execute(sql)
+            # discard the timeout
+            cur.execute("SET statement_timeout = DEFAULT;")
             conn.commit()
         except Exception as e:
             print(f"Error executing file {file}: {e}")
@@ -92,27 +96,27 @@ def main():
             "name": "Stack",
             "connection_str": "dbname=soload user=qihan host=localhost",
             "directories": [
-                "/mydata/LIMAOLifeLongRLDB/so_assorted",
+                # "/mydata/LIMAOLifeLongRLDB/so_assorted",
                 "/mydata/LIMAOLifeLongRLDB/so_assorted_2"
             ]
         },
-        {
-            "name": "imdb",
-            "connection_str": "dbname=imdbload user=qihan host=localhost",
-            "directories": [
-                "/mydata/LIMAOLifeLongRLDB/imdb_assorted_3",
-                "/mydata/LIMAOLifeLongRLDB/imdb_assorted_4"
-            ]
-        },
-        {
-            "name": "tpch",
-            "connection_str": "dbname=tpch10load user=qihan host=localhost",
-            "directories": [
-                "/mydata/LIMAOLifeLongRLDB/tpch_assorted",
-                "/mydata/LIMAOLifeLongRLDB/tpch_assorted_2",
-                "/mydata/LIMAOLifeLongRLDB/tpch_assorted_3"
-            ]
-        }
+        # {
+        #     "name": "imdb",
+        #     "connection_str": "dbname=imdbload user=qihan host=localhost",
+        #     "directories": [
+        #         "/mydata/LIMAOLifeLongRLDB/imdb_assorted_3",
+        #         "/mydata/LIMAOLifeLongRLDB/imdb_assorted_4"
+        #     ]
+        # },
+        # {
+        #     "name": "tpch",
+        #     "connection_str": "dbname=tpch10load user=qihan host=localhost",
+        #     "directories": [
+        #         "/mydata/LIMAOLifeLongRLDB/tpch_assorted",
+        #         "/mydata/LIMAOLifeLongRLDB/tpch_assorted_2",
+        #         "/mydata/LIMAOLifeLongRLDB/tpch_assorted_3"
+        #     ]
+        # }
     ]
     
     recipient_email = "2453939195@qq.com"
