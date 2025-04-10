@@ -1,4 +1,3 @@
-
 select count(*) from tag, site, question, tag_question
 where
 site.site_name='softwareengineering' and
