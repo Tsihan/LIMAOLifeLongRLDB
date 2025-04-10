@@ -1,9 +1,9 @@
-select count(*) from tag, site, question, tag_question
+select count(*) from tag AS t1, site AS s1, question AS q1, tag_question AS tq1
 where
-site.site_name='softwareengineering' and
-tag.name='heatmap' and
-tag.site_id = site.site_id and
-question.site_id = site.site_id and
-tag_question.site_id = site.site_id and
-tag_question.question_id = question.id and
-tag_question.tag_id = tag.id
+s1.site_name='softwareengineering' and
+t1.name='heatmap' and
+t1.site_id = s1.site_id and
+q1.site_id = s1.site_id and
+tq1.site_id = s1.site_id and
+tq1.question_id = q1.id and
+tq1.tag_id = t1.id

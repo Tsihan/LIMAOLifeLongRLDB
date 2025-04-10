@@ -1,7 +1,7 @@
-select COUNT(distinct account.display_name)
+select COUNT(distinct acc.display_name)
 from
-tag t1, site s1, question q1, answer a1, tag_question tq1, so_user u1,
-account
+tag AS t1, site AS s1, question AS q1, answer AS a1, tag_question AS tq1, so_user AS u1,
+account AS acc
 where
 s1.site_name='physics' and
 t1.name = 'homework-and-exercises' and
@@ -15,4 +15,4 @@ a1.question_id = q1.id and
 a1.owner_user_id = u1.id and
 a1.site_id = u1.site_id and
 a1.creation_date >= q1.creation_date + '1 year'::interval and
-account.id = u1.account_id;
+acc.id = u1.account_id;

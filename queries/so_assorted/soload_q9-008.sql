@@ -1,18 +1,18 @@
-select count(distinct account.id) from
-account, site, so_user, question q, post_link pl, tag, tag_question tq where
-not exists (select * from answer a where a.site_id = q.site_id and a.question_id = q.id) and
-site.site_name = 'stackoverflow' and
-site.site_id = q.site_id and
-pl.site_id = q.site_id and
-pl.post_id_to = q.id and
-tag.name = 'tensorflow' and
-tag.site_id = q.site_id and
-q.creation_date > '2018-01-01'::date and
-tq.site_id = tag.site_id and
-tq.tag_id = tag.id and
-tq.question_id = q.id and
-q.owner_user_id = so_user.id and
-q.site_id = so_user.site_id and
-so_user.reputation > 113 and
-account.id = so_user.account_id and
-account.website_url != '';
+select count(distinct acc.id) from
+account AS acc, site AS s1, so_user AS u1, question AS q1, post_link AS pl, tag AS t1, tag_question AS tq1 where
+not exists (select * from answer AS a where a.site_id = q1.site_id and a.question_id = q1.id) and
+s1.site_name = 'stackoverflow' and
+s1.site_id = q1.site_id and
+pl.site_id = q1.site_id and
+pl.post_id_to = q1.id and
+t1.name = 'tensorflow' and
+t1.site_id = q1.site_id and
+q1.creation_date > '2018-01-01'::date and
+tq1.site_id = t1.site_id and
+tq1.tag_id = t1.id and
+tq1.question_id = q1.id and
+q1.owner_user_id = u1.id and
+q1.site_id = u1.site_id and
+u1.reputation > 113 and
+acc.id = u1.account_id and
+acc.website_url != '';

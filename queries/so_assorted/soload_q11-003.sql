@@ -1,16 +1,16 @@
 SELECT COUNT(*)
 FROM
-tag as t,
-site as s,
-question as q,
-tag_question as tq
+tag AS t1,
+site AS s1,
+question AS q1,
+tag_question AS tq1
 WHERE
-t.site_id = s.site_id
-AND q.site_id = s.site_id
-AND tq.site_id = s.site_id
-AND tq.question_id = q.id
-AND tq.tag_id = t.id
-AND (s.site_name in ('scifi'))
-AND (t.name in ('harry-potter','short-stories','star-trek','star-wars'))
-AND (q.view_count >= 10)
-AND (q.view_count <= 1000)
+t1.site_id = s1.site_id
+AND q1.site_id = s1.site_id
+AND tq1.site_id = s1.site_id
+AND tq1.question_id = q1.id
+AND tq1.tag_id = t1.id
+AND (s1.site_name in ('scifi'))
+AND (t1.name in ('harry-potter','short-stories','star-trek','star-wars'))
+AND (q1.view_count >= 10)
+AND (q1.view_count <= 1000)

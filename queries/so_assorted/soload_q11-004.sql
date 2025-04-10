@@ -1,16 +1,16 @@
 SELECT COUNT(*)
 FROM
-tag as t,
-site as s,
-question as q,
-tag_question as tq
+tag AS t1,
+site AS s1,
+question AS q1,
+tag_question AS tq1
 WHERE
-t.site_id = s.site_id
-AND q.site_id = s.site_id
-AND tq.site_id = s.site_id
-AND tq.question_id = q.id
-AND tq.tag_id = t.id
-AND (s.site_name in ('stackoverflow'))
-AND (t.name in ('browser','data-binding','json','unix'))
-AND (q.favorite_count >= 1)
-AND (q.favorite_count <= 10)
+t1.site_id = s1.site_id
+AND q1.site_id = s1.site_id
+AND tq1.site_id = s1.site_id
+AND tq1.question_id = q1.id
+AND tq1.tag_id = t1.id
+AND (s1.site_name in ('stackoverflow'))
+AND (t1.name in ('browser','data-binding','json','unix'))
+AND (q1.favorite_count >= 1)
+AND (q1.favorite_count <= 10)
