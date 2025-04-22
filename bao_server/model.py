@@ -46,18 +46,31 @@ class BaoData:
                 self.__data[idx]["target"])
 
 
-def collate(x):
+# def collate(x):
 
+#     other_batch = []
+#     nested_batch = []
+#     hash_batch = []
+#     targets = []
+#     for other, nested, hashj, target in x:
+#         other_batch.append(other)
+#         hash_batch.append(hashj)
+#         nested_batch.append(nested)
+#         targets.append(target)
+#     return other_batch, hash_batch, nested_batch, torch.tensor(targets)
+
+def collate(x):
     other_batch = []
-    nested_batch = []
     hash_batch = []
+    nested_batch = []
     targets = []
+
     for other, nested, hashj, target in x:
         other_batch.append(other)
         hash_batch.append(hashj)
         nested_batch.append(nested)
         targets.append(target)
-    return other_batch, hash_batch, nested_batch, torch.tensor(targets)
+    return other_batch, hash_batch, nested_batch, torch.tensor(np.array(targets))
 # def collate(x):
 #     trees = []
 #     targets = []
