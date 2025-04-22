@@ -71,6 +71,12 @@ class TreeBuilder:
         raise TreeBuilderError("Node wasn't transparent, a join, or a scan: " + str(plan))
 
 def norm(x, lo, hi):
+    # Handle NaN and inf values
+    if np.isnan(x) or np.isinf(x):
+        return 0.0
+    # Handle case where all values are the same
+    if hi == lo:
+        return 0.0
     return (np.log(x + 1) - lo) / (hi - lo)
 
 def get_buffer_count_for_leaf(leaf, buffers):
