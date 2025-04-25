@@ -37,6 +37,7 @@ RAND_52_TEST_QUERIES_IMDB_ASSORTED_4 = [
 '23b_ceb.sql', '14b_ceb.sql', '30c_ceb.sql', '11b_ceb.sql', '29c_ceb.sql', '15d_job.sql', 
 '36a_ceb.sql', '12b_ceb.sql', '8c_ceb.sql', '17b_ceb.sql', '17c_ceb.sql', '15b_ceb.sql', 
 '27b_ceb.sql', '3b_ceb.sql']
+RAND_52_TEST_QUERIES_IMDB_ASSORTED_5 = ['33b_job_middle.sql', '6a107.sql', '10a1.sql', '11b1.sql', '1a807.sql']
 RAND_52_TEST_QUERIES_TPCH_ASSORTED_2 = ['7c.sql', '14e.sql', '12i.sql', '14h.sql', '7a.sql', '7f.sql']
 
 # 19 most slow-running queries sorted by Postgres latency.
@@ -594,6 +595,22 @@ class Balsa_JOBRandSplit_IMDB_assorted_4(Rand52MinCardCostOnPolLrC):
         p.test_query_glob = RAND_52_TEST_QUERIES_IMDB_ASSORTED_4
         p.sim_checkpoint = 'checkpoints/IMDB_assorted_4/epoch=14.ckpt'
         p.query_dir = 'queries/imdb_assorted_4'
+                
+        return p
+
+@balsa.params_registry.Register  
+class Balsa_JOBRandSplit_IMDB_assorted_5(Rand52MinCardCostOnPolLrC):
+
+    def Params(self):
+        p = super().Params()
+        p.increment_iter_despite_timeouts = True
+        p = p.Set(**LR_SCHEDULES['C10'])
+        p.db = 'imdbload'
+        p.init_experience = 'data/IMDB_assorted_5/initial_policy_data.pkl'
+        
+        p.test_query_glob = RAND_52_TEST_QUERIES_IMDB_ASSORTED_5
+        p.sim_checkpoint = 'checkpoints/IMDB_assorted_5/epoch=14.ckpt'
+        p.query_dir = 'queries/imdb_assorted_5'
                 
         return p
 
