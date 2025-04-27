@@ -29,6 +29,9 @@ import pickle
 import pprint
 import signal
 import time
+import random
+#seed
+random.seed(42)
 
 from absl import app
 from absl import flags
@@ -72,7 +75,6 @@ FLAGS = flags.FLAGS
 flags.DEFINE_string('run', 'Balsa_JOBRandSplit', 'Experiment config to run.')
 flags.DEFINE_boolean('local', False,
                      'Whether to use local engine for query execution.')
-
 
 def GetDevice():
     return 'cuda' if torch.cuda.is_available() else 'cpu'
@@ -164,6 +166,8 @@ def ExecuteSql(query_name,
 
     assert engine in ('postgres', 'dbmsx'), engine
     if engine == 'postgres':
+        if curr_timeout_ms is None or curr_timeout_ms > 512000:
+            curr_timeout_ms = 512000
         return postgres.ExplainAnalyzeSql(sql_str,
                                           comment=hint_str,
                                           verbose=False,
@@ -379,8 +383,8 @@ def TrainSim(p, loggers=None):
     if p.sim_checkpoint is None:
         sim.CollectSimulationData()
     # FIXME Qihan Zhang temporary modify to retain simulator p.sim_checkpoint None
-    sim.Train(load_from_checkpoint=None, loggers=loggers)
-    #sim.Train(load_from_checkpoint=p.sim_checkpoint, loggers=loggers)
+    # sim.Train(load_from_checkpoint=None, loggers=loggers)
+    sim.Train(load_from_checkpoint=p.sim_checkpoint, loggers=loggers)
     sim.model.freeze()
     sim.EvaluateCost()
     sim.FreeData()
@@ -691,6 +695,9 @@ class BalsaAgent(object):
         self.trainer = None
         self.loggers = None
 
+        # 添加current_workload作为实例变量
+        self.current_workload = 3
+
         # Labels.
         self.label_mean = None
         self.label_std = None
@@ -776,8 +783,12 @@ class BalsaAgent(object):
             signal.Signals(signum).name))
         ray.shutdown()
 
-    def _MakeWorkload(self, is_origin=False):
+    def _MakeWorkload(self, random_select_workload=None):
         p = self.params
+        # 如果没有传入random_select_workload，使用实例变量
+        if random_select_workload is None:
+            random_select_workload = self.current_workload
+            
         #  Qihan entrance this branch
         if os.path.isfile(p.init_experience) and self.curr_value_iter == 0:
             # Load the expert optimizer experience.
@@ -809,7 +820,7 @@ class BalsaAgent(object):
             p.run_baseline = True
         # qihan: here we change the workload on the fly
         else:
-            if is_origin:
+            if random_select_workload == 3:
                 with open('data/IMDB_assorted_3/initial_policy_data.pkl', "rb") as f:
                     workload = pickle.load(f)
             # Filter queries based on the current query_glob.
@@ -818,7 +829,7 @@ class BalsaAgent(object):
 '33a_job.sql', '9d_job.sql', '22a_job.sql', '21c_job.sql', '6c_job.sql', '12c_job.sql', 
 '9c_job.sql', '10a_job.sql', '3b_job.sql', '22b_job.sql', '3a_job.sql', '12b_job.sql', 
 '1c_job.sql', '12a_job.sql', '13a_job.sql', '8b_ceb.sql', '13d_job.sql', '8b_job.sql'])
-            else:
+            elif random_select_workload == 4:
 
                 with open('data/IMDB_assorted_4/initial_policy_data.pkl', "rb") as f:
                     workload = pickle.load(f)
@@ -828,6 +839,13 @@ class BalsaAgent(object):
 '23b_ceb.sql', '14b_ceb.sql', '30c_ceb.sql', '11b_ceb.sql', '29c_ceb.sql', '15d_job.sql', 
 '36a_ceb.sql', '12b_ceb.sql', '8c_ceb.sql', '17b_ceb.sql', '17c_ceb.sql', '15b_ceb.sql', 
 '27b_ceb.sql', '3b_ceb.sql'])
+            elif random_select_workload == 5:
+                with open('data/IMDB_assorted_5/initial_policy_data.pkl', "rb") as f:
+                    workload = pickle.load(f)
+            # Filter queries based on the current query_glob.
+                workload.FilterQueries(
+                    'queries/imdb_assorted_5', ['*.sql'], [
+                        '33b_job_middle.sql', '6a107.sql', '10a1.sql', '11b1.sql', '1a807.sql'])
 
         return workload
 
@@ -1441,20 +1459,25 @@ class BalsaAgent(object):
         p = self.params
         # qihan change some parameters here
         if p.use_switching_workload:
-            if  self.is_origin_workload:
+            if self.current_workload == 3:
                 p.init_experience = 'data/IMDB_assorted_3/initial_policy_data.pkl'
                 p.test_query_glob = [
 '33a_job.sql', '9d_job.sql', '22a_job.sql', '21c_job.sql', '6c_job.sql', '12c_job.sql', 
 '9c_job.sql', '10a_job.sql', '3b_job.sql', '22b_job.sql', '3a_job.sql', '12b_job.sql', 
 '1c_job.sql', '12a_job.sql', '13a_job.sql', '8b_ceb.sql', '13d_job.sql', '8b_job.sql']
                 p.query_dir = 'queries/imdb_assorted_3'
-            else:
+            elif self.current_workload == 4:
                 p.init_experience = 'data/IMDB_assorted_4/initial_policy_data.pkl'
                 p.test_query_glob = [
 '23b_ceb.sql', '14b_ceb.sql', '30c_ceb.sql', '11b_ceb.sql', '29c_ceb.sql', '15d_job.sql', 
 '36a_ceb.sql', '12b_ceb.sql', '8c_ceb.sql', '17b_ceb.sql', '17c_ceb.sql', '15b_ceb.sql', 
 '27b_ceb.sql', '3b_ceb.sql']
                 p.query_dir = 'queries/imdb_assorted_4'
+            elif self.current_workload == 5:
+                p.init_experience = 'data/IMDB_assorted_5/initial_policy_data.pkl'
+                p.test_query_glob = [
+'33b_job_middle.sql', '6a107.sql', '10a1.sql', '11b1.sql', '1a807.sql']
+                p.query_dir = 'queries/imdb_assorted_5'
 
         model.eval()
         to_execute = []
@@ -2288,13 +2311,30 @@ class BalsaAgent(object):
             self.test_nodes = plans_lib.FilterScansOrJoins(self.test_nodes)
 
         while self.curr_value_iter < p.val_iters:
-
-        
-            if p.use_switching_workload and (self.curr_value_iter == 20 or self.curr_value_iter == 40 or self.curr_value_iter == 50 
-            or self.curr_value_iter == 60 or self.curr_value_iter == 70 or self.curr_value_iter == 75
-            or self.curr_value_iter == 80 or self.curr_value_iter == 85 or self.curr_value_iter == 90
-            or self.curr_value_iter == 95) and self.curr_value_iter != 0 :
-            #if p.use_switching_workload and self.curr_value_iter % 5 == 0 and self.curr_value_iter != 0:
+            if p.use_switching_workload and (self.curr_value_iter == 3 or 
+                                             self.curr_value_iter == 5 or 
+                                             self.curr_value_iter == 8 or 
+                                             self.curr_value_iter == 12 or 
+                                             self.curr_value_iter == 17 or 
+                                             self.curr_value_iter == 19 or 
+                                             self.curr_value_iter == 21 or 
+                                             self.curr_value_iter == 23 or 
+                                             self.curr_value_iter == 25 or 
+                                             self.curr_value_iter == 28 or 
+                                             self.curr_value_iter == 35 or 
+                                             self.curr_value_iter == 37 or 
+                                             self.curr_value_iter == 40 or 
+                                             self.curr_value_iter == 46 or 
+                                             self.curr_value_iter == 53 or 
+                                             self.curr_value_iter == 57 or 
+                                             self.curr_value_iter == 63 or 
+                                             self.curr_value_iter == 70 or 
+                                             self.curr_value_iter == 72 or 
+                                             self.curr_value_iter == 75 or 
+                                             self.curr_value_iter == 82 or 
+                                             self.curr_value_iter == 89 or 
+                                             self.curr_value_iter == 91 or 
+                                             self.curr_value_iter == 97) and self.curr_value_iter != 0 :
                 print("Switching workload ... ...")
                 self.is_origin_workload = not self.is_origin_workload
                 if self.is_origin_workload is True:
@@ -2302,11 +2342,14 @@ class BalsaAgent(object):
                 else:
                     self.have_dynaic_workload_switch_back = False
 
-
-
+                # random select from 3 4 5
+                random_select_workload = random.randint(3, 5)
+                # 更新实例变量而不是全局变量
+                self.current_workload = random_select_workload
+                
 
                 # Qihan Reset the experience buffer.
-                self.workload = self._MakeWorkload(self.is_origin_workload)
+                self.workload = self._MakeWorkload(random_select_workload)
                 self.all_nodes = self.workload.Queries(split="all")
                 self.train_nodes = self.workload.Queries(split="train")
                 self.test_nodes = self.workload.Queries(split="test")

@@ -577,7 +577,7 @@ class Balsa_JOBRandSplit_IMDB_assorted_3(Rand52MinCardCostOnPolLrC):
         p.init_experience = 'data/IMDB_assorted_3/initial_policy_data.pkl'
         
         p.test_query_glob = RAND_52_TEST_QUERIES_IMDB_ASSORTED_3
-        p.sim_checkpoint = 'checkpoints/IMDB_assorted_3/epoch=20.ckpt'
+        p.sim_checkpoint = 'checkpoints/IMDB_assorted_3/epoch=5.ckpt'
         p.query_dir = 'queries/imdb_assorted_3'
                 
         return p
@@ -593,7 +593,7 @@ class Balsa_JOBRandSplit_IMDB_assorted_4(Rand52MinCardCostOnPolLrC):
         p.init_experience = 'data/IMDB_assorted_4/initial_policy_data.pkl'
         
         p.test_query_glob = RAND_52_TEST_QUERIES_IMDB_ASSORTED_4
-        p.sim_checkpoint = 'checkpoints/IMDB_assorted_4/epoch=14.ckpt'
+        p.sim_checkpoint = 'checkpoints/IMDB_assorted_4/epoch=5.ckpt'
         p.query_dir = 'queries/imdb_assorted_4'
                 
         return p
@@ -609,7 +609,7 @@ class Balsa_JOBRandSplit_IMDB_assorted_5(Rand52MinCardCostOnPolLrC):
         p.init_experience = 'data/IMDB_assorted_5/initial_policy_data.pkl'
         
         p.test_query_glob = RAND_52_TEST_QUERIES_IMDB_ASSORTED_5
-        p.sim_checkpoint = 'checkpoints/IMDB_assorted_5/epoch=14.ckpt'
+        p.sim_checkpoint = 'checkpoints/IMDB_assorted_5/epoch=5.ckpt'
         p.query_dir = 'queries/imdb_assorted_5'
                 
         return p
