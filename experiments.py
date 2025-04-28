@@ -33,11 +33,18 @@ RAND_52_TEST_QUERIES_IMDB_ASSORTED_3 = [
 '33a_job.sql', '9d_job.sql', '22a_job.sql', '21c_job.sql', '6c_job.sql', '12c_job.sql', 
 '9c_job.sql', '10a_job.sql', '3b_job.sql', '22b_job.sql', '3a_job.sql', '12b_job.sql', 
 '1c_job.sql', '12a_job.sql', '13a_job.sql', '8b_ceb.sql', '13d_job.sql', '8b_job.sql']
+RAND_52_TEST_QUERIES_IMDB_ASSORTED_3_CP1 = [
+'33a_job_cp1.sql', '9d_job_cp1.sql', '22a_job_cp1.sql', '21c_job_cp1.sql', '6c_job_cp1.sql', '12c_job_cp1.sql', 
+'9c_job_cp1.sql', '10a_job_cp1.sql', '3b_job_cp1.sql', '22b_job_cp1.sql', '3a_job_cp1.sql', '12b_job_cp1.sql', 
+'1c_job_cp1.sql', '12a_job_cp1.sql', '13a_job_cp1.sql', '8b_ceb_cp1.sql', '13d_job_cp1.sql', '8b_job_cp1.sql']
 RAND_52_TEST_QUERIES_IMDB_ASSORTED_4 = [
 '23b_ceb.sql', '14b_ceb.sql', '30c_ceb.sql', '11b_ceb.sql', '29c_ceb.sql', '15d_job.sql', 
 '36a_ceb.sql', '12b_ceb.sql', '8c_ceb.sql', '17b_ceb.sql', '17c_ceb.sql', '15b_ceb.sql', 
 '27b_ceb.sql', '3b_ceb.sql']
 RAND_52_TEST_QUERIES_IMDB_ASSORTED_5 = ['33b_job_middle.sql', '6a107.sql', '10a1.sql', '11b1.sql', '1a807.sql']
+RAND_52_TEST_QUERIES_IMDB_ASSORTED_5_CP1 = ['33b_job_middle_cp1.sql', '6a30.sql', '10a30.sql', '11b30.sql', '1a30.sql']
+RAND_52_TEST_QUERIES_IMDB_ASSORTED_5_CP2 = ['33b_job_middle_cp2.sql', '6a29.sql', '10a29.sql', '11b29.sql', '1a29.sql']
+RAND_52_TEST_QUERIES_IMDB_ASSORTED_5_CP3 = ['33b_job_middle_cp3.sql', '6a10.sql', '10a10.sql', '11b10.sql', '1a10.sql']
 RAND_52_TEST_QUERIES_TPCH_ASSORTED_2 = ['7c.sql', '14e.sql', '12i.sql', '14h.sql', '7a.sql', '7f.sql']
 
 # 19 most slow-running queries sorted by Postgres latency.
@@ -577,11 +584,27 @@ class Balsa_JOBRandSplit_IMDB_assorted_3(Rand52MinCardCostOnPolLrC):
         p.init_experience = 'data/IMDB_assorted_3/initial_policy_data.pkl'
         
         p.test_query_glob = RAND_52_TEST_QUERIES_IMDB_ASSORTED_3
-        p.sim_checkpoint = 'checkpoints/IMDB_assorted_3/epoch=5.ckpt'
+        p.sim_checkpoint = 'checkpoints/IMDB_assorted_3/epoch=15.ckpt'
         p.query_dir = 'queries/imdb_assorted_3'
                 
         return p
 
+@balsa.params_registry.Register  
+class Balsa_JOBRandSplit_IMDB_assorted_3_CP1(Rand52MinCardCostOnPolLrC):
+
+    def Params(self):
+        p = super().Params()
+        p.increment_iter_despite_timeouts = True
+        p = p.Set(**LR_SCHEDULES['C10'])
+        p.db = 'imdbload'
+        p.init_experience = 'data/IMDB_assorted_3_cp1/initial_policy_data.pkl'
+        
+        p.test_query_glob = RAND_52_TEST_QUERIES_IMDB_ASSORTED_3_CP1
+        p.sim_checkpoint = 'checkpoints/IMDB_assorted_3_cp1/epoch=5.ckpt'
+        p.query_dir = 'queries/imdb_assorted_3_cp1'
+                
+        return p
+    
 @balsa.params_registry.Register  
 class Balsa_JOBRandSplit_IMDB_assorted_4(Rand52MinCardCostOnPolLrC):
 
@@ -611,6 +634,53 @@ class Balsa_JOBRandSplit_IMDB_assorted_5(Rand52MinCardCostOnPolLrC):
         p.test_query_glob = RAND_52_TEST_QUERIES_IMDB_ASSORTED_5
         p.sim_checkpoint = 'checkpoints/IMDB_assorted_5/epoch=5.ckpt'
         p.query_dir = 'queries/imdb_assorted_5'
+                
+        return p
+
+@balsa.params_registry.Register  
+class Balsa_JOBRandSplit_IMDB_assorted_5_CP1(Rand52MinCardCostOnPolLrC):
+
+    def Params(self):
+        p = super().Params()
+        p.increment_iter_despite_timeouts = True
+        p = p.Set(**LR_SCHEDULES['C10'])
+        p.db = 'imdbload'
+        p.init_experience = 'data/IMDB_assorted_5_cp1/initial_policy_data.pkl'
+        
+        p.test_query_glob = RAND_52_TEST_QUERIES_IMDB_ASSORTED_5_CP1
+        p.sim_checkpoint = 'checkpoints/IMDB_assorted_5_cp1/epoch=5.ckpt'
+        p.query_dir = 'queries/imdb_assorted_5_cp1'
+                
+        return p
+@balsa.params_registry.Register  
+class Balsa_JOBRandSplit_IMDB_assorted_5_CP2(Rand52MinCardCostOnPolLrC):
+
+    def Params(self):
+        p = super().Params()
+        p.increment_iter_despite_timeouts = True
+        p = p.Set(**LR_SCHEDULES['C10'])
+        p.db = 'imdbload'
+        p.init_experience = 'data/IMDB_assorted_5_cp2/initial_policy_data.pkl'
+        
+        p.test_query_glob = RAND_52_TEST_QUERIES_IMDB_ASSORTED_5_CP2
+        p.sim_checkpoint = 'checkpoints/IMDB_assorted_5_cp2/epoch=5.ckpt'
+        p.query_dir = 'queries/imdb_assorted_5_cp2'
+                
+        return p
+
+@balsa.params_registry.Register  
+class Balsa_JOBRandSplit_IMDB_assorted_5_CP3(Rand52MinCardCostOnPolLrC):
+
+    def Params(self):
+        p = super().Params()
+        p.increment_iter_despite_timeouts = True
+        p = p.Set(**LR_SCHEDULES['C10'])
+        p.db = 'imdbload'
+        p.init_experience = 'data/IMDB_assorted_5_cp3/initial_policy_data.pkl'
+        
+        p.test_query_glob = RAND_52_TEST_QUERIES_IMDB_ASSORTED_5_CP3
+        p.sim_checkpoint = 'checkpoints/IMDB_assorted_5_cp3/epoch=5.ckpt'
+        p.query_dir = 'queries/imdb_assorted_5_cp3'
                 
         return p
 

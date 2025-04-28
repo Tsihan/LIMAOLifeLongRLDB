@@ -166,8 +166,9 @@ def ExecuteSql(query_name,
 
     assert engine in ('postgres', 'dbmsx'), engine
     if engine == 'postgres':
-        if curr_timeout_ms is None or curr_timeout_ms > 512000:
-            curr_timeout_ms = 512000
+        # 60 seconds
+        if curr_timeout_ms is None or curr_timeout_ms > 60000:
+            curr_timeout_ms = 60000
         return postgres.ExplainAnalyzeSql(sql_str,
                                           comment=hint_str,
                                           verbose=False,
@@ -383,7 +384,7 @@ def TrainSim(p, loggers=None):
     if p.sim_checkpoint is None:
         sim.CollectSimulationData()
     # FIXME Qihan Zhang temporary modify to retain simulator p.sim_checkpoint None
-    # sim.Train(load_from_checkpoint=None, loggers=loggers)
+    #sim.Train(load_from_checkpoint=None, loggers=loggers)
     sim.Train(load_from_checkpoint=p.sim_checkpoint, loggers=loggers)
     sim.model.freeze()
     sim.EvaluateCost()
@@ -820,7 +821,7 @@ class BalsaAgent(object):
             p.run_baseline = True
         # qihan: here we change the workload on the fly
         else:
-            if random_select_workload == 3:
+            if random_select_workload == 1:
                 with open('data/IMDB_assorted_3/initial_policy_data.pkl', "rb") as f:
                     workload = pickle.load(f)
             # Filter queries based on the current query_glob.
@@ -829,24 +830,40 @@ class BalsaAgent(object):
 '33a_job.sql', '9d_job.sql', '22a_job.sql', '21c_job.sql', '6c_job.sql', '12c_job.sql', 
 '9c_job.sql', '10a_job.sql', '3b_job.sql', '22b_job.sql', '3a_job.sql', '12b_job.sql', 
 '1c_job.sql', '12a_job.sql', '13a_job.sql', '8b_ceb.sql', '13d_job.sql', '8b_job.sql'])
-            elif random_select_workload == 4:
-
-                with open('data/IMDB_assorted_4/initial_policy_data.pkl', "rb") as f:
-                    workload = pickle.load(f)
-            # Filter queries based on the current query_glob.
-                workload.FilterQueries(
-                    'queries/imdb_assorted_4', ['*.sql'], [
-'23b_ceb.sql', '14b_ceb.sql', '30c_ceb.sql', '11b_ceb.sql', '29c_ceb.sql', '15d_job.sql', 
-'36a_ceb.sql', '12b_ceb.sql', '8c_ceb.sql', '17b_ceb.sql', '17c_ceb.sql', '15b_ceb.sql', 
-'27b_ceb.sql', '3b_ceb.sql'])
-            elif random_select_workload == 5:
+            elif random_select_workload == 2:
                 with open('data/IMDB_assorted_5/initial_policy_data.pkl', "rb") as f:
                     workload = pickle.load(f)
             # Filter queries based on the current query_glob.
                 workload.FilterQueries(
                     'queries/imdb_assorted_5', ['*.sql'], [
                         '33b_job_middle.sql', '6a107.sql', '10a1.sql', '11b1.sql', '1a807.sql'])
-
+            elif random_select_workload == 3:
+                with open('data/IMDB_assorted_3_cp1/initial_policy_data.pkl', "rb") as f:
+                    workload = pickle.load(f)
+            # Filter queries based on the current query_glob.
+                workload.FilterQueries(
+                    'queries/imdb_assorted_3_cp1', ['*.sql'], [
+'33a_job_cp1.sql', '9d_job_cp1.sql', '22a_job_cp1.sql', '21c_job_cp1.sql', '6c_job_cp1.sql', '12c_job_cp1.sql', 
+'9c_job_cp1.sql', '10a_job_cp1.sql', '3b_job_cp1.sql', '22b_job_cp1.sql', '3a_job_cp1.sql', '12b_job_cp1.sql', 
+'1c_job_cp1.sql', '12a_job_cp1.sql', '13a_job_cp1.sql', '8b_ceb_cp1.sql', '13d_job_cp1.sql', '8b_job_cp1.sql'])
+            elif random_select_workload == 4:
+                with open('data/IMDB_assorted_5_cp1/initial_policy_data.pkl', "rb") as f:
+                    workload = pickle.load(f)
+            # Filter queries based on the current query_glob.
+                workload.FilterQueries(
+                    'queries/imdb_assorted_5_cp1', ['*.sql'], ['33b_job_middle_cp1.sql', '6a30.sql', '10a30.sql', '11b30.sql', '1a30.sql'])
+            elif random_select_workload == 5:
+                with open('data/IMDB_assorted_5_cp2/initial_policy_data.pkl', "rb") as f:
+                    workload = pickle.load(f)
+            # Filter queries based on the current query_glob.
+                workload.FilterQueries(
+                    'queries/imdb_assorted_5_cp2', ['*.sql'], ['33b_job_middle_cp2.sql', '6a29.sql', '10a29.sql', '11b29.sql', '1a29.sql'])
+            elif random_select_workload == 6:
+                with open('data/IMDB_assorted_5_cp3/initial_policy_data.pkl', "rb") as f:
+                    workload = pickle.load(f)
+            # Filter queries based on the current query_glob.
+                workload.FilterQueries(
+                    'queries/imdb_assorted_5_cp3', ['*.sql'], ['33b_job_middle_cp3.sql', '6a10.sql', '10a10.sql', '11b10.sql', '1a10.sql'])
         return workload
 
     def _InitLogging(self):
@@ -1177,7 +1194,7 @@ class BalsaAgent(object):
     def timeout_label(self):
         # Qihan Zhang  speed up!
         # return 4096 * 1000
-        return 512 * 1000
+        return 60 * 1000
 
     def LogScalars(self, metrics):
         if not isinstance(metrics, list):
@@ -1459,25 +1476,40 @@ class BalsaAgent(object):
         p = self.params
         # qihan change some parameters here
         if p.use_switching_workload:
-            if self.current_workload == 3:
+            if self.current_workload == 1:
                 p.init_experience = 'data/IMDB_assorted_3/initial_policy_data.pkl'
                 p.test_query_glob = [
 '33a_job.sql', '9d_job.sql', '22a_job.sql', '21c_job.sql', '6c_job.sql', '12c_job.sql', 
 '9c_job.sql', '10a_job.sql', '3b_job.sql', '22b_job.sql', '3a_job.sql', '12b_job.sql', 
 '1c_job.sql', '12a_job.sql', '13a_job.sql', '8b_ceb.sql', '13d_job.sql', '8b_job.sql']
                 p.query_dir = 'queries/imdb_assorted_3'
-            elif self.current_workload == 4:
-                p.init_experience = 'data/IMDB_assorted_4/initial_policy_data.pkl'
-                p.test_query_glob = [
-'23b_ceb.sql', '14b_ceb.sql', '30c_ceb.sql', '11b_ceb.sql', '29c_ceb.sql', '15d_job.sql', 
-'36a_ceb.sql', '12b_ceb.sql', '8c_ceb.sql', '17b_ceb.sql', '17c_ceb.sql', '15b_ceb.sql', 
-'27b_ceb.sql', '3b_ceb.sql']
-                p.query_dir = 'queries/imdb_assorted_4'
-            elif self.current_workload == 5:
+            elif self.current_workload == 2:
                 p.init_experience = 'data/IMDB_assorted_5/initial_policy_data.pkl'
                 p.test_query_glob = [
 '33b_job_middle.sql', '6a107.sql', '10a1.sql', '11b1.sql', '1a807.sql']
                 p.query_dir = 'queries/imdb_assorted_5'
+            elif self.current_workload == 3:
+                p.init_experience = 'data/IMDB_assorted_3_cp1/initial_policy_data.pkl'
+                p.test_query_glob = [
+'33a_job_cp1.sql', '9d_job_cp1.sql', '22a_job_cp1.sql', '21c_job_cp1.sql', '6c_job_cp1.sql', '12c_job_cp1.sql', 
+'9c_job_cp1.sql', '10a_job_cp1.sql', '3b_job_cp1.sql', '22b_job_cp1.sql', '3a_job_cp1.sql', '12b_job_cp1.sql', 
+'1c_job_cp1.sql', '12a_job_cp1.sql', '13a_job_cp1.sql', '8b_ceb_cp1.sql', '13d_job_cp1.sql', '8b_job_cp1.sql']
+                p.query_dir = 'queries/imdb_assorted_3_cp1'
+            elif self.current_workload == 4:
+                p.init_experience = 'data/IMDB_assorted_5_cp1/initial_policy_data.pkl'
+                p.test_query_glob = [
+'33b_job_middle_cp1.sql', '6a30.sql', '10a30.sql', '11b30.sql', '1a30.sql']
+                p.query_dir = 'queries/imdb_assorted_5_cp1'
+            elif self.current_workload == 5:
+                p.init_experience = 'data/IMDB_assorted_5_cp2/initial_policy_data.pkl'
+                p.test_query_glob = [
+'33b_job_middle_cp2.sql', '6a29.sql', '10a29.sql', '11b29.sql', '1a29.sql']
+                p.query_dir = 'queries/imdb_assorted_5_cp2'
+            elif self.current_workload == 6:
+                p.init_experience = 'data/IMDB_assorted_5_cp3/initial_policy_data.pkl'
+                p.test_query_glob = [
+'33b_job_middle_cp3.sql', '6a10.sql', '10a10.sql', '11b10.sql', '1a10.sql']
+                p.query_dir = 'queries/imdb_assorted_5_cp3'
 
         model.eval()
         to_execute = []
@@ -2342,8 +2374,8 @@ class BalsaAgent(object):
                 else:
                     self.have_dynaic_workload_switch_back = False
 
-                # random select from 3 4 5
-                random_select_workload = random.randint(3, 5)
+                # random select from 1 2 3 4 5 6
+                random_select_workload = random.randint(1, 6)
                 # 更新实例变量而不是全局变量
                 self.current_workload = random_select_workload
                 
