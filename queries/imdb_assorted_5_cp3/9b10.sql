@@ -7,7 +7,7 @@ cast_info as ci,
 role_type as rt,
 name as n,
 info_type as it2,
-person_info as pi
+person_info as pi1
 WHERE
 t.id = ci.movie_id
 AND t.id = mi1.movie_id
@@ -16,8 +16,8 @@ AND t.kind_id = kt.id
 AND ci.person_id = n.id
 AND ci.movie_id = mi1.movie_id
 AND ci.role_id = rt.id
-AND n.id = pi.person_id
-AND pi.info_type_id = it2.id
+AND n.id = pi1.person_id
+AND pi1.info_type_id = it2.id
 AND (it1.id IN ('5','8'))
 AND (it2.id IN ('17'))
 AND (mi1.info IN ('Australia:PG','Austria','Denmark','East Germany','Germany','Germany:12','Germany:16','Hungary','Netherlands:16','Sweden','UK:18','USA:M','USA:Not Rated','USA:PG','USA:Unrated','West Germany'))

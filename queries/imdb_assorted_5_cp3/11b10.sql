@@ -9,7 +9,7 @@ name as n,
 role_type as rt,
 movie_info as mi1,
 info_type as it1,
-person_info as pi,
+person_info as pi1,
 info_type as it2
 WHERE t.id = mc.movie_id
 AND t.id = ci.movie_id
@@ -22,16 +22,16 @@ AND kt.id = t.kind_id
 AND ci.person_id = n.id
 AND ci.role_id = rt.id
 AND mi1.info_type_id = it1.id
-AND n.id = pi.person_id
-AND pi.info_type_id = it2.id
-AND ci.person_id = pi.person_id
+AND n.id = pi1.person_id
+AND pi1.info_type_id = it2.id
+AND ci.person_id = pi1.person_id
 AND (kt.kind IN ('movie','tv mini series','tv movie','video game','video movie'))
 AND (rt.role IN ('actor','cinematographer','composer','costume designer','director','editor','production designer','writer'))
 AND (t.production_year <= 1945)
 AND (t.production_year >= 1875)
 AND (it1.id IN ('8'))
 AND (mi1.info ILIKE '%p%')
-AND (pi.info ILIKE '%chil%')
+AND (pi1.info ILIKE '%chil%')
 AND (it2.id IN ('24'))
 GROUP BY n.gender, rt.role, cn.name
 ORDER BY COUNT(*) DESC
