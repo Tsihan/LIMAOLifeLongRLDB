@@ -29,6 +29,9 @@ import pickle
 import pprint
 import signal
 import time
+import random
+#seed
+random.seed(41)
 
 from absl import app
 from absl import flags
@@ -185,8 +188,8 @@ def ExecuteSql(
 
     assert engine in ("postgres", "dbmsx"), engine
     if engine == "postgres":
-        if curr_timeout_ms is None or curr_timeout_ms > 512000:
-            curr_timeout_ms = 512000
+        if curr_timeout_ms is None or curr_timeout_ms > 60000:
+            curr_timeout_ms = 60000
         return postgres.ExplainAnalyzeSql(
             sql_str,
             comment=hint_str,
@@ -423,8 +426,8 @@ def TrainSim(p, loggers=None):
     if p.sim_checkpoint is None:
         sim.CollectSimulationData()
     # FIXME Qihan Zhang temporary modify to retain simulator p.sim_checkpoint None
-    sim.Train(load_from_checkpoint=None, loggers=loggers)
-    #sim.Train(load_from_checkpoint=p.sim_checkpoint, loggers=loggers)
+   # sim.Train(load_from_checkpoint=None, loggers=loggers)
+    sim.Train(load_from_checkpoint=p.sim_checkpoint, loggers=loggers)
     sim.model.freeze()
     sim.EvaluateCost()
     sim.FreeData()
@@ -832,6 +835,16 @@ class BalsaAgent(object):
         self.best_plans = execution.QueryExecutionCache()
         self.trainer = None
         self.loggers = None
+        
+        # 添加current_workload作为实例变量
+        self.current_workload = 1
+        
+        self.seen_1 = True
+        self.seen_2 = False
+        self.seen_3 = False
+        self.seen_4 = False
+        self.seen_5 = False
+        self.seen_6 = False
 
         # Labels.
         self.label_mean = None
@@ -936,7 +949,7 @@ class BalsaAgent(object):
         )
         ray.shutdown()
 
-    def _MakeWorkload(self, is_origin=False):
+    def _MakeWorkload(self, random_select_workload=None):
         p = self.params
         #  Qihan entrance this branch
         if os.path.isfile(p.init_experience) and self.curr_value_iter == 0:
@@ -971,26 +984,49 @@ class BalsaAgent(object):
             p.run_baseline = True
         # qihan: here we change the workload on the fly
         else:
-            if is_origin:
+            if random_select_workload == 1:
                 with open('data/IMDB_assorted_3/initial_policy_data.pkl', "rb") as f:
                     workload = pickle.load(f)
             # Filter queries based on the current query_glob.
                 workload.FilterQueries(
-                    'queries/imdb_assorted_3', ['*.sql'], [
+                    'queries/imdb_assorted_3', ['*.sql'],  [
 '33a_job.sql', '9d_job.sql', '22a_job.sql', '21c_job.sql', '6c_job.sql', '12c_job.sql', 
 '9c_job.sql', '10a_job.sql', '3b_job.sql', '22b_job.sql', '3a_job.sql', '12b_job.sql', 
 '1c_job.sql', '12a_job.sql', '13a_job.sql', '8b_ceb.sql', '13d_job.sql', '8b_job.sql'])
-            else:
-
-                with open('data/IMDB_assorted_4/initial_policy_data.pkl', "rb") as f:
+            elif random_select_workload == 2:
+                with open('data/IMDB_assorted_5/initial_policy_data.pkl', "rb") as f:
                     workload = pickle.load(f)
             # Filter queries based on the current query_glob.
                 workload.FilterQueries(
-                    'queries/imdb_assorted_4', ['*.sql'], [
-'23b_ceb.sql', '14b_ceb.sql', '30c_ceb.sql', '11b_ceb.sql', '29c_ceb.sql', '15d_job.sql', 
-'36a_ceb.sql', '12b_ceb.sql', '8c_ceb.sql', '17b_ceb.sql', '17c_ceb.sql', '15b_ceb.sql', 
-'27b_ceb.sql', '3b_ceb.sql'])
-
+                    'queries/imdb_assorted_5', ['*.sql'], [
+                        '33b_job_middle.sql', '6a107.sql', '10a1.sql', '11b1.sql', '1a807.sql'])
+            elif random_select_workload == 3:
+                with open('data/IMDB_assorted_3_cp1/initial_policy_data.pkl', "rb") as f:
+                    workload = pickle.load(f)
+            # Filter queries based on the current query_glob.
+                workload.FilterQueries(
+                    'queries/imdb_assorted_3_cp1', ['*.sql'], [
+'33a_job_cp1.sql', '9d_job_cp1.sql', '22a_job_cp1.sql', '21c_job_cp1.sql', '6c_job_cp1.sql', '12c_job_cp1.sql', 
+'9c_job_cp1.sql', '10a_job_cp1.sql', '3b_job_cp1.sql', '22b_job_cp1.sql', '3a_job_cp1.sql', '12b_job_cp1.sql', 
+'1c_job_cp1.sql', '12a_job_cp1.sql', '13a_job_cp1.sql', '8b_ceb_cp1.sql', '13d_job_cp1.sql', '8b_job_cp1.sql'])
+            elif random_select_workload == 4:
+                with open('data/IMDB_assorted_5_cp1/initial_policy_data.pkl', "rb") as f:
+                    workload = pickle.load(f)
+            # Filter queries based on the current query_glob.
+                workload.FilterQueries(
+                    'queries/imdb_assorted_5_cp1', ['*.sql'], ['33b_job_middle_cp1.sql', '6a30.sql', '10a30.sql', '11b30.sql', '1a30.sql'])
+            elif random_select_workload == 5:
+                with open('data/IMDB_assorted_5_cp2/initial_policy_data.pkl', "rb") as f:
+                    workload = pickle.load(f)
+            # Filter queries based on the current query_glob.
+                workload.FilterQueries(
+                    'queries/imdb_assorted_5_cp2', ['*.sql'], ['33b_job_middle_cp2.sql', '6a29.sql', '10a29.sql', '11b29.sql', '1a29.sql'])
+            elif random_select_workload == 6:
+                with open('data/IMDB_assorted_5_cp3/initial_policy_data.pkl', "rb") as f:
+                    workload = pickle.load(f)
+            # Filter queries based on the current query_glob.
+                workload.FilterQueries(
+                    'queries/imdb_assorted_5_cp3', ['*.sql'], ['33b_job_middle_cp3.sql', '6a10.sql', '10a10.sql', '11b10.sql', '1a10.sql'])
         return workload
 
     def _InitLogging(self):
@@ -1035,12 +1071,17 @@ class BalsaAgent(object):
             # Use the already instantiated query featurizer, which may contain
             # computed normalization stats.
             query_featurizer_cls = self.GetOrTrainSim().query_featurizer
+            
+        # 设置当前workload的ID
+        current_workload_id = self.current_workload
+        
         exp = Experience(
             self.train_nodes,
             p.tree_conv,
             workload_info=wi,
             query_featurizer_cls=query_featurizer_cls,
             plan_featurizer_cls=plan_feat_cls,
+            workload_id=current_workload_id,  # 传递workload_id
         )
 
         if p.prev_replay_buffers_glob is not None:
@@ -1057,6 +1098,7 @@ class BalsaAgent(object):
                 workload_info=wi,
                 query_featurizer_cls=query_featurizer_cls,
                 plan_featurizer_cls=plan_feat_cls,
+                workload_id=current_workload_id,  # 传递相同的workload_id
             )
             exp_val.Load(p.prev_replay_buffers_glob_val)
             pa = plan_analysis.PlanAnalysis.Build(
@@ -1535,7 +1577,7 @@ class BalsaAgent(object):
     def timeout_label(self):
         # Qihan Zhang  speed up!
         # return 4096 * 1000 
-        return 512 * 1000
+        return 60 * 1000
 
     def LogScalars(self, metrics):
         if not isinstance(metrics, list):
@@ -1933,21 +1975,58 @@ class BalsaAgent(object):
     def PlanAndExecute_episode(self, model, planner, is_test=False, max_retries=3):
         p = self.params
         # qihan change some parameters here
-        if  self.is_origin_workload:
+#         if  self.is_origin_workload:
+#             p.init_experience = 'data/IMDB_assorted_3/initial_policy_data.pkl'
+#             p.test_query_glob = [
+# '33a_job.sql', '9d_job.sql', '22a_job.sql', '21c_job.sql', '6c_job.sql', '12c_job.sql', 
+# '9c_job.sql', '10a_job.sql', '3b_job.sql', '22b_job.sql', '3a_job.sql', '12b_job.sql', 
+# '1c_job.sql', '12a_job.sql', '13a_job.sql', '8b_ceb.sql', '13d_job.sql', '8b_job.sql']
+#             p.query_dir = 'queries/imdb_assorted_3'
+#         else:
+#             p.init_experience = 'data/IMDB_assorted_4/initial_policy_data.pkl'
+#             p.test_query_glob = [
+# '23b_ceb.sql', '14b_ceb.sql', '30c_ceb.sql', '11b_ceb.sql', '29c_ceb.sql', '15d_job.sql', 
+# '36a_ceb.sql', '12b_ceb.sql', '8c_ceb.sql', '17b_ceb.sql', '17c_ceb.sql', '15b_ceb.sql', 
+# '27b_ceb.sql', '3b_ceb.sql']
+#             p.query_dir = 'queries/imdb_assorted_4'
+
+        
+        if self.current_workload == 1:
             p.init_experience = 'data/IMDB_assorted_3/initial_policy_data.pkl'
             p.test_query_glob = [
 '33a_job.sql', '9d_job.sql', '22a_job.sql', '21c_job.sql', '6c_job.sql', '12c_job.sql', 
 '9c_job.sql', '10a_job.sql', '3b_job.sql', '22b_job.sql', '3a_job.sql', '12b_job.sql', 
 '1c_job.sql', '12a_job.sql', '13a_job.sql', '8b_ceb.sql', '13d_job.sql', '8b_job.sql']
             p.query_dir = 'queries/imdb_assorted_3'
-        else:
-            p.init_experience = 'data/IMDB_assorted_4/initial_policy_data.pkl'
+        
+        elif self.current_workload == 2:
+            p.init_experience = 'data/IMDB_assorted_5/initial_policy_data.pkl'
             p.test_query_glob = [
-'23b_ceb.sql', '14b_ceb.sql', '30c_ceb.sql', '11b_ceb.sql', '29c_ceb.sql', '15d_job.sql', 
-'36a_ceb.sql', '12b_ceb.sql', '8c_ceb.sql', '17b_ceb.sql', '17c_ceb.sql', '15b_ceb.sql', 
-'27b_ceb.sql', '3b_ceb.sql']
-            p.query_dir = 'queries/imdb_assorted_4'
-
+                '33b_job_middle.sql', '6a107.sql', '10a1.sql', '11b1.sql', '1a807.sql']
+            p.query_dir = 'queries/imdb_assorted_5'
+        elif self.current_workload == 3:
+            p.init_experience = 'data/IMDB_assorted_3_cp1/initial_policy_data.pkl'
+            p.test_query_glob = [
+'33a_job_cp1.sql', '9d_job_cp1.sql', '22a_job_cp1.sql', '21c_job_cp1.sql', '6c_job_cp1.sql', '12c_job_cp1.sql', 
+'9c_job_cp1.sql', '10a_job_cp1.sql', '3b_job_cp1.sql', '22b_job_cp1.sql', '3a_job_cp1.sql', '12b_job_cp1.sql', 
+'1c_job_cp1.sql', '12a_job_cp1.sql', '13a_job_cp1.sql', '8b_ceb_cp1.sql', '13d_job_cp1.sql', '8b_job_cp1.sql']
+            p.query_dir = 'queries/imdb_assorted_3_cp1'
+        elif self.current_workload == 4:
+            p.init_experience = 'data/IMDB_assorted_5_cp1/initial_policy_data.pkl'
+            p.test_query_glob = [
+                '33b_job_middle_cp1.sql', '6a30.sql', '10a30.sql', '11b30.sql', '1a30.sql']
+            p.query_dir = 'queries/imdb_assorted_5_cp1'
+        elif self.current_workload == 5:
+            p.init_experience = 'data/IMDB_assorted_5_cp2/initial_policy_data.pkl'
+            p.test_query_glob = [
+                '33b_job_middle_cp2.sql', '6a29.sql', '10a29.sql', '11b29.sql', '1a29.sql']
+            p.query_dir = 'queries/imdb_assorted_5_cp2'
+        elif self.current_workload == 6:
+            p.init_experience = 'data/IMDB_assorted_5_cp3/initial_policy_data.pkl'
+            p.test_query_glob = [
+                '33b_job_middle_cp3.sql', '6a10.sql', '10a10.sql', '11b10.sql', '1a10.sql']
+            p.query_dir = 'queries/imdb_assorted_5_cp3'
+    
         model.eval()
         all_to_execute = []
         all_execution_results = []
@@ -2234,20 +2313,43 @@ class BalsaAgent(object):
         p = self.params
         # qihan change some parameters here
         if p.use_switching_workload:
-            if  self.is_origin_workload:
+
+            if self.current_workload == 1:
                 p.init_experience = 'data/IMDB_assorted_3/initial_policy_data.pkl'
                 p.test_query_glob = [
-'33a_job.sql', '9d_job.sql', '22a_job.sql', '21c_job.sql', '6c_job.sql', '12c_job.sql', 
-'9c_job.sql', '10a_job.sql', '3b_job.sql', '22b_job.sql', '3a_job.sql', '12b_job.sql', 
-'1c_job.sql', '12a_job.sql', '13a_job.sql', '8b_ceb.sql', '13d_job.sql', '8b_job.sql']
+    '33a_job.sql', '9d_job.sql', '22a_job.sql', '21c_job.sql', '6c_job.sql', '12c_job.sql', 
+    '9c_job.sql', '10a_job.sql', '3b_job.sql', '22b_job.sql', '3a_job.sql', '12b_job.sql', 
+    '1c_job.sql', '12a_job.sql', '13a_job.sql', '8b_ceb.sql', '13d_job.sql', '8b_job.sql']
                 p.query_dir = 'queries/imdb_assorted_3'
-            else:
-                p.init_experience = 'data/IMDB_assorted_4/initial_policy_data.pkl'
+            
+            elif self.current_workload == 2:
+                p.init_experience = 'data/IMDB_assorted_5/initial_policy_data.pkl'
                 p.test_query_glob = [
-'23b_ceb.sql', '14b_ceb.sql', '30c_ceb.sql', '11b_ceb.sql', '29c_ceb.sql', '15d_job.sql', 
-'36a_ceb.sql', '12b_ceb.sql', '8c_ceb.sql', '17b_ceb.sql', '17c_ceb.sql', '15b_ceb.sql', 
-'27b_ceb.sql', '3b_ceb.sql']
-                p.query_dir = 'queries/imdb_assorted_4'
+                    '33b_job_middle.sql', '6a107.sql', '10a1.sql', '11b1.sql', '1a807.sql']
+                p.query_dir = 'queries/imdb_assorted_5'
+            elif self.current_workload == 3:
+                p.init_experience = 'data/IMDB_assorted_3_cp1/initial_policy_data.pkl'
+                p.test_query_glob = [
+    '33a_job_cp1.sql', '9d_job_cp1.sql', '22a_job_cp1.sql', '21c_job_cp1.sql', '6c_job_cp1.sql', '12c_job_cp1.sql', 
+    '9c_job_cp1.sql', '10a_job_cp1.sql', '3b_job_cp1.sql', '22b_job_cp1.sql', '3a_job_cp1.sql', '12b_job_cp1.sql', 
+    '1c_job_cp1.sql', '12a_job_cp1.sql', '13a_job_cp1.sql', '8b_ceb_cp1.sql', '13d_job_cp1.sql', '8b_job_cp1.sql']
+                p.query_dir = 'queries/imdb_assorted_3_cp1'
+            elif self.current_workload == 4:
+                p.init_experience = 'data/IMDB_assorted_5_cp1/initial_policy_data.pkl'
+                p.test_query_glob = [
+                    '33b_job_middle_cp1.sql', '6a30.sql', '10a30.sql', '11b30.sql', '1a30.sql']
+                p.query_dir = 'queries/imdb_assorted_5_cp1'
+            elif self.current_workload == 5:
+                p.init_experience = 'data/IMDB_assorted_5_cp2/initial_policy_data.pkl'
+                p.test_query_glob = [
+                    '33b_job_middle_cp2.sql', '6a29.sql', '10a29.sql', '11b29.sql', '1a29.sql']
+                p.query_dir = 'queries/imdb_assorted_5_cp2'
+            elif self.current_workload == 6:
+                p.init_experience = 'data/IMDB_assorted_5_cp3/initial_policy_data.pkl'
+                p.test_query_glob = [
+                    '33b_job_middle_cp3.sql', '6a10.sql', '10a10.sql', '11b10.sql', '1a10.sql']
+                p.query_dir = 'queries/imdb_assorted_5_cp3'
+        
 
         model.eval()
 
@@ -2800,145 +2902,29 @@ class BalsaAgent(object):
 
     def _SaveReplayBuffer(self, iter_total_latency):
         p = self.params
-        # "<class 'experiments.ConfigName'>" -> "ConfigName".
-        experiment = str(p.cls).split(".")[-1][:-2]
-
-        # path = "data/IMDB_assorted_small/replay-{}-{}execs-{}nodes-{}s-{}iters-{}.pkl".format(
-        #     experiment,
-        #     self.num_query_execs,
-        #     len(self.exp.nodes),
-        #     int(iter_total_latency / 1e3),
-        #     self.curr_value_iter,
-        #     self.wandb_logger.experiment.id,
-        # )
-
-
-
-        # path = "data/IMDB_assorted_small_2/replay-{}-{}execs-{}nodes-{}s-{}iters-{}.pkl".format(
-        #     experiment,
-        #     self.num_query_execs,
-        #     len(self.exp.nodes),
-        #     int(iter_total_latency / 1e3),
-        #     self.curr_value_iter,
-        #     self.wandb_logger.experiment.id,
-        # )
-
-
-        # path = "data/TPCH10_assorted_small/replay-{}-{}execs-{}nodes-{}s-{}iters-{}.pkl".format(
-        #     experiment,
-        #     self.num_query_execs,
-        #     len(self.exp.nodes),
-        #     int(iter_total_latency / 1e3),
-        #     self.curr_value_iter,
-        #     self.wandb_logger.experiment.id,
-        # )
-
-
-
-        # path = "data/TPCH10_assorted_small_2/replay-{}-{}execs-{}nodes-{}s-{}iters-{}.pkl".format(
-        #     experiment,
-        #     self.num_query_execs,
-        #     len(self.exp.nodes),
-        #     int(iter_total_latency / 1e3),
-        #     self.curr_value_iter,
-        #     self.wandb_logger.experiment.id,
-        # )
-
-        # path = "data/TPCH10_assorted/replay-{}-{}execs-{}nodes-{}s-{}iters-{}.pkl".format(
-        #     experiment,
-        #     self.num_query_execs,
-        #     len(self.exp.nodes),
-        #     int(iter_total_latency / 1e3),
-        #     self.curr_value_iter,
-        #     self.wandb_logger.experiment.id,
-        # )
-
-
-
-        # path = "data/TPCH10_assorted_2/replay-{}-{}execs-{}nodes-{}s-{}iters-{}.pkl".format(
-        #     experiment,
-        #     self.num_query_execs,
-        #     len(self.exp.nodes),
-        #     int(iter_total_latency / 1e3),
-        #     self.curr_value_iter,
-        #     self.wandb_logger.experiment.id,
-        # )
-
-        # path = "data/IMDB_assorted/replay-{}-{}execs-{}nodes-{}s-{}iters-{}.pkl".format(
-        #     experiment,
-        #     self.num_query_execs,
-        #     len(self.exp.nodes),
-        #     int(iter_total_latency / 1e3),
-        #     self.curr_value_iter,
-        #     self.wandb_logger.experiment.id,
-        # )
-
-
-        # path = "data/IMDB_assorted_2/replay-{}-{}execs-{}nodes-{}s-{}iters-{}.pkl".format(
-        #     experiment,
-        #     self.num_query_execs,
-        #     len(self.exp.nodes),
-        #     int(iter_total_latency / 1e3),
-        #     self.curr_value_iter,
-        #     self.wandb_logger.experiment.id,
-        # )
-        path = "data/IMDB_assorted_3/replay-{}-{}execs-{}nodes-{}s-{}iters-{}.pkl".format(
-            experiment,
-            self.num_query_execs,
-            len(self.exp.nodes),
-            int(iter_total_latency / 1e3),
-            self.curr_value_iter,
-            self.wandb_logger.experiment.id,
-        )
-
-
-        # path = "data/IMDB_assorted_4/replay-{}-{}execs-{}nodes-{}s-{}iters-{}.pkl".format(
-        #     experiment,
-        #     self.num_query_execs,
-        #     len(self.exp.nodes),
-        #     int(iter_total_latency / 1e3),
-        #     self.curr_value_iter,
-        #     self.wandb_logger.experiment.id,
-        # )
-        # path = "data/JOB/replay-{}-{}execs-{}nodes-{}s-{}iters-{}.pkl".format(
-        #     experiment,
-        #     self.num_query_execs,
-        #     len(self.exp.nodes),
-        #     int(iter_total_latency / 1e3),
-        #     self.curr_value_iter,
-        #     self.wandb_logger.experiment.id,
-        # )
-
-        # path = 'data/JOB_changed/replay-{}-{}execs-{}nodes-{}s-{}iters-{}.pkl'.format(
-        #     experiment, self.num_query_execs, len(self.exp.nodes),
-        #     int(iter_total_latency / 1e3), self.curr_value_iter,
-        #     self.wandb_logger.experiment.id)
-
-        # path = 'data/SO/replay-{}-{}execs-{}nodes-{}s-{}iters-{}.pkl'.format(
-        #     experiment, self.num_query_execs, len(self.exp.nodes),
-        #     int(iter_total_latency / 1e3), self.curr_value_iter,
-        #     self.wandb_logger.experiment.id)
-
-        # path = 'data/TPCH/replay-{}-{}execs-{}nodes-{}s-{}iters-{}.pkl'.format(
-        #     experiment, self.num_query_execs, len(self.exp.nodes),
-        #     int(iter_total_latency / 1e3), self.curr_value_iter,
-        #     self.wandb_logger.experiment.id)
-
-        # path = 'data/IMDB_BAO/replay-{}-{}execs-{}nodes-{}s-{}iters-{}.pkl'.format(
-        #     experiment, self.num_query_execs, len(self.exp.nodes),
-        #     int(iter_total_latency / 1e3), self.curr_value_iter,
-        #     self.wandb_logger.experiment.id)
-
-        # path = 'data/IMDB_BAO_changed/replay-{}-{}execs-{}nodes-{}s-{}iters-{}.pkl'.format(
-        #     experiment, self.num_query_execs, len(self.exp.nodes),
-        #     int(iter_total_latency / 1e3), self.curr_value_iter,
-        #     self.wandb_logger.experiment.id)
-
-        self.exp.Save(path)
-        # Remove previous.
-        if self._latest_replay_buffer_path is not None:
-            os.remove(self._latest_replay_buffer_path)
-        self._latest_replay_buffer_path = path
+        exp_save_path = p.replay_buffer_save_path
+        if exp_save_path is None:
+            exp_save_path = "data/"
+        if not exp_save_path.endswith("/"):
+            exp_save_path += "/"
+        if p.use_switching_workload:
+            # 使用不同的工作负载标识符
+            workload_id = self.current_workload
+            save_path = "{}/{}_rb_{}_wid{}.pkl".format(
+                exp_save_path,
+                self.curr_value_iter,
+                round(iter_total_latency / 1000, 3),
+                workload_id  # 在文件名中添加workload_id
+            )
+            # 确保Experience对象的workload_id是最新的
+            self.exp.SetWorkloadId(workload_id)
+        else:
+            save_path = "{}/{}_rb_{}.pkl".format(
+                exp_save_path, self.curr_value_iter, round(iter_total_latency / 1000, 3)
+            )
+            
+        self.exp.Save(save_path)
+        print("Saved experience buffer to", save_path)
 
     def LogTestExperience(self, to_execute_test, execution_results, tag="latency_test"):
         assert len(self.test_nodes) == len(execution_results)
@@ -3054,7 +3040,7 @@ class BalsaAgent(object):
             use_plan_restrictions=p.real_use_plan_restrictions,
         )
 
-    def RunOneIter(self,need_refresh=False):
+    def RunOneIter(self,need_refresh=False,need_save_agent=False):
         p = self.params
         self.curr_iter_skipped_queries = 0
         # Train the model.
@@ -3110,7 +3096,7 @@ class BalsaAgent(object):
         self.SaveBestPlans()
         # Qihan in the next iteration, we will switch the workload, so the buffer will be reset
         # before that we will save it
-        if (self.curr_value_iter + 1) % 5 == 0:
+        if need_save_agent:
             self.SaveAgent(model, iter_total_latency)
         # Run and log test queries.
         #  QIHANZHANG This takes time too!!!!!! value_iter=0
@@ -3361,28 +3347,73 @@ class BalsaAgent(object):
             # self.{all,train,test}_nodes no longer share any references.
             self.train_nodes = plans_lib.FilterScansOrJoins(self.train_nodes)
             self.test_nodes = plans_lib.FilterScansOrJoins(self.test_nodes)
+        
+        switch_workload_iter = [3, 5, 8, 12, 17, 19, 21, 23, 25, 28, 35, 37, 40, 46, 53, 57, 63, 70, 72, 75, 82, 89, 91, 97]
 
         while self.curr_value_iter < p.val_iters:
             # qihan: switch the workload here
             need_refresh = False
+            need_save_agent = (self.curr_value_iter + 1)  in switch_workload_iter
             #Qihan add p.use_switching_workload, if it's false then the same as balsa
-            # if p.use_switching_workload and (self.curr_value_iter == 20 or self.curr_value_iter == 40 or self.curr_value_iter == 50 
-            # or self.curr_value_iter == 60 or self.curr_value_iter == 70 or self.curr_value_iter == 75
-            # or self.curr_value_iter == 80 or self.curr_value_iter == 85 or self.curr_value_iter == 90
-            # or self.curr_value_iter == 95) and self.curr_value_iter != 0 :
-            if p.use_switching_workload and self.curr_value_iter % 5 == 0 and self.curr_value_iter != 0 :
+            if p.use_switching_workload and (self.curr_value_iter in switch_workload_iter) and self.curr_value_iter != 0 :
                 print("Switching workload ... ...")
                 self.is_origin_workload = not self.is_origin_workload
                 if self.is_origin_workload is True:
                     self.have_dynaic_workload_switch_back = True
                 else:
                     self.have_dynaic_workload_switch_back = False
-
-
+                
+                # random select from 1 2 3 4 5 6
+                random_select_workload = random.randint(1, 6)
+                print("random_select_workload: ", random_select_workload)
+                # 更新实例变量而不是全局变量
+                picked_workload_seen_before = False
+                if random_select_workload == 1:
+                    if self.seen_1 is False:
+                        self.seen_1 = True
+                    else:
+                        picked_workload_seen_before = True
+                        need_refresh = True
+                elif random_select_workload == 2:
+                    if self.seen_2 is False:
+                        self.seen_2 = True
+                    else:
+                        picked_workload_seen_before = True
+                        need_refresh = True
+                elif random_select_workload == 3:
+                    if self.seen_3 is False:
+                        self.seen_3 = True
+                    else:
+                        picked_workload_seen_before = True
+                        need_refresh = True
+                elif random_select_workload == 4:
+                    if self.seen_4 is False:
+                        self.seen_4 = True
+                    else:
+                        picked_workload_seen_before = True
+                        need_refresh = True
+                elif random_select_workload == 5:
+                    if self.seen_5 is False:
+                        self.seen_5 = True
+                    else:
+                        picked_workload_seen_before = True
+                        need_refresh = True
+                elif random_select_workload == 6:
+                    if self.seen_6 is False:
+                        self.seen_6 = True
+                    else:
+                        picked_workload_seen_before = True
+                        need_refresh = True
+                    
+                    
+                    
+                    
+                    
+                self.current_workload = random_select_workload
 
 
                 # Qihan Reset the experience buffer.
-                self.workload = self._MakeWorkload(self.is_origin_workload)
+                self.workload = self._MakeWorkload(random_select_workload)
                 self.all_nodes = self.workload.Queries(split="all")
                 self.train_nodes = self.workload.Queries(split="train")
                 self.test_nodes = self.workload.Queries(split="test")
@@ -3391,12 +3422,15 @@ class BalsaAgent(object):
                 self.test_nodes = plans_lib.FilterScansOrJoins(self.test_nodes)
 
                 # Qihan Reset the experience buffer.
+
+                # Qihan still remain the last iter's data in the new exp to be align with the Lifelong RL paper
                 exp_new = Experience(
                     self.train_nodes,
                     p.tree_conv,
                     workload_info=self.workload.workload_info,
                     query_featurizer_cls=self.exp.query_featurizer_cls,
                     plan_featurizer_cls=self.exp.plan_featurizer_cls,
+                    workload_id=random_select_workload,  # 设置workload_id为当前选择的workload
                 )
                 #qihan still remain the last iter's data in the new exp to be align with the Lifelong RL paper
                 exp_new.add_last_iter_data(self.exp)
@@ -3406,13 +3440,26 @@ class BalsaAgent(object):
                 print("Switching workload done, the buffer has been reset.")
 
                 # Qihan now we need to retrain the model using buffer to refresh the model
-                if self.have_dynaic_workload_switch_back:
-                    print("Switching workload back to the original one, adding previous exp ... ...")
-                    self.exp.Load(p.prev_replay_buffers_glob_refresh,
-                                  p.prev_replay_keep_last_fraction)
-                    need_refresh = True
+                if picked_workload_seen_before:
+                    print(f"Switching workload back to the {self.current_workload}, adding previous exp ... ...")
+                    
+                    # 构建路径模式，指定包含当前workload_id的replay buffer文件
+                    replay_glob_pattern = None
+                    if replay_glob_pattern is None:
+                        # 如果没有指定刷新用的glob pattern，尝试使用默认格式
+                        replay_glob_pattern = "data/*_wid{}.pkl".format(random_select_workload)
+                    elif "*" in replay_glob_pattern and "wid" not in replay_glob_pattern:
+                        # 如果指定了pattern但没有workload_id，尝试添加
+                        parts = replay_glob_pattern.split("*")
+                        if len(parts) > 1:
+                            replay_glob_pattern = parts[0] + "*_wid" + str(random_select_workload) + parts[1]
+                    
+                    print(f"Loading replay buffers with pattern: {replay_glob_pattern}")
+                    self.exp.Load(replay_glob_pattern,
+                                 p.prev_replay_keep_last_fraction, have_dynaic_workload_switch_back=True)
 
-            has_timeouts = self.RunOneIter(need_refresh=need_refresh)
+
+            has_timeouts = self.RunOneIter(need_refresh=need_refresh,need_save_agent=need_save_agent)
             self.LogTimings()
 
             if (
@@ -3460,7 +3507,7 @@ def Main(argv):
     # Override params here for quick debugging.
     # p.sim_checkpoint = None
     # p.epochs = 1
-    p.val_iters = 20
+    p.val_iters = 100
 
     # p.query_glob = ['7*.sql']
     # p.test_query_glob = ['7c.sql']

@@ -177,10 +177,10 @@ class Optimizer(object):
         self.current_nested_loop_join_module_index = 4
 
         self.k_prototype = Kproto_DataProcessor(
-    index_path='/mydata/LIMAOLifeLongRLDB/balsa/deal_assorted_text/indexes_env_matrix.txt',
-    operator_path='/mydata/LIMAOLifeLongRLDB/balsa/deal_assorted_text/operators_env_matrix.txt',
-    sql_path='/mydata/LIMAOLifeLongRLDB/balsa/deal_assorted_text/sql_feature_encode_matrix.txt',
-    query_path='/mydata/LIMAOLifeLongRLDB/balsa/deal_assorted_text/query_enc_matrix.txt',
+    index_path='/home/qihanzha/LIMAOLifeLongRLDB/balsa/deal_assorted_text/indexes_env_matrix.txt',
+    operator_path='/home/qihanzha/LIMAOLifeLongRLDB/balsa/deal_assorted_text/operators_env_matrix.txt',
+    sql_path='/home/qihanzha/LIMAOLifeLongRLDB/balsa/deal_assorted_text/sql_feature_encode_matrix.txt',
+    query_path='/home/qihanzha/LIMAOLifeLongRLDB/balsa/deal_assorted_text/query_enc_matrix.txt',
     matrix_size=46)
 
     def SetModel(self, model):

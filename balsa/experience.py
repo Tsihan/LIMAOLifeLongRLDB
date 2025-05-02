@@ -53,6 +53,7 @@ class Experience(object):
         plan_featurizer_cls=plans_lib.PreOrderSequenceFeaturizer,
         query_featurizer_cls=plans_lib.QueryFeaturizer,
         workload_info=None,
+        workload_id=None,
     ):
         
         self.tree_conv = tree_conv
@@ -62,6 +63,7 @@ class Experience(object):
         else:
             self.nodes = data
         self.initial_size = len(self.nodes)
+        self.workload_id = workload_id
 
         self.plan_featurizer_cls = plan_featurizer_cls
         self.query_featurizer_cls = query_featurizer_cls
@@ -108,7 +110,7 @@ class Experience(object):
             print('Path {} exists, appending current time: {}'.format(
                 old_path, path))
             assert not os.path.exists(path), path
-        to_save = (self.initial_size, self.nodes)
+        to_save = (self.initial_size, self.nodes, self.workload_id)
         with open(path, 'wb') as f:
             pickle.dump(to_save, f)
         print('Saved Experience to:', path)
@@ -116,9 +118,9 @@ class Experience(object):
     def Load(self, path_glob, keep_last_fraction=1, have_dynaic_workload_switch_back = False):
         """Loads multiple serialized Experience buffers into a single one.
 
-        The 'initial_size' Nodes from self would be kept, while those from the
-        loaded buffers would be dropped.  Internally, checked that all buffers
-        and self have the same 'initial_size' field.
+        This implementation now considers workload_id when loading buffers.
+        Buffers with the same workload_id as self will be loaded,
+        while those with different workload_ids will be skipped.
         """
         paths = glob.glob(os.path.expanduser(path_glob))
         if not paths:
@@ -132,6 +134,11 @@ class Experience(object):
         total_unique_plans_table = collections.defaultdict(set)
         total_num_unique_plans = 0
         initial_nodes_len = len(self.nodes)
+        
+        # 按workload_id组织加载的数据
+        loaded_by_workload = collections.defaultdict(list)
+        
+        # 第一次遍历加载所有数据但根据workload_id分开存储
         for path in paths:
             t1 = time.time()
             print('Loading replay buffer', path)
@@ -141,60 +148,107 @@ class Experience(object):
             loaded = np.load(path, allow_pickle=True)
             gc.enable()
             print('  ...took {:.1f} seconds'.format(time.time() - t1))
-            initial_size, nodes = loaded
-            # Sanity checks & some invariant checks.  A more stringent check
-            # would be to check that:
-            #   buffer 1: qname_0 qname_1 ...
-            #   ...
-            #   buffer N: qname_0 qname_1, ...
-            # I.e., query names all correspond.
+            
+            # 检查loaded的长度，兼容旧格式
+            if len(loaded) == 2:
+                # 旧格式没有workload_id
+                initial_size, nodes = loaded
+                wid = 1  # 默认ID为1
+            else:
+                # 新格式包含workload_id
+                initial_size, nodes, wid = loaded
+                
             assert type(initial_size) is int and type(nodes) is list, path
-            #Qihan since the two workload's length may be different, we need to check the workload info
-
-            # assert initial_size == self.initial_size, (path, initial_size,
-            #                                            self.initial_size)
-            # assert len(nodes) >= initial_size and len(
-            #     nodes) % initial_size == 0, (len(nodes), path)
-            nodes_executed = nodes[initial_size:]
-            if keep_last_fraction < 1:
-                assert len(nodes_executed) % initial_size == 0
-                num_iters = len(nodes_executed) // initial_size
-                keep_num_iters = int(num_iters * keep_last_fraction)
-                print('  orig len {} keeping the last fraction {} ({} iters)'.
-                      format(len(nodes_executed), keep_last_fraction,
-                             keep_num_iters))
-                nodes_executed = nodes_executed[-(keep_num_iters *
-                                                  initial_size):]
-            self.nodes.extend(nodes_executed)
-            # Analysis.
-            num_unique_plans, unique_plans_table = Experience.CountUniquePlans(
-                self.initial_size, nodes_executed)
-            total_num_unique_plans_prev = total_num_unique_plans
-            total_num_unique_plans = Experience.MergeUniquePlansInto(
-                unique_plans_table, total_unique_plans_table)
-            print('  num_unique_plans from loaded buffer {}; actually '\
-                  'new unique plans contributed (after merging) {}'.
-                  format(num_unique_plans,
-                         total_num_unique_plans - total_num_unique_plans_prev))
-        print('Loaded {} nodes from {} buffers; glob={}, paths:\n{}'.format(
-            len(self.nodes) - initial_nodes_len, len(paths), path_glob,
-            '\n'.join(paths)))
+            
+            # 按workload_id存储
+            loaded_by_workload[wid].append((initial_size, nodes))
+            
+        # 如果self.workload_id为None，则使用所有data
+        workload_to_load = self.workload_id if self.workload_id is not None else list(loaded_by_workload.keys())
+        
+        # 如果是单个值，转换为列表
+        if not isinstance(workload_to_load, list):
+            workload_to_load = [workload_to_load]
+            
+        # 只合并与当前workload_id匹配的数据
+        for wid in workload_to_load:
+            if wid not in loaded_by_workload:
+                print(f"Warning: No data found for workload_id {wid}")
+                continue
+                
+            for initial_size, nodes in loaded_by_workload[wid]:
+                nodes_executed = nodes[initial_size:]
+                if keep_last_fraction < 1:
+                    if len(nodes_executed) > 0 and initial_size > 0:
+                        num_iters = len(nodes_executed) // initial_size
+                        keep_num_iters = int(num_iters * keep_last_fraction)
+                        print('  orig len {} keeping the last fraction {} ({} iters)'.
+                              format(len(nodes_executed), keep_last_fraction,
+                                     keep_num_iters))
+                        if keep_num_iters > 0:
+                            nodes_executed = nodes_executed[-(keep_num_iters * initial_size):]
+                        else:
+                            # 如果keep_num_iters为0，保留所有数据
+                            pass
+                
+                self.nodes.extend(nodes_executed)
+                
+                # 分析
+                try:
+                    num_unique_plans, unique_plans_table = Experience.CountUniquePlans(
+                        initial_size, nodes_executed)
+                    total_num_unique_plans_prev = total_num_unique_plans
+                    total_num_unique_plans = Experience.MergeUniquePlansInto(
+                        unique_plans_table, total_unique_plans_table)
+                    print('  num_unique_plans from loaded buffer {}; actually '\
+                          'new unique plans contributed (after merging) {}'.
+                          format(num_unique_plans,
+                                 total_num_unique_plans - total_num_unique_plans_prev))
+                except Exception as e:
+                    print(f"Warning: Error calculating unique plans: {e}")
+        
+        print(f'Loaded {len(self.nodes) - initial_nodes_len} nodes from {len(paths)} buffers; glob={path_glob}')
         print('Total unique plans (num_query_execs):', total_num_unique_plans)
+
+    def GetWorkloadId(self):
+        """Returns the workload ID of this experience buffer."""
+        return self.workload_id
+        
+    def SetWorkloadId(self, workload_id):
+        """Sets the workload ID of this experience buffer."""
+        self.workload_id = workload_id
+        return self
 
     @classmethod
     def CountUniquePlans(cls, num_templates, nodes):
-        #Qihan since the two workload's length may be different, we need to check the workload info
-        #assert len(nodes) % num_templates == 0, (len(nodes), num_templates)
+        # 如果nodes长度为0，直接返回空结果
+        if len(nodes) == 0:
+            return 0, collections.defaultdict(set)
+            
+        # 避免断言失败，改为避免错误的逻辑
         unique_plans = collections.defaultdict(set)
-        for i in range(num_templates):
+        
+        # 确保num_templates不超过节点数量
+        safe_num_templates = min(num_templates, len(nodes))
+        
+        for i in range(safe_num_templates):
             query_name = nodes[i].info['query_name']
             hint_set = unique_plans[query_name]
-            for j, node in enumerate(nodes[i::num_templates]):
-                # FIXME qihan here will encounter assert error
-                # assert node.info['query_name'] == query_name, (
-                #     node.info['query_name'], query_name)
-                hint = node.hint_str(with_physical_hints=True)
-                hint_set.add(hint)
+            
+            # 对于每个模板，收集所有匹配节点
+            for j, node in enumerate(nodes[i::safe_num_templates]):
+                if j >= len(nodes) // safe_num_templates:
+                    break
+                try:
+                    if node.info['query_name'] != query_name:
+                        # 如果query_name不匹配，记录但不终止
+                        print(f"Warning: Expected query_name={query_name}, got {node.info['query_name']}")
+                    hint = node.hint_str(with_physical_hints=True)
+                    hint_set.add(hint)
+                except Exception as e:
+                    print(f"Warning: Error processing node: {e}")
+                    continue
+                    
         num_unique_plans = sum([len(s) for s in unique_plans.values()])
         return num_unique_plans, unique_plans
 
@@ -708,12 +762,22 @@ class Experience(object):
         print('Dropped agent experience (prev len {}, new len {})'.format(
             old_len, new_len))
         
-    def add_last_iter_data(self,old_replay_buffer):
+    def add_last_iter_data(self, old_replay_buffer):
         """Add the last iter's data from old_replay_buffer to self.nodes."""
         #assert len(old_replay_buffer.nodes) % old_replay_buffer.initial_size == 0
         assert len(old_replay_buffer.nodes) >= old_replay_buffer.initial_size
-        self.nodes.extend(old_replay_buffer.nodes[-old_replay_buffer.initial_size:])
-        print('Added last iter data from old replay buffer to the new one.')
+        
+        # 添加最后一次迭代的数据
+        last_iter_nodes = old_replay_buffer.nodes[-old_replay_buffer.initial_size:]
+        self.nodes.extend(last_iter_nodes)
+        
+        # 如果workload_id不同，记录日志
+        if hasattr(old_replay_buffer, 'workload_id') and hasattr(self, 'workload_id') and \
+           old_replay_buffer.workload_id is not None and self.workload_id is not None and \
+           old_replay_buffer.workload_id != self.workload_id:
+            print(f'Added last iter data from workload {old_replay_buffer.workload_id} to workload {self.workload_id}')
+        else:
+            print('Added last iter data from old replay buffer to the new one.')
 
 
 
