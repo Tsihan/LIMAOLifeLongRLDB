@@ -11,7 +11,7 @@ from datetime import datetime
 
 # Parse command-line arguments for random seed
 parser = argparse.ArgumentParser(description='Run BAO dynamic experiment.')
-parser.add_argument('--seed', type=int, default=42, help='Random seed for reproducibility')
+parser.add_argument('--seed', type=int, default=24, help='Random seed for reproducibility')
 args = parser.parse_args()
 
 # Set the seed for random using command-line argument
@@ -117,7 +117,7 @@ print("Read", len(init_queries), "queries from", init_query_directory)
 print("Using Bao:", USE_BAO)
 print("Executing queries using PG optimizer")
 for fp, q in init_queries:
-    pg_time = run_query(q, bao_reward=True)
+    pg_time = run_query(q, PG_CONNECTION_STR_1, TIME_OUT_IMDB, bao_reward=True)
     print("x", "x", time(), fp, pg_time, "PG", flush=True)
 
 for query_directory in query_directory_list:
@@ -137,4 +137,4 @@ for query_directory in query_directory_list:
             q_time = run_query(q, pg_connection_str, timeout, bao_reward=USE_BAO, bao_select=USE_BAO)
             print("BAO", time(), fp, q_time, flush=True)
 # 在程序结束时调用
-send_email("Bao Experiment", "The experiment of non-repeated assorted queries finished!", "EMAIL")
+send_email("Bao Experiment", "The experiment of non-repeated assorted queries finished!", "2453939195@qq.com")
