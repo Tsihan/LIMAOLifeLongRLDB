@@ -20,11 +20,11 @@ random.seed(args.seed)
 USE_BAO = True
 PG_CONNECTION_STR_1 = "dbname=imdbload user=qihanzha host=localhost port=5438"
 
-PG_CONNECTION_STR_3 = "dbname=tpch1load user=qihanzha host=localhost port=5438"
+PG_CONNECTION_STR_3 = "dbname=tpch10load user=qihanzha host=localhost port=5438"
 
 PG_CONNECTION_STR_5 = "dbname=soload user=qihanzha host=localhost port=5438"
 TIME_OUT_IMDB = 10000
-TIME_OUT_TPCH = 60000
+TIME_OUT_TPCH = 30000
 TIME_OUT_STACK = 30000
 EPISODE_LEN = 10
 PROGRESS_CFG = "/home/qihanzha/LIMAOLifeLongRLDB/bao_server/current_progress.cfg"

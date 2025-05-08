@@ -138,7 +138,7 @@ def train_and_save_model_episode(fn, verbose=True):
         raise BaoTrainingException("Cannot episode train a Bao model with no experience")
     reg = model.BaoRegression(have_cache_data=True, verbose=verbose)
     # Qihan: just light train
-    reg.fit(x, y,epochs=10)
+    reg.fit(x, y,epochs=100)
     reg.save(fn)
     return reg
 

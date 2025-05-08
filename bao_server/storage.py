@@ -4,7 +4,7 @@ import itertools
 
 from common import BaoException
 ROW_LIMIT = 500
-CFG_FILE_PATH = "/mydata/LIMAOLifeLongRLDB/bao_server/current_progress.cfg"
+CFG_FILE_PATH = "/home/qihanzha/LIMAOLifeLongRLDB/bao_server/current_progress.cfg"
 
 def read_progress(cfg_file=CFG_FILE_PATH):
     """
