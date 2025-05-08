@@ -18,21 +18,20 @@ args = parser.parse_args()
 random.seed(args.seed)
 
 USE_BAO = True
-PG_CONNECTION_STR_1 = "dbname=imdbload user=qihan host=localhost"
-PG_CONNECTION_STR_2 = "dbname=imdbload_after2000 user=qihan host=localhost"
-PG_CONNECTION_STR_3 = "dbname=tpch1load user=qihan host=localhost"
-PG_CONNECTION_STR_4 = "dbname=tpch10load user=qihan host=localhost"
-PG_CONNECTION_STR_5 = "dbname=soload user=qihan host=localhost"
-TIME_OUT_IMDB = 32000
-TIME_OUT_TPCH = 60000
-TIME_OUT_STACK = 60000
+PG_CONNECTION_STR_1 = "dbname=imdbload user=qihanzha host=localhost port=5438"
+
+PG_CONNECTION_STR_3 = "dbname=tpch10load user=qihanzha host=localhost port=5438"
+PG_CONNECTION_STR_5 = "dbname=soload user=qihanzha host=localhost port=5438"
+TIME_OUT_IMDB = 10000
+TIME_OUT_TPCH = 30000
+TIME_OUT_STACK = 30000
 TOTOAL_ITER = 200
 NUM_PHASE = 40
-query_directory_imdb_list = ["/mydata/LIMAOLifeLongRLDB/imdb_assorted_3", "/mydata/LIMAOLifeLongRLDB/imdb_assorted_4"]
-query_directory_stack_list = ["/mydata/LIMAOLifeLongRLDB/so_assorted", "/mydata/LIMAOLifeLongRLDB/so_assorted_2"]
-query_directory_tpch_list = ["/mydata/LIMAOLifeLongRLDB/tpch_assorted", "/mydata/LIMAOLifeLongRLDB/tpch_assorted_2", "/mydata/LIMAOLifeLongRLDB/tpch_assorted_3"]
-PG_CONNECTION_STR_LIST = [PG_CONNECTION_STR_1, PG_CONNECTION_STR_2, PG_CONNECTION_STR_3, PG_CONNECTION_STR_4, PG_CONNECTION_STR_5]
-init_query_directory = "/mydata/LIMAOLifeLongRLDB/imdb_assorted_3"
+query_directory_imdb_list = ["/home/qihanzha/LIMAOLifeLongRLDB/imdb_assorted_3", "/home/qihanzha/LIMAOLifeLongRLDB/imdb_assorted_4"]
+query_directory_stack_list = ["/home/qihanzha/LIMAOLifeLongRLDB/so_assorted", "/home/qihanzha/LIMAOLifeLongRLDB/so_assorted_2"]
+query_directory_tpch_list = ["/home/qihanzha/LIMAOLifeLongRLDB/tpch_assorted", "/home/qihanzha/LIMAOLifeLongRLDB/tpch_assorted_2", "/home/qihanzha/LIMAOLifeLongRLDB/tpch_assorted_3"]
+PG_CONNECTION_STR_LIST = [PG_CONNECTION_STR_1, PG_CONNECTION_STR_3, PG_CONNECTION_STR_5]
+init_query_directory = "/home/qihanzha/LIMAOLifeLongRLDB/imdb_assorted_3"
 
 def random_partition(total, parts):
     # Calculate the lower and upper bound for each part.
@@ -161,7 +160,7 @@ for partition in partitions:
         global_iter += 1
         print(f"=== Executing queries using Bao optimizer, global iteration {global_iter}/{TOTOAL_ITER}, partition {partition}, phase iteration {i+1} for database {dbname}, query directory {chosen_directory} ===")
         if USE_BAO:
-            os.system("cd /mydata/LIMAOLifeLongRLDB/bao_server && python3 baoctl.py --retrain")
+            os.system("cd /home/qihanzha/LIMAOLifeLongRLDB/bao_server && python3 baoctl.py --retrain")
             os.system("sync")
             for fp, q in queries:
                 q_time = run_query(q, PG_CONNECTION_STR, timeout, bao_reward=USE_BAO, bao_select=USE_BAO)
