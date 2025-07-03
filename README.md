@@ -5,6 +5,8 @@
 <p>
 This repository contains the implementation of LIMAO on Balsa, a Lifelong Modular Reinforcement Learning framework designed for database query optimization in dynamic environments. The codebase currently supports experiments on IMDB and TPC-H workloads, but you are welcome to extend it to additional workloads. Due to time constraints, the repository might still have some inconsistencies. Feel free to reach out to the authors for assistance!
 
+Attention: 1. Please go to the corresponding branches and setup the environemnts, don't use the `main` branch directly. For exmaple, you can go to the `final_switching_workload` branch to setup the environment for LIMAO-Balsa's workload switch situation in IMDB; 2. Currently we have a several issues for the implementation: 1. We use zero masking instead of embedding decomposition to make the implementation easier; 2. Bao's current implementation of tree decomposition will cause some embedding issues, which will make the model instable for some queries ; 3. We haven't vectorized the modular training (assign the training data to different module combination, and train them in a batch mode) therefore the training could be costly in some GPUs that are not powerful enough. We will fix these issues soon.
+
 ## Table of Contents
 1. [Introduction](#introduction)
 2. [System Requirements](#system-requirements)
