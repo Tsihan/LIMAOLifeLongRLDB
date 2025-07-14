@@ -44,8 +44,8 @@ query_directory_list = query_directory_imdb_list + query_directory_tpch_list
 random.shuffle(query_directory_list)
 
 def send_email(subject, body, to_email):
-    from_email = "2453939195@qq.com"
-    password = "bajbveysllkjdjbd"
+    from_email = " xxx"
+    password = ""
     msg = MIMEMultipart()
     msg['From'] = from_email
     msg['To'] = to_email
@@ -107,7 +107,7 @@ def get_all_queries_from_directory(directory):
 
 # Start of the experiment.
 time_now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-send_email("Bao Experiment", f"The experiment of dynamic started! {time_now}", "2453939195@qq.com")
+send_email("Bao Experiment", f"The experiment of dynamic started! {time_now}", " xxx")
 
 
 init_queries = get_all_queries_from_directory(init_query_directory)
@@ -137,4 +137,4 @@ for query_directory in query_directory_list:
             q_time = run_query(q, pg_connection_str, timeout, bao_reward=USE_BAO, bao_select=USE_BAO)
             print("BAO", time(), fp, q_time, flush=True)
 # 在程序结束时调用
-send_email("Bao Experiment", "The experiment of non-repeated assorted queries finished!", "2453939195@qq.com")
+send_email("Bao Experiment", "The experiment of non-repeated assorted queries finished!", " xxx")
