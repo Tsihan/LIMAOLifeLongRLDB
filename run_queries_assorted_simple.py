@@ -65,8 +65,8 @@ def random_partition(total, parts):
     return result
 
 def send_email(subject, body, to_email):
-    from_email = "2453939195@qq.com"
-    password = "bajbveysllkjdjbd"
+    from_email = ""
+    password = ""
     msg = MIMEMultipart()
     msg['From'] = from_email
     msg['To'] = to_email
@@ -128,7 +128,7 @@ def get_all_queries_from_directory(directory):
 
 # Start of the experiment.
 time_now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-send_email("Bao Experiment", f"The experiment of dynamic started! {time_now}", "2453939195@qq.com")
+send_email("Bao Experiment", f"The experiment of dynamic started! {time_now}", "")
 partitions = random_partition(TOTOAL_ITER, NUM_PHASE)
 print("Partition:", partitions)
 init_queries = get_all_queries_from_directory(init_query_directory)
@@ -202,7 +202,7 @@ for partition in partitions:
                 os.system("sync")
         if global_iter % 10 == 0:
             time_now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            send_email("Bao Experiment", f"The experiment of chaos is currently at {global_iter}/{TOTOAL_ITER} iters! {time_now}", "2453939195@qq.com")
+            send_email("Bao Experiment", f"The experiment of chaos is currently at {global_iter}/{TOTOAL_ITER} iters! {time_now}", "")
         
 time_now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")  
-send_email("Bao Experiment", f"The experiment of LIMAO_Bao chaos finished! {time_now}", "2453939195@qq.com")
+send_email("Bao Experiment", f"The experiment of LIMAO_Bao chaos finished! {time_now}", "")

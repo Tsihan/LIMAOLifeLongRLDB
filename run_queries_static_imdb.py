@@ -20,8 +20,8 @@ def update_progress(iteration, episode):
         f.write(f"episode={episode}\n")
     
 def send_email(subject, body, to_email):
-    from_email = "2453939195@qq.com"
-    password = "bajbveysllkjdjbd"
+    from_email = ""
+    password = ""
 
     msg = MIMEMultipart()
     msg['From'] = from_email
@@ -134,4 +134,4 @@ for i in range(1, NUM_ITERATIONS + 1):
             os.system(f"cd bao_server && python3 baoctl.py --retrain --iteration {i} --episode {current_episode}")
             os.system("sync")
 # 在程序结束时可选地发送邮件通知
-# send_email("Bao Experiment", "The experiment of IMDB static finished!", "2453939195@qq.com")
+# send_email("Bao Experiment", "The experiment of IMDB static finished!", "")

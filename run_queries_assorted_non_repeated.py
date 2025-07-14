@@ -55,8 +55,8 @@ def update_progress(iteration, episode):
         f.write(f"episode={episode}\n")
 
 def send_email(subject, body, to_email):
-    from_email = "2453939195@qq.com"
-    password = "bajbveysllkjdjbd"
+    from_email = ""
+    password = ""
     msg = MIMEMultipart()
     msg['From'] = from_email
     msg['To'] = to_email
@@ -118,7 +118,7 @@ def get_all_queries_from_directory(directory):
 
 # Start of the experiment.
 time_now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-send_email("Bao Experiment", f"The experiment of dynamic started! {time_now}", "2453939195@qq.com")
+send_email("Bao Experiment", f"The experiment of dynamic started! {time_now}", "")
 
 
 init_queries = get_all_queries_from_directory(init_query_directory)
@@ -169,4 +169,4 @@ for query_directory in query_directory_list:
             os.system(f"cd /home/qihanzha/LIMAOLifeLongRLDB/bao_server && python3 baoctl.py --retrain --iteration {global_iter} --episode {current_episode}")
 
 # 在程序结束时调用
-send_email("Bao Experiment", "The experiment of non-repeated assorted queries finished!", "2453939195@qq.com")
+send_email("Bao Experiment", "The experiment of non-repeated assorted queries finished!", "")
